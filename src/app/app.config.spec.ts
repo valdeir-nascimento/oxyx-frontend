@@ -1,7 +1,10 @@
+import { HttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { SESSION_INVALIDATION } from './shared/application/session-invalidation';
+import { Router } from '@angular/router';
 import { ACCOUNT_GATEWAY } from './identity/application/account/account-gateway';
 import { AUTHENTICATION_GATEWAY } from './identity/application/authentication/authentication-gateway';
+import { CARETAKER_GATEWAY } from './identity/application/caretaker/caretaker-gateway';
 import { SessionStore } from './identity/application/authentication/session-store';
 import { IdentityHttpAdapter } from './identity/infrastructure/identity-http.adapter';
 import { appConfig } from './app.config';
@@ -11,22 +14,32 @@ import { appConfig } from './app.config';
  * o compilador não confere: `useExisting` aceita qualquer coisa.
  *
  * Sem este arquivo, apagar uma linha de `app.config.ts` mantinha a suíte inteira verde e derrubava
- * a aplicação em produção — o interceptador pede `SESSION_INVALIDATION` em **toda** requisição, e
- * sem provedor isso é `NullInjectorError` antes de qualquer tela aparecer.
+ * a aplicação em produção: sem o interceptador de sessão, um 401 deixava a identidade em memória, e
+ * o guard devolvia a pessoa à casca com o cookie já recusado (FR-003).
  */
 describe('appConfig', () => {
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [...appConfig.providers] });
+    TestBed.configureTestingModule({ providers: [...appConfig.providers, provideHttpClientTesting()] });
   });
 
-  it('serves both backend ports from the single HTTP adapter', () => {
+  it('serves every backend port from the single HTTP adapter', () => {
     const adapter = TestBed.inject(IdentityHttpAdapter);
 
     expect(TestBed.inject(AUTHENTICATION_GATEWAY)).toBe(adapter);
     expect(TestBed.inject(ACCOUNT_GATEWAY)).toBe(adapter);
+    expect(TestBed.inject(CARETAKER_GATEWAY)).toBe(adapter);
   });
 
-  it('points the session invalidation port at the store that holds the identity', () => {
-    expect(TestBed.inject(SESSION_INVALIDATION)).toBe(TestBed.inject(SessionStore));
+  it('forgets the identity when the backend refuses the session', () => {
+    const session = TestBed.inject(SessionStore);
+    session.remember({ id: 'maria', fullName: 'Maria Silva', role: 'USER', mustChangePassword: false });
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    TestBed.inject(HttpClient).get('/api/v1/anything').subscribe({ error: () => undefined });
+    TestBed.inject(HttpTestingController)
+      .expectOne('/api/v1/anything')
+      .flush({ code: 'UNAUTHENTICATED', status: 401 }, { status: 401, statusText: 'Unauthorized' });
+
+    expect(session.caretaker()).toBeNull();
   });
 });

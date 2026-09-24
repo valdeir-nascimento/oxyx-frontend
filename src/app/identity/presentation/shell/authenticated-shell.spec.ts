@@ -5,6 +5,7 @@ import { Notification } from '../../../shared/domain/notification';
 import { failure, success } from '../../../shared/application/result';
 import { SessionStore } from '../../application/authentication/session-store';
 import { SignOutUseCase } from '../../application/authentication/sign-out.usecase';
+import { AuthenticatedCaretaker } from '../../domain/authenticated-caretaker';
 import { AuthenticatedShell } from './authenticated-shell';
 
 /** Assinatura de `Router.navigate`, só com o que os testes usam. */
@@ -15,17 +16,19 @@ type Navigate = (commands: readonly unknown[]) => Promise<boolean>;
  * avisa a intenção de sair; quem executa a saída é o caso de uso.
  */
 describe('AuthenticatedShell', () => {
-  const maria = {
+  const maria: AuthenticatedCaretaker = {
     id: '7c1f0b2e-3d4a-4f5b-8c9d-0e1f2a3b4c5d',
     fullName: 'Maria Silva',
-    role: 'ADMINISTRATOR' as const,
+    role: 'ADMINISTRATOR',
     mustChangePassword: false,
   };
 
   let execute: Mock;
   let navigate: Mock<Navigate>;
 
-  async function render(): Promise<ComponentFixture<AuthenticatedShell>> {
+  async function render(
+    caretaker: AuthenticatedCaretaker = maria,
+  ): Promise<ComponentFixture<AuthenticatedShell>> {
     await TestBed.configureTestingModule({
       imports: [AuthenticatedShell],
       providers: [provideRouter([]), { provide: SignOutUseCase, useValue: { execute } }],
@@ -33,7 +36,7 @@ describe('AuthenticatedShell', () => {
 
     navigate = vi.fn<Navigate>().mockResolvedValue(true);
     vi.spyOn(TestBed.inject(Router), 'navigate').mockImplementation(navigate);
-    TestBed.inject(SessionStore).remember(maria);
+    TestBed.inject(SessionStore).remember(caretaker);
 
     const fixture = TestBed.createComponent(AuthenticatedShell);
     fixture.detectChanges();
@@ -55,6 +58,28 @@ describe('AuthenticatedShell', () => {
 
     expect(text).toContain('Maria Silva');
     expect(text).toContain('Administrador');
+  });
+
+  it('labels a common user as such', async () => {
+    const text = ((await render({ ...maria, role: 'USER' })).nativeElement as HTMLElement).textContent ?? '';
+
+    expect(text).toContain('Usuário');
+  });
+
+  it('hides the caretaker administration from a common user (FR-011)', async () => {
+    // Esconder não é a proteção — o backend responde 403 —, mas evita oferecer um caminho que
+    // terminaria em recusa.
+    const fixture = await render({ ...maria, role: 'USER' });
+    const links = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('nav a'));
+
+    expect(links.map((link) => link.textContent?.trim())).toEqual(['Início']);
+  });
+
+  it('shows the caretaker administration to an administrator', async () => {
+    const fixture = await render();
+    const links = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('nav a'));
+
+    expect(links.map((link) => link.textContent?.trim())).toContain('Responsáveis');
   });
 
   it('returns to the access screen once the backend invalidated the session', async () => {

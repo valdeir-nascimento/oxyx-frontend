@@ -2,7 +2,7 @@ import { HttpContextToken, HttpErrorResponse, HttpInterceptorFn } from '@angular
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
-import { SESSION_INVALIDATION } from '../application/session-invalidation';
+import { SessionStore } from '../application/authentication/session-store';
 
 /**
  * Permite a quem chama dispensar o tratamento de sessão para uma requisição específica.
@@ -16,7 +16,11 @@ const FORBIDDEN_CODE = 'FORBIDDEN';
 const INVALID_CREDENTIALS_CODE = 'INVALID_CREDENTIALS';
 
 /**
- * Traduz as recusas do backend em navegação (FR-003, FR-010).
+ * Traduz as recusas de sessão do backend em navegação (FR-003, FR-010).
+ *
+ * Vive em `identity`, e não em `shared`: sessão, rotas de acesso e o código `INVALID_CREDENTIALS`
+ * são vocabulário deste contexto (T233). Por isso esquece a identidade direto no `SessionStore`, sem
+ * porta intermediária.
  *
  * - **401**: sem sessão ou sessão expirada. Esquece a identidade em memória, para que nenhum guard
  *   continue acreditando numa sessão que o backend já recusou, e leva à tela de acesso com o motivo
@@ -29,9 +33,9 @@ const INVALID_CREDENTIALS_CODE = 'INVALID_CREDENTIALS';
  *
  * O erro continua propagando, porque quem chamou precisa saber que a operação falhou.
  */
-export const httpErrorInterceptor: HttpInterceptorFn = (request, next) => {
+export const sessionInterceptor: HttpInterceptorFn = (request, next) => {
   const router = inject(Router);
-  const session = inject(SESSION_INVALIDATION);
+  const session = inject(SessionStore);
 
   return next(request).pipe(
     catchError((error: unknown) => {

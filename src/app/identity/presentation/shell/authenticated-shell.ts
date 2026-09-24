@@ -1,16 +1,18 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthenticatedLayout } from '../../../shared/presentation/layout/authenticated-layout';
 import { Alert } from '../../../shared/presentation/ui/alert/alert';
 import { Notification } from '../../../shared/domain/notification';
 import { SessionStore } from '../../application/authentication/session-store';
 import { SignOutUseCase } from '../../application/authentication/sign-out.usecase';
+import { roleLabelOf } from '../labels';
+import { menuFor } from './menu';
 
 /**
  * Casca da aplicação autenticada.
  *
- * É o que liga a sessão ao layout compartilhado: o layout recebe nome e perfil por entrada e não
- * conhece o contexto identity (princípio I). Sair é o caso de uso que executa; a casca só navega
+ * É o que liga a sessão ao layout compartilhado: decide o menu e o rótulo do perfil de quem está
+ * na sessão e os entrega por entrada, e o layout não conhece perfil (princípio I, T233). Sair é o caso de uso que executa; a casca só navega
  * depois que o backend confirma que a sessão acabou (FR-004).
  */
 @Component({
@@ -31,7 +33,8 @@ import { SignOutUseCase } from '../../application/authentication/sign-out.usecas
 
       <ovyx-authenticated-layout
         [fullName]="caretaker.fullName"
-        [role]="caretaker.role"
+        [roleLabel]="roleLabel()"
+        [menuItems]="menuItems()"
         (signOut)="signOut()"
       />
     }
@@ -47,6 +50,17 @@ export class AuthenticatedShell {
   private readonly router = inject(Router);
 
   protected readonly caretaker = inject(SessionStore).caretaker;
+
+  /** O que o perfil de quem está na sessão pode ver (FR-011). */
+  protected readonly menuItems = computed(() => {
+    const caretaker = this.caretaker();
+    return caretaker ? menuFor(caretaker.role) : [];
+  });
+
+  protected readonly roleLabel = computed(() => {
+    const caretaker = this.caretaker();
+    return caretaker ? roleLabelOf(caretaker.role) : '';
+  });
   protected readonly notification = signal(Notification.empty());
 
   protected async signOut(): Promise<void> {

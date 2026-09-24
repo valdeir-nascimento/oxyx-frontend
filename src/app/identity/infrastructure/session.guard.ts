@@ -58,6 +58,23 @@ export const anonymousGuard: CanActivateFn = () => {
 };
 
 /**
+ * Área administrativa só para o perfil Administrador (FR-008, FR-011).
+ *
+ * Não é a proteção — o backend responde 403 a quem não é administrador. O guard evita desenhar uma
+ * tela que só mostraria recusas: quem não é administrador vai direto para o acesso negado.
+ */
+export const administratorGuard: CanActivateFn = () => {
+  const router = inject(Router);
+
+  return sessionOf(inject(SessionStore), inject(RestoreSessionUseCase)).then((caretaker) => {
+    if (!caretaker) {
+      return router.parseUrl('/acesso');
+    }
+    return caretaker.role === 'ADMINISTRATOR' ? true : router.parseUrl('/acesso-negado');
+  });
+};
+
+/**
  * Quem está na sessão, perguntando ao backend só quando o cliente ainda não sabe.
  *
  * O `inject` acontece antes do `await` de propósito: depois dele o contexto de injeção já não

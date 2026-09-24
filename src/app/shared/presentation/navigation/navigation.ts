@@ -1,13 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { MENU_ITEMS, MenuItem } from '../../domain/menu-item';
+import { MenuItem } from '../../domain/menu-item';
 
 /**
- * Navegação do sistema, filtrada por perfil (FR-011).
+ * Navegação do sistema.
  *
- * Recebe o perfil como entrada em vez de consultar um serviço de identidade: assim
- * `shared/presentation` não passa a depender do contexto `identity`, e a regra de dependência
- * entre camadas continua valendo também no cliente.
+ * Recebe os itens já escolhidos para quem está na sessão: quem filtra por perfil (FR-011) é o
+ * contexto `identity`, que conhece o perfil. Assim `shared` não conhece perfil nem sessão, nem por
+ * valor (T233).
  */
 @Component({
   selector: 'ovyx-navigation',
@@ -16,7 +16,7 @@ import { MENU_ITEMS, MenuItem } from '../../domain/menu-item';
   template: `
     <nav aria-label="Navegação principal">
       <ul class="navigation">
-        @for (item of visibleItems(); track item.route) {
+        @for (item of items(); track item.route) {
           <li class="navigation__item">
             <a
               class="navigation__link"
@@ -75,11 +75,6 @@ import { MENU_ITEMS, MenuItem } from '../../domain/menu-item';
   `,
 })
 export class Navigation {
-  /** Perfil de quem está autenticado. `ADMINISTRATOR` libera a área administrativa. */
-  readonly role = input.required<'ADMINISTRATOR' | 'USER'>();
-
-  protected readonly visibleItems = computed<readonly MenuItem[]>(() => {
-    const isAdministrator = this.role() === 'ADMINISTRATOR';
-    return MENU_ITEMS.filter((item) => !item.administratorOnly || isAdministrator);
-  });
+  /** Itens que a pessoa pode ver, na ordem em que aparecem. */
+  readonly items = input.required<readonly MenuItem[]>();
 }
