@@ -8,7 +8,7 @@ import { ErrorSummary } from './error-summary';
   imports: [ErrorSummary],
   template: `
     @if (errors().length > 0) {
-      <ovyx-error-summary [errors]="errors()" [fields]="fields()" />
+      <ovyx-error-summary [errors]="errors()" [fields]="fields()" [heading]="heading()" />
     }
     <label for="email">E-mail</label>
     <input id="email" />
@@ -17,6 +17,7 @@ import { ErrorSummary } from './error-summary';
 class FormWithSummary {
   readonly errors = signal<readonly DomainError[]>([]);
   readonly fields = signal<readonly string[] | undefined>(undefined);
+  readonly heading = signal('Não foi possível concluir. Corrija o que está indicado:');
 }
 
 /**
@@ -66,7 +67,7 @@ describe('ErrorSummary', () => {
   });
 
   it('does not link a field the form does not show', async () => {
-    // Um link que nao leva a lugar nenhum e pior que texto: a falha continua visivel, sem promessa.
+    // Um link que não leva a lugar nenhum é pior que texto: a falha continua visível, sem promessa.
     fixture.componentInstance.fields.set(['name']);
 
     await refuse(refusal);
@@ -107,5 +108,23 @@ describe('ErrorSummary', () => {
 
     expect(title?.textContent?.trim()).toBe('Não foi possível concluir. Corrija o que está indicado:');
     expect(summary.getAttribute('role')).not.toBe('alert');
+  });
+
+  it('is a group, a role that admits the name its title gives it', async () => {
+    // Um div sem papel é "generic", e o papel generic não admite nome (ARIA 1.2): o título não
+    // chegava ao leitor de tela.
+    await refuse(refusal);
+
+    expect(element().querySelector('.error-summary')?.getAttribute('role')).toBe('group');
+  });
+
+  it('takes the heading the screen gives it, for a refusal that is not about filling a form', async () => {
+    fixture.componentInstance.heading.set('Não foi possível concluir a operação:');
+
+    await refuse(refusal);
+
+    expect(element().querySelector('.error-summary__title')?.textContent?.trim()).toBe(
+      'Não foi possível concluir a operação:',
+    );
   });
 });

@@ -81,8 +81,15 @@ let nextId = 0;
       color: var(--ovyx-color-text-muted);
     }
 
+    /* Vazia, sai da tela, mas não da árvore de acessibilidade: com display: none, a região renascia
+     * a cada estado novo, e região que nasce junto com o texto não é anunciada (T235). */
     .ovyx-data-table__state:empty {
-      display: none;
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
     }
   `,
 })
@@ -97,12 +104,18 @@ export class DataTable {
 
   readonly emptyMessage = input('Nenhum registro encontrado.');
 
+  /**
+   * O que dizer quando há linhas, como o total encontrado. Sem isso, uma pesquisa que encontrava
+   * alguém não anunciava nada, e só a que não encontrava ninguém era ouvida.
+   */
+  readonly summary = input('');
+
   protected readonly captionId = `ovyx-data-table-caption-${++nextId}`;
 
   protected readonly state = computed(() => {
     if (this.loading()) {
       return 'Carregando…';
     }
-    return this.empty() ? this.emptyMessage() : '';
+    return this.empty() ? this.emptyMessage() : this.summary();
   });
 }

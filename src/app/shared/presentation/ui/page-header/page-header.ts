@@ -21,6 +21,10 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
     </header>
   `,
   styles: `
+    :host {
+      display: block;
+    }
+
     .page-header {
       display: flex;
       flex-wrap: wrap;
