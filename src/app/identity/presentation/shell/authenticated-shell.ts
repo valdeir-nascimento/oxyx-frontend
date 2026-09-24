@@ -5,7 +5,7 @@ import { Alert } from '../../../shared/presentation/ui/alert/alert';
 import { Notification } from '../../../shared/domain/notification';
 import { SessionStore } from '../../application/authentication/session-store';
 import { SignOutUseCase } from '../../application/authentication/sign-out.usecase';
-import { roleLabelOf } from '../labels';
+import { roleLabelOf } from '../labels/labels';
 import { menuFor } from './menu';
 
 /**

@@ -1,6 +1,6 @@
-import { SelectOption } from '../../shared/presentation/ui/select-field/select-field';
-import { Role } from '../domain/authenticated-caretaker';
-import { CaretakerStatus } from '../domain/caretaker';
+import { SelectOption } from '../../../shared/presentation/ui/select-field/select-field';
+import { Role } from '../../domain/authenticated-caretaker';
+import { CaretakerStatus } from '../../domain/caretaker';
 
 /** O perfil em português, como as telas o mostram (princípio VII). */
 export function roleLabelOf(role: Role): string {

@@ -4,6 +4,7 @@ import {
   ElementRef,
   Injector,
   afterNextRender,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -18,12 +19,10 @@ import { FormField } from '../../../../shared/presentation/ui/form-field/form-fi
 import { PageHeader } from '../../../../shared/presentation/ui/page-header/page-header';
 import { SelectField, SelectOption } from '../../../../shared/presentation/ui/select-field/select-field';
 import { StatusBadge } from '../../../../shared/presentation/ui/status-badge/status-badge';
-import {
-  DeactivateCaretakerUseCase,
-  SearchCaretakersUseCase,
-} from '../../../application/caretaker/caretaker.usecase';
+import { DeactivateCaretakerUseCase } from '../../../application/caretaker/deactivate-caretaker.usecase';
+import { SearchCaretakersUseCase } from '../../../application/caretaker/search-caretakers.usecase';
 import { CaretakerPage, CaretakerStatus, CaretakerSummary } from '../../../domain/caretaker';
-import { roleLabelOf, statusLabelOf } from '../../labels';
+import { roleLabelOf, statusLabelOf } from '../../labels/labels';
 import { CaretakerNotice } from '../caretaker-notice';
 
 const PAGE_SIZE = 20;
@@ -40,7 +39,10 @@ const STATUS_OPTIONS: readonly SelectOption[] = [
  * Inativar pede confirmação ao lado da linha (FR-018). Cancelar devolve o foco ao botão de onde a
  * pessoa veio; confirmar diz o que aconteceu numa região de estado que existe sempre, e recarrega a
  * página. Se o backend recusar — o último administrador ativo, por exemplo —, o resumo de recusa
- * recebe o foco e diz por quê (T234).
+ * recebe o foco e diz por quê (T234). A recusa some na próxima carga que der certo.
+ *
+ * As páginas seguem os filtros da última pesquisa feita, e não o que está digitado e ainda não foi
+ * pesquisado: senão a página 2 viria de uma pesquisa que ninguém pediu.
  */
 @Component({
   selector: 'ovyx-caretaker-list-page',
@@ -65,7 +67,11 @@ const STATUS_OPTIONS: readonly SelectOption[] = [
       <p class="caretakers__status" role="status" tabindex="-1">{{ status() }}</p>
 
       @if (refusal().hasErrors) {
-        <ovyx-error-summary [errors]="refusal().errors" [fields]="[]" />
+        <ovyx-error-summary
+          heading="Não foi possível concluir a operação:"
+          [errors]="refusal().errors"
+          [fields]="[]"
+        />
       }
 
       <form class="caretakers__search" role="search" (submit)="search($event)">
@@ -84,6 +90,7 @@ const STATUS_OPTIONS: readonly SelectOption[] = [
         emptyMessage="Nenhum responsável encontrado."
         [loading]="loading()"
         [empty]="page().content.length === 0"
+        [summary]="found()"
       >
         <thead>
           <tr>
@@ -183,8 +190,14 @@ const STATUS_OPTIONS: readonly SelectOption[] = [
       background-color: var(--ovyx-color-brand-strong);
     }
 
+    /* Vazia, sai da tela, mas não da árvore de acessibilidade: região que nasce junto com o texto não
+     * é anunciada (T235). */
     .caretakers__status:empty {
-      display: none;
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
     }
 
     /* No telefone, um campo por linha; na mesa, os filtros lado a lado com o botão. */
@@ -243,12 +256,28 @@ export class CaretakerListPage {
     totalPages: 0,
   });
   protected readonly loading = signal(true);
-  protected readonly status = signal(inject(CaretakerNotice).take() ?? '');
+  protected readonly status = signal('');
   protected readonly refusal = signal(Notification.empty());
   protected readonly confirming = signal<CaretakerSummary | null>(null);
   protected readonly deactivating = signal(false);
 
+  /** O total da pesquisa, dito pela região de estado da tabela quando há linhas. */
+  protected readonly found = computed(() => {
+    const total = this.page().totalElements;
+    return total === 1 ? '1 responsável encontrado.' : `${total} responsáveis encontrados.`;
+  });
+
+  /** Os filtros da última pesquisa feita. */
+  private readonly searched = signal({ name: '', status: '' });
+
   constructor() {
+    const notice = inject(CaretakerNotice).take();
+    if (notice) {
+      // O aviso do formulário recebe o foco: o da tela anterior se perdeu na navegação, e é a mudança
+      // de foco que o leitor de tela anuncia. Entra depois do primeiro desenho, quando a região já
+      // existe para receber o foco.
+      afterNextRender(() => this.announce(notice));
+    }
     void this.load(0);
   }
 
@@ -258,6 +287,7 @@ export class CaretakerListPage {
 
   protected search(event: Event): void {
     event.preventDefault();
+    this.searched.set(this.filters.getRawValue());
     void this.load(0);
   }
 
@@ -281,15 +311,18 @@ export class CaretakerListPage {
       return;
     }
 
-    this.refusal.set(Notification.empty());
-    this.status.set(`Responsável inativado: ${caretaker.fullName}.`);
     // O botão de onde a pessoa veio sumiu com a inativação; o foco vai para o aviso do que aconteceu.
-    this.focusAfterRender('.caretakers__status');
+    this.announce(`Responsável inativado: ${caretaker.fullName}.`);
     await this.load(this.page().page);
   }
 
+  private announce(message: string): void {
+    this.status.set(message);
+    this.focusAfterRender('.caretakers__status');
+  }
+
   private async load(page: number): Promise<void> {
-    const { name, status } = this.filters.getRawValue();
+    const { name, status } = this.searched();
     this.loading.set(true);
     const result = await this.searchCaretakers.execute({
       name,
@@ -303,6 +336,7 @@ export class CaretakerListPage {
       this.refusal.set(result.notification);
       return;
     }
+    this.refusal.set(Notification.empty());
     this.page.set(result.value);
   }
 

@@ -9,7 +9,6 @@ import { FormField } from '../../../shared/presentation/ui/form-field/form-field
 import { ChangeOwnPasswordUseCase } from '../../application/account/change-password.usecase';
 import { SessionStore } from '../../application/authentication/session-store';
 
-
 /**
  * Tela de troca da própria senha (FR-022, FR-025).
  *
@@ -105,7 +104,6 @@ export class ChangePasswordPage {
   protected readonly notification = signal(Notification.empty());
   protected readonly submitting = signal(false);
   protected readonly mustChangePassword = inject(SessionStore).mustChangePassword;
-
 
   protected messageFor(field: string): string | undefined {
     return this.notification().messageFor(field);

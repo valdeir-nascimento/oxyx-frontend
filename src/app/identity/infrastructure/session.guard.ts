@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { AuthenticatedCaretaker } from '../domain/authenticated-caretaker';
+import { AuthenticatedCaretaker, isAdministrator } from '../domain/authenticated-caretaker';
 import { RestoreSessionUseCase } from '../application/authentication/restore-session.usecase';
 import { SessionStore } from '../application/authentication/session-store';
 
@@ -70,7 +70,7 @@ export const administratorGuard: CanActivateFn = () => {
     if (!caretaker) {
       return router.parseUrl('/acesso');
     }
-    return caretaker.role === 'ADMINISTRATOR' ? true : router.parseUrl('/acesso-negado');
+    return isAdministrator(caretaker.role) ? true : router.parseUrl('/acesso-negado');
   });
 };
 
