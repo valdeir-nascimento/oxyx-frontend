@@ -23,6 +23,7 @@ export type ButtonVariant = 'primary' | 'secondary' | 'danger';
       [attr.data-variant]="variant()"
       [disabled]="disabled() || busy()"
       [attr.aria-busy]="busy() ? 'true' : null"
+      [attr.aria-label]="accessibleName() ?? null"
       (click)="pressed.emit()"
     >
       @if (busy()) {
@@ -123,6 +124,12 @@ export class Button {
 
   /** Verdadeiro enquanto a ação corre: bloqueia o segundo clique e anuncia o andamento. */
   readonly busy = input(false);
+
+  /**
+   * Nome completo para o leitor de tela, quando o rótulo visível se repete — "Inativar" em cada
+   * linha de uma lista não diz a quem. Deve começar pelo rótulo visível, para quem comanda por voz.
+   */
+  readonly accessibleName = input<string>();
 
   /** O botão avisa que foi pressionado; quem o usa decide o que isso significa. */
   readonly pressed = output<void>();
