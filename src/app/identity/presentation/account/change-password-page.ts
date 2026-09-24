@@ -1,15 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Notification } from '../../../shared/domain/notification';
 import { Alert } from '../../../shared/presentation/ui/alert/alert';
 import { Button } from '../../../shared/presentation/ui/button/button';
+import { ErrorSummary } from '../../../shared/presentation/ui/error-summary/error-summary';
 import { FormField } from '../../../shared/presentation/ui/form-field/form-field';
 import { ChangeOwnPasswordUseCase } from '../../application/account/change-password.usecase';
 import { SessionStore } from '../../application/authentication/session-store';
 
-/** Campos que esta tela exibe; o resto das violações vai para o topo do formulário. */
-const FIELDS = ['currentPassword', 'newPassword'];
 
 /**
  * Tela de troca da própria senha (FR-022, FR-025).
@@ -23,7 +22,7 @@ const FIELDS = ['currentPassword', 'newPassword'];
  */
 @Component({
   selector: 'ovyx-change-password-page',
-  imports: [Alert, Button, FormField],
+  imports: [Alert, Button, ErrorSummary, FormField],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="change-password">
@@ -35,12 +34,8 @@ const FIELDS = ['currentPassword', 'newPassword'];
         </ovyx-alert>
       }
 
-      @if (unmatchedErrors().length > 0) {
-        <ovyx-alert variant="danger">
-          @for (error of unmatchedErrors(); track error.message) {
-            <p>{{ error.message }}</p>
-          }
-        </ovyx-alert>
+      @if (notification().hasErrors) {
+        <ovyx-error-summary [errors]="notification().errors" [fields]="fields" />
       }
 
       <form class="change-password__form" (submit)="submit($event)">
@@ -104,18 +99,13 @@ export class ChangePasswordPage {
     newPassword: '',
   });
 
+  /** Campos desta tela: só eles viram link no resumo da recusa. */
+  protected readonly fields = ['currentPassword', 'newPassword'];
+
   protected readonly notification = signal(Notification.empty());
   protected readonly submitting = signal(false);
   protected readonly mustChangePassword = inject(SessionStore).mustChangePassword;
 
-  /**
-   * Violações que nenhum campo desta tela exibe — sem campo, ou de um campo que a tela não tem.
-   *
-   * Sem isto, uma falha de rede (que não traz campo algum) fazia o botão parecer inerte (FR-017).
-   */
-  protected readonly unmatchedErrors = computed(() =>
-    this.notification().errors.filter((error) => !error.field || !FIELDS.includes(error.field)),
-  );
 
   protected messageFor(field: string): string | undefined {
     return this.notification().messageFor(field);

@@ -3,18 +3,10 @@ import { provideRouter } from '@angular/router';
 import { Navigation } from './navigation';
 
 /**
- * FR-011: a navegação expõe apenas as áreas permitidas ao perfil. Esconder o item não é a proteção
- * (quem protege é o backend), mas evita oferecer um caminho que terminaria em 403.
+ * A navegação desenha os itens que recebe, na ordem em que vieram. Quem escolhe os itens pelo
+ * perfil (FR-011) é a casca de `identity`; o teste dessa escolha está lá.
  */
 describe('Navigation', () => {
-  function linksFor(role: 'ADMINISTRATOR' | 'USER'): string[] {
-    const fixture = TestBed.createComponent(Navigation);
-    fixture.componentRef.setInput('role', role);
-    fixture.detectChanges();
-    const anchors = (fixture.nativeElement as HTMLElement).querySelectorAll('a');
-    return Array.from(anchors).map((anchor) => anchor.textContent?.trim() ?? '');
-  }
-
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [Navigation],
@@ -22,14 +14,17 @@ describe('Navigation', () => {
     }).compileComponents();
   });
 
-  it('hides administrative areas from a regular user', () => {
-    const links = linksFor('USER');
+  it('draws one link per item, in order, pointing to its route', () => {
+    const fixture = TestBed.createComponent(Navigation);
+    fixture.componentRef.setInput('items', [
+      { label: 'Início', route: '/' },
+      { label: 'Setores', route: '/setores' },
+    ]);
+    fixture.detectChanges();
 
-    expect(links).toContain('Início');
-    expect(links).not.toContain('Responsáveis');
-  });
+    const anchors = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('a'));
 
-  it('shows administrative areas to an administrator', () => {
-    expect(linksFor('ADMINISTRATOR')).toContain('Responsáveis');
+    expect(anchors.map((anchor) => anchor.textContent?.trim())).toEqual(['Início', 'Setores']);
+    expect(anchors[1].getAttribute('href')).toBe('/setores');
   });
 });

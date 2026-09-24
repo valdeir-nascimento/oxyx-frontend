@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import {
+  administratorGuard,
   anonymousGuard,
   authenticatedGuard,
   passwordChangeGuard,
@@ -45,6 +46,38 @@ export const routes: Routes = [
         path: '',
         loadComponent: () => import('./shared/presentation/home/home').then((m) => m.Home),
         title: 'Ovyx',
+      },
+      {
+        // Área administrativa (FR-008): o guard só evita desenhar uma tela de recusas; quem
+        // protege é o backend, que responde 403 a quem não é administrador.
+        path: 'responsaveis',
+        canActivate: [administratorGuard],
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('./identity/presentation/caretaker/caretaker-list/caretaker-list-page').then(
+                (m) => m.CaretakerListPage,
+              ),
+            title: 'Responsáveis — Ovyx',
+          },
+          {
+            path: 'novo',
+            loadComponent: () =>
+              import('./identity/presentation/caretaker/caretaker-form/caretaker-form-page').then(
+                (m) => m.CaretakerFormPage,
+              ),
+            title: 'Novo responsável — Ovyx',
+          },
+          {
+            path: ':id',
+            loadComponent: () =>
+              import('./identity/presentation/caretaker/caretaker-form/caretaker-form-page').then(
+                (m) => m.CaretakerFormPage,
+              ),
+            title: 'Editar responsável — Ovyx',
+          },
+        ],
       },
     ],
   },

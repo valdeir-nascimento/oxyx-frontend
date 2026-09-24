@@ -1,7 +1,7 @@
 import { HttpClient, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { SKIP_SESSION_HANDLING } from '../../shared/infrastructure/http-error.interceptor';
+import { SKIP_SESSION_HANDLING } from './session.interceptor';
 import { IdentityHttpAdapter } from './identity-http.adapter';
 
 /**
@@ -211,5 +211,113 @@ describe('IdentityHttpAdapter', () => {
     });
 
     await expect(adapter.signOut()).rejects.toThrow(TypeError);
+  });
+
+  describe('caretaker administration', () => {
+    const joao = {
+      id: '9f8e7d6c-5b4a-4938-2716-0f1e2d3c4b5a',
+      fullName: 'João Pereira de Souza',
+      cpf: '52998224725',
+      email: 'joao.pereira@ovyx.com.br',
+      mobilePhone: '91991234567',
+      role: 'USER' as const,
+      status: 'ACTIVE' as const,
+      createdAt: '2026-09-18T13:45:10Z',
+      updatedAt: '2026-09-18T13:45:10Z',
+    };
+
+    it('searches with only the filters that were asked, plus the page', async () => {
+      const pending = adapter.search({ name: 'pereira', page: 1, size: 20 });
+
+      const request = backend.expectOne((req) => req.url === '/api/v1/caretakers');
+      expect(request.request.method).toBe('GET');
+      expect(request.request.params.keys().sort()).toEqual(['name', 'page', 'size']);
+      expect(request.request.params.get('name')).toBe('pereira');
+      expect(request.request.params.get('page')).toBe('1');
+      request.flush({ content: [joao], page: 1, size: 20, totalElements: 21, totalPages: 2 });
+
+      const result = await pending;
+      expect(result.success && result.value.totalElements).toBe(21);
+    });
+
+    it('sends no filter at all when none was asked, only the page', async () => {
+      // Um `status` vazio seria recusado pelo backend como valor inválido; um `name` vazio seria
+      // uma pesquisa por nada.
+      const pending = adapter.search({ page: 0, size: 20 });
+
+      const request = backend.expectOne((req) => req.url === '/api/v1/caretakers');
+      expect(request.request.params.keys().sort()).toEqual(['page', 'size']);
+      request.flush({ content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+      await pending;
+    });
+
+    it('registers through the collection and returns the created caretaker', async () => {
+      const registration = {
+        fullName: joao.fullName,
+        cpf: joao.cpf,
+        email: joao.email,
+        mobilePhone: joao.mobilePhone,
+        password: 'AviarioSul2026',
+        role: 'USER' as const,
+      };
+      const pending = adapter.register(registration);
+
+      const request = backend.expectOne('/api/v1/caretakers');
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body).toEqual(registration);
+      request.flush(joao, { status: 201, statusText: 'Created' });
+
+      const result = await pending;
+      expect(result.success && result.value).toEqual(joao);
+    });
+
+    it('turns a conflict into a violation of the field that already has an owner', async () => {
+      const pending = adapter.register({ ...joao, password: 'AviarioSul2026' });
+
+      backend.expectOne('/api/v1/caretakers').flush(
+        {
+          code: 'EMAIL_ALREADY_IN_USE',
+          title: 'Operação recusada',
+          status: 409,
+          detail: 'Já existe um responsável ativo com este e-mail.',
+          details: { email: 'Já existe um responsável ativo com este e-mail.' },
+        },
+        { status: 409, statusText: 'Conflict' },
+      );
+
+      const result = await pending;
+      expect(result.success === false && result.notification.errors).toEqual([
+        {
+          code: 'EMAIL_ALREADY_IN_USE',
+          field: 'email',
+          message: 'Já existe um responsável ativo com este e-mail.',
+        },
+      ]);
+    });
+
+    it('finds, updates and deactivates by the caretaker id, each with its own method', async () => {
+      const update = { fullName: joao.fullName, cpf: joao.cpf, email: joao.email, mobilePhone: joao.mobilePhone, role: 'ADMINISTRATOR' as const };
+
+      const found = adapter.find(joao.id);
+      const find = backend.expectOne(`/api/v1/caretakers/${joao.id}`);
+      expect(find.request.method).toBe('GET');
+      find.flush(joao);
+      await found;
+
+      const updated = adapter.update(joao.id, update);
+      const put = backend.expectOne(`/api/v1/caretakers/${joao.id}`);
+      expect(put.request.method).toBe('PUT');
+      expect(put.request.body).toEqual(update);
+      put.flush({ ...joao, role: 'ADMINISTRATOR' });
+      await updated;
+
+      const deactivated = adapter.deactivate(joao.id);
+      const deactivation = backend.expectOne(`/api/v1/caretakers/${joao.id}/deactivation`);
+      expect(deactivation.request.method).toBe('POST');
+      deactivation.flush({ ...joao, status: 'INACTIVE' });
+
+      const result = await deactivated;
+      expect(result.success && result.value.status).toBe('INACTIVE');
+    });
   });
 });

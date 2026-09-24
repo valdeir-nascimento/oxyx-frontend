@@ -2,18 +2,18 @@ import { HttpClient, HttpContext, provideHttpClient, withInterceptors } from '@a
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { SESSION_INVALIDATION } from '../application/session-invalidation';
-import { SKIP_SESSION_HANDLING, httpErrorInterceptor } from './http-error.interceptor';
+import { SessionStore } from '../application/authentication/session-store';
+import { SKIP_SESSION_HANDLING, sessionInterceptor } from './session.interceptor';
 
 /**
  * O interceptador decide para onde o usuário vai quando o backend recusa uma requisição.
  * Errar aqui é o que mandava o usuário para "acesso negado" na primeira tentativa de login.
  */
-describe('httpErrorInterceptor', () => {
+describe('sessionInterceptor', () => {
   let http: HttpClient;
   let backend: HttpTestingController;
   let navigate: ReturnType<typeof vi.spyOn>;
-  let forget: ReturnType<typeof vi.fn>;
+  let forget: ReturnType<typeof vi.spyOn>;
 
   const problem = (code: string, status: number) => ({
     code,
@@ -22,15 +22,14 @@ describe('httpErrorInterceptor', () => {
   });
 
   beforeEach(() => {
-    forget = vi.fn();
     TestBed.configureTestingModule({
       providers: [
-        provideHttpClient(withInterceptors([httpErrorInterceptor])),
+        provideHttpClient(withInterceptors([sessionInterceptor])),
         provideHttpClientTesting(),
         provideRouter([]),
-        { provide: SESSION_INVALIDATION, useValue: { forget } },
       ],
     });
+    forget = vi.spyOn(TestBed.inject(SessionStore), 'forget');
     http = TestBed.inject(HttpClient);
     backend = TestBed.inject(HttpTestingController);
     navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);

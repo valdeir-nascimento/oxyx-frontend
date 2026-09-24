@@ -5,7 +5,7 @@ import { Result, failure, success } from '../../shared/application/result';
 import { AuthenticatedCaretaker } from '../domain/authenticated-caretaker';
 import { AUTHENTICATION_GATEWAY, AuthenticationGateway } from '../application/authentication/authentication-gateway';
 import { SessionStore } from '../application/authentication/session-store';
-import { anonymousGuard, authenticatedGuard, passwordChangeGuard } from './session.guard';
+import { administratorGuard, anonymousGuard, authenticatedGuard, passwordChangeGuard } from './session.guard';
 
 /**
  * O guard é o que faz a rota respeitar o que o backend já decide: sem sessão não há tela, e
@@ -110,5 +110,25 @@ describe('authenticatedGuard', () => {
 
     expect(await run(anonymousGuard)).toBe('true');
     expect(gateway.currentCaretaker).toHaveBeenCalledOnce();
+  });
+
+  it('lets an administrator into the administrative area', async () => {
+    configure(success({ ...maria, role: 'ADMINISTRATOR' }));
+
+    expect(await run(administratorGuard)).toBe('true');
+  });
+
+  it('sends a common user from the administrative area to the access denied screen (FR-011)', async () => {
+    // Não é a proteção — o backend responde 403 de qualquer forma —, mas evita desenhar uma tela
+    // que só mostraria recusas.
+    configure(success(maria));
+
+    expect(await run(administratorGuard)).toBe('/acesso-negado');
+  });
+
+  it('sends whoever has no session from the administrative area to the access screen', async () => {
+    configure(noSessionOnServer());
+
+    expect(await run(administratorGuard)).toBe('/acesso');
   });
 });

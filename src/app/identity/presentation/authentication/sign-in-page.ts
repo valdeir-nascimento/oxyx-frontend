@@ -1,14 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Notification } from '../../../shared/domain/notification';
 import { Alert } from '../../../shared/presentation/ui/alert/alert';
 import { Button } from '../../../shared/presentation/ui/button/button';
+import { ErrorSummary } from '../../../shared/presentation/ui/error-summary/error-summary';
 import { FormField } from '../../../shared/presentation/ui/form-field/form-field';
 import { SignInUseCase } from '../../application/authentication/sign-in.usecase';
 
 /** Campos que esta tela exibe; o resto das violações vai para o topo do formulário. */
-const FIELDS = ['identifier', 'password'];
 
 /**
  * Tela de acesso (FR-001).
@@ -22,7 +22,7 @@ const FIELDS = ['identifier', 'password'];
  */
 @Component({
   selector: 'ovyx-sign-in-page',
-  imports: [Alert, Button, FormField],
+  imports: [Alert, Button, ErrorSummary, FormField],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="sign-in">
@@ -34,12 +34,8 @@ const FIELDS = ['identifier', 'password'];
         </ovyx-alert>
       }
 
-      @if (unmatchedErrors().length > 0) {
-        <ovyx-alert variant="danger">
-          @for (error of unmatchedErrors(); track error.message) {
-            <p>{{ error.message }}</p>
-          }
-        </ovyx-alert>
+      @if (notification().hasErrors) {
+        <ovyx-error-summary [errors]="notification().errors" [fields]="fields" />
       }
 
       <form class="sign-in__form" (submit)="submit($event)">
@@ -103,6 +99,9 @@ export class SignInPage {
   });
 
   /** Sem validador: o que recusa preenchimento é o caso de uso, e o que recusa a senha é o backend. */
+  /** Campos desta tela: só eles viram link no resumo da recusa. */
+  protected readonly fields = ['identifier', 'password'];
+
   protected readonly notification = signal(Notification.empty());
   protected readonly submitting = signal(false);
 
@@ -115,15 +114,6 @@ export class SignInPage {
   protected readonly sessionExpired =
     inject(ActivatedRoute).snapshot.queryParamMap.get('sessao') === 'expirada';
 
-  /**
-   * Violações que nenhum campo desta tela exibe.
-   *
-   * São as sem campo — a recusa genérica de credencial (FR-002) — e as de um campo que a tela não
-   * tem. Descartá-las deixaria a pessoa submetendo de novo sem saber o que corrigir (FR-017).
-   */
-  protected readonly unmatchedErrors = computed(() =>
-    this.notification().errors.filter((error) => !error.field || !FIELDS.includes(error.field)),
-  );
 
   protected messageFor(field: string): string | undefined {
     return this.notification().messageFor(field);

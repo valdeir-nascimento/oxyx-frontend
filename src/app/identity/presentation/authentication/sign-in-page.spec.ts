@@ -114,8 +114,8 @@ describe('SignInPage', () => {
 
     await submit(fixture);
 
-    const alert = (fixture.nativeElement as HTMLElement).querySelector('[role="alert"]');
-    expect(alert?.textContent).toContain('E-mail, celular ou senha inválidos.');
+    const summary = (fixture.nativeElement as HTMLElement).querySelector('.error-summary');
+    expect(summary?.textContent).toContain('E-mail, celular ou senha inválidos.');
   });
 
   it('shows a violation of a field this screen does not have, instead of swallowing it', async () => {
@@ -132,8 +132,9 @@ describe('SignInPage', () => {
 
     await submit(fixture);
 
-    const alert = (fixture.nativeElement as HTMLElement).querySelector('[role="alert"]');
-    expect(alert?.textContent).toContain('Granja não informada.');
+    const summary = (fixture.nativeElement as HTMLElement).querySelector('.error-summary');
+    expect(summary?.textContent).toContain('Granja não informada.');
+    expect(summary?.querySelector('a')).toBeNull();
   });
 
   it('hands the destination to the route guard, which is where the provisional password is decided', async () => {

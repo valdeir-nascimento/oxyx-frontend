@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { MenuItem } from '../../domain/menu-item';
 import { Navigation } from '../navigation/navigation';
 import { Button } from '../ui/button/button';
 
@@ -17,7 +18,7 @@ import { Button } from '../ui/button/button';
   template: `
     <header class="topbar">
       <span class="topbar__brand">Ovyx</span>
-      <ovyx-navigation class="topbar__nav" [role]="role()" />
+      <ovyx-navigation class="topbar__nav" [items]="menuItems()" />
       <div class="topbar__identity">
         <span class="topbar__name">{{ fullName() }}</span>
         <span class="topbar__role">{{ roleLabel() }}</span>
@@ -97,12 +98,14 @@ import { Button } from '../ui/button/button';
 })
 export class AuthenticatedLayout {
   readonly fullName = input.required<string>();
-  readonly role = input.required<'ADMINISTRATOR' | 'USER'>();
+
+  /** O perfil já em português; o layout não conhece perfil (T233). */
+  readonly roleLabel = input.required<string>();
+
+  /** Os itens que quem está na sessão pode ver. */
+  readonly menuItems = input.required<readonly MenuItem[]>();
 
   /** Emitido quando o responsável escolhe sair; o contexto identity executa o encerramento. */
   readonly signOut = output<void>();
 
-  protected roleLabel(): string {
-    return this.role() === 'ADMINISTRATOR' ? 'Administrador' : 'Usuário';
-  }
 }

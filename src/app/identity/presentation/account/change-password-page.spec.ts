@@ -138,8 +138,8 @@ describe('ChangePasswordPage', () => {
 
     await submit(fixture);
 
-    const alert = (fixture.nativeElement as HTMLElement).querySelector('[role="alert"]');
-    expect(alert?.textContent).toContain('Não foi possível concluir a operação.');
+    const summary = (fixture.nativeElement as HTMLElement).querySelector('.error-summary');
+    expect(summary?.textContent).toContain('Não foi possível concluir a operação.');
     expect(navigate).not.toHaveBeenCalled();
   });
 

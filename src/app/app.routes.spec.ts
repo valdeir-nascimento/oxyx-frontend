@@ -4,12 +4,12 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { Result, failure, success } from './shared/application/result';
-import { SESSION_INVALIDATION } from './shared/application/session-invalidation';
 import { Notification } from './shared/domain/notification';
-import { httpErrorInterceptor } from './shared/infrastructure/http-error.interceptor';
 import { ACCOUNT_GATEWAY } from './identity/application/account/account-gateway';
 import { AUTHENTICATION_GATEWAY } from './identity/application/authentication/authentication-gateway';
+import { CARETAKER_GATEWAY } from './identity/application/caretaker/caretaker-gateway';
 import { SessionStore } from './identity/application/authentication/session-store';
+import { sessionInterceptor } from './identity/infrastructure/session.interceptor';
 import { AuthenticatedCaretaker } from './identity/domain/authenticated-caretaker';
 import { routes } from './app.routes';
 
@@ -38,7 +38,7 @@ describe('routes', () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter(routes),
-        provideHttpClient(withInterceptors([httpErrorInterceptor])),
+        provideHttpClient(withInterceptors([sessionInterceptor])),
         provideHttpClientTesting(),
         {
           provide: AUTHENTICATION_GATEWAY,
@@ -49,7 +49,18 @@ describe('routes', () => {
           },
         },
         { provide: ACCOUNT_GATEWAY, useValue: { changeOwnPassword: vi.fn() } },
-        { provide: SESSION_INVALIDATION, useExisting: SessionStore },
+        {
+          provide: CARETAKER_GATEWAY,
+          useValue: {
+            search: vi
+              .fn()
+              .mockResolvedValue(success({ content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 })),
+            find: vi.fn(),
+            register: vi.fn(),
+            update: vi.fn(),
+            deactivate: vi.fn(),
+          },
+        },
       ],
     });
   }
@@ -81,6 +92,24 @@ describe('routes', () => {
     configure(success({ ...maria, mustChangePassword: true }));
 
     expect(await goTo('/')).toBe('/trocar-senha');
+  });
+
+  it('keeps a common user out of the caretaker administration (FR-011)', async () => {
+    configure(success(maria));
+
+    expect(await goTo('/responsaveis')).toBe('/acesso-negado');
+  });
+
+  it('opens the caretaker list to an administrator', async () => {
+    configure(success({ ...maria, role: 'ADMINISTRATOR' }));
+
+    expect(await goTo('/responsaveis')).toBe('/responsaveis');
+  });
+
+  it('opens the registration form to an administrator', async () => {
+    configure(success({ ...maria, role: 'ADMINISTRATOR' }));
+
+    expect(await goTo('/responsaveis/novo')).toBe('/responsaveis/novo');
   });
 
   it('keeps an authenticated visitor out of the access screen', async () => {

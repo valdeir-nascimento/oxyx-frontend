@@ -1,21 +1,11 @@
 /**
- * Item de navegação.
+ * Item de navegação: o que a pessoa lê e para onde ele leva.
  *
- * `administratorOnly` é o que permite a FR-011 ser cumprida sem espalhar `if` pelos componentes:
- * a navegação filtra a lista pelo perfil de quem está autenticado, e quem é usuário comum
- * simplesmente não vê a opção.
- *
- * Esconder o item **não** é a proteção — a proteção é a autorização declarada no backend. Isto
- * aqui evita oferecer ao usuário um caminho que terminaria em 403.
+ * Não diz quem pode ver o item. Essa decisão é do contexto que monta o menu — hoje, a casca de
+ * `identity`, que conhece o perfil de quem está na sessão —, para que `shared` não conheça perfil
+ * (T233). Esconder o item também não é a proteção: quem protege é o backend.
  */
 export interface MenuItem {
   readonly label: string;
   readonly route: string;
-  readonly administratorOnly: boolean;
 }
-
-/** Itens do sistema. Cresce conforme os domínios seguintes forem entregues. */
-export const MENU_ITEMS: readonly MenuItem[] = [
-  { label: 'Início', route: '/', administratorOnly: false },
-  { label: 'Responsáveis', route: '/responsaveis', administratorOnly: true },
-];
