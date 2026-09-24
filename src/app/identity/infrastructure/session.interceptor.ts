@@ -2,6 +2,7 @@ import { HttpContextToken, HttpErrorResponse, HttpInterceptorFn } from '@angular
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
+import { RestoreSessionUseCase } from '../application/authentication/restore-session.usecase';
 import { SessionStore } from '../application/authentication/session-store';
 
 /**
@@ -13,6 +14,7 @@ import { SessionStore } from '../application/authentication/session-store';
 export const SKIP_SESSION_HANDLING = new HttpContextToken<boolean>(() => false);
 
 const FORBIDDEN_CODE = 'FORBIDDEN';
+const PASSWORD_CHANGE_REQUIRED_CODE = 'PASSWORD_CHANGE_REQUIRED';
 const INVALID_CREDENTIALS_CODE = 'INVALID_CREDENTIALS';
 
 /**
@@ -22,20 +24,25 @@ const INVALID_CREDENTIALS_CODE = 'INVALID_CREDENTIALS';
  * são vocabulário deste contexto (T233). Por isso esquece a identidade direto no `SessionStore`, sem
  * porta intermediária.
  *
- * - **401**: sem sessão ou sessão expirada. Esquece a identidade em memória, para que nenhum guard
- *   continue acreditando numa sessão que o backend já recusou, e leva à tela de acesso com o motivo
- *   no endereço — assim o aviso sobrevive a um recarregamento. Exceto `INVALID_CREDENTIALS`, que é a
+ * - **401**: sem sessão, sessão expirada, ou responsável inativado com a sessão aberta
+ *   (`CARETAKER_UNAVAILABLE`). Esquece a identidade em memória, para que nenhum guard continue
+ *   acreditando numa sessão que o backend já recusou, e leva à tela de acesso com o motivo no
+ *   endereço — assim o aviso sobrevive a um recarregamento. Exceto `INVALID_CREDENTIALS`, que é a
  *   resposta a uma senha errada na própria tela de acesso, e não uma sessão que expirou.
- * - **403 `FORBIDDEN`**: autenticado sem permissão. Leva à tela de acesso negado.
- * - **Outros 403** (token CSRF ausente, troca de senha pendente): não são falta de permissão e
- *   têm fluxo próprio. Tratá-los como "acesso negado" mandava o usuário para a tela de permissão já
- *   na primeira tentativa de entrar.
+ * - **403 `FORBIDDEN`** e **403 `PASSWORD_CHANGE_REQUIRED`**: o backend reconfere a sessão a cada
+ *   requisição, e a recusa pode vir de um perfil rebaixado ou de uma senha que voltou a ser
+ *   provisória depois do login. Antes de navegar, pergunta de novo ao backend quem está na sessão,
+ *   para que o menu e os guards decidam pelo que vale agora (FR-011); depois leva ao acesso negado ou
+ *   à troca de senha.
+ * - **403 `CSRF_TOKEN_INVALID`**: não é falta de permissão. Tratá-lo como "acesso negado" mandava o
+ *   usuário para a tela de permissão já na primeira tentativa de entrar.
  *
  * O erro continua propagando, porque quem chamou precisa saber que a operação falhou.
  */
 export const sessionInterceptor: HttpInterceptorFn = (request, next) => {
   const router = inject(Router);
   const session = inject(SessionStore);
+  const restoreSession = inject(RestoreSessionUseCase);
 
   return next(request).pipe(
     catchError((error: unknown) => {
@@ -44,7 +51,9 @@ export const sessionInterceptor: HttpInterceptorFn = (request, next) => {
           session.forget();
           void router.navigate(['/acesso'], { queryParams: { sessao: 'expirada' } });
         } else if (error.status === 403 && problemCode(error) === FORBIDDEN_CODE) {
-          void router.navigate(['/acesso-negado']);
+          void restoreSession.execute().then(() => router.navigate(['/acesso-negado']));
+        } else if (error.status === 403 && problemCode(error) === PASSWORD_CHANGE_REQUIRED_CODE) {
+          void restoreSession.execute().then(() => router.navigate(['/trocar-senha']));
         }
       }
       return throwError(() => error);
