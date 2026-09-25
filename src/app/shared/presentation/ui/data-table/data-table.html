@@ -1,0 +1,18 @@
+<div class="tbl-wrap" role="region" tabindex="0" [attr.aria-labelledby]="captionId">
+  <table class="tbl">
+    <caption class="sr" [id]="captionId">{{ caption() }}</caption>
+    <ng-content />
+  </table>
+</div>
+
+@if (loading() && empty()) {
+  <div class="loading" aria-hidden="true">
+    <span class="sk"></span>
+    <span class="sk"></span>
+    <span class="sk"></span>
+  </div>
+} @else if (empty()) {
+  <ovyx-empty-state icon="search" [title]="emptyTitle()" [message]="emptyMessage()" />
+}
+
+<p class="sr" role="status">{{ state() }}</p>

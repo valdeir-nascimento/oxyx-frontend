@@ -1,0 +1,184 @@
+/* =============================================================================
+ * Extensões do Ovyx ao Avicultura Design System 2.0
+ *
+ * O que o app precisa e o components.css não traz, sempre sobre os tokens do
+ * design system — nenhum valor de cor novo nasce aqui.
+ *
+ * - .seg e a marca (.brand-mark, .brand-name, .brand-tag) vêm do <style> do
+ *   protótipo (design-system/index.html), onde o README os lista entre os
+ *   componentes, mas o components.css não os traz.
+ * - O restante é do Ovyx, e cada regra diz por quê.
+ * ========================================================================== */
+
+/* A raiz ocupa a janela inteira: as camadas absolutas do design system (.layer,
+ * .drawer, .toasts) se medem por .av-app-root, que precisa de altura. */
+ovyx-root {
+  display: block;
+  height: 100%;
+}
+
+/* Quem rola é o conteúdo de cada tela (.content, .login), nunca a janela. Um elemento
+ * posicionado que escape do conteúdo — como um .sr no fim de uma lista longa — não estica
+ * mais a página. `clip`, e não `hidden`: a raiz não vira área de rolagem, e um foco
+ * programático não a desloca. */
+.av-app-root {
+  overflow: clip;
+}
+
+/* ------------------------------------------------------------ seleção segmentada */
+.seg {
+  display: inline-flex;
+  padding: 3px;
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  gap: 2px;
+}
+.seg button {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  font-weight: 600;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.seg button:hover {
+  color: var(--ink);
+}
+.seg button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+}
+
+/* ------------------------------------------------------------------------- marca */
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  flex: none;
+}
+.brand-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.brand-tag {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-top: 3px;
+}
+/* No painel escuro da tela de entrada, a marca usa o mesmo claro do menu lateral. */
+.login-art .brand-name {
+  color: #f2f7f4;
+}
+.login-art .side-farm {
+  font-size: 11.5px;
+  color: var(--nav-ink-2);
+  display: block;
+  margin-top: 4px;
+}
+
+/* ------------------------------------------------------------------- avisos */
+/* O design system traz atenção, informação e sucesso. A recusa de uma operação usa
+ * as cores de perigo, que ele já define para selos e botões. */
+.alert.danger {
+  background: var(--danger-soft);
+  color: var(--danger-ink);
+}
+.alert ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 2px;
+}
+.alert a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* ------------------------------------------------------------- links como itens */
+/* O protótipo desenha a navegação com <button>; no app ela é feita de links, para que
+ * cada área tenha endereço. As regras abaixo repetem, para <a>, as do components.css. */
+a.nav-item,
+a.icon-btn {
+  text-decoration: none;
+}
+@container app (max-width: 719px) {
+  .bnav a {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    color: var(--ink-3);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 0;
+    text-decoration: none;
+  }
+  .bnav a[aria-current="page"] {
+    color: var(--primary-ink);
+  }
+  .bnav a[aria-current="page"] .bn-ico {
+    background: var(--primary-soft);
+  }
+}
+
+/* ------------------------------------------------------------------ diálogos */
+/* A camada dá ao diálogo uma linha de altura definida. Sem ela, o max-height em porcentagem do
+ * .dialog (100%, ou 92% na folha inferior) não tinha referência: um formulário mais alto que a
+ * janela passava da borda, e no celular os botões ficavam fora do alcance. Com a altura
+ * definida, o diálogo rola por dentro, como o design system pretende. */
+.layer {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+/* ------------------------------------------------------------------ campos */
+/* O design system troca a ajuda pela recusa; no Ovyx as duas ficam (a ajuda da senha explica a
+ * política justamente quando ela é recusada), e a ajuda mantém a cor neutra. */
+.field.err .msg.hint {
+  display: block;
+  color: var(--ink-3);
+}
+
+/* O anel de foco do campo é o da caixa (.control:focus-within). O :focus-visible global pintava
+ * um segundo anel na entrada, dentro do primeiro. */
+.control input:focus-visible,
+.control select:focus-visible,
+.control textarea:focus-visible {
+  box-shadow: none;
+}
+
+/* ------------------------------------------------------------ estado vazio */
+/* O design system desenha o título do .empty como <h4>; o Ovyx usa <h2>, para não pular níveis de
+ * título abaixo do <h1> da página, com a mesma aparência. */
+.empty h1,
+.empty h2 {
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+/* ------------------------------------------------- título das telas de acesso */
+/* O design system dá ao formulário de entrada um <h2>; no Ovyx ele é o <h1> da tela (a frase do
+ * painel da marca é um parágrafo), com a mesma aparência. */
+.login-form h1 {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-top: 6px;
+}

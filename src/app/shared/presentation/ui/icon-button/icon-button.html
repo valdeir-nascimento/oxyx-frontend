@@ -1,0 +1,14 @@
+<button
+  class="icon-btn"
+  [class.sm]="small()"
+  [class.danger]="danger()"
+  [type]="type()"
+  [disabled]="disabled()"
+  [attr.aria-label]="label()"
+  [attr.title]="label()"
+  [attr.aria-expanded]="expanded() ?? null"
+  [attr.aria-controls]="controls() ?? null"
+  (click)="pressed.emit()"
+>
+  <ovyx-icon [name]="icon()" [size]="small() ? 18 : 20" />
+</button>

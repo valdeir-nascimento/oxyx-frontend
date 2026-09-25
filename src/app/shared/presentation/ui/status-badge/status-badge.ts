@@ -1,60 +1,29 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
-/** `positive` para o estado em vigor (ativo); `neutral` para o resto. */
-export type StatusBadgeTone = 'positive' | 'neutral';
+/**
+ * Tom do selo, os do design system: `success` para o estado normal ou completo, `warning` para o
+ * pendente, `danger` para o crítico, `primary` para destaque de perfil, e `neutral` para o resto.
+ */
+export type StatusBadgeTone = 'success' | 'warning' | 'danger' | 'info' | 'primary' | 'accent' | 'neutral';
 
 /**
- * Selo de situação, como ativo e inativo na lista de responsáveis.
+ * Selo de situação, com o `.badge` do design system — ativo e inativo, administrador e usuário.
  *
- * O texto é quem diz o estado. A marca ao lado repete isso pela forma — cheia no `positive`, vazada
- * no `neutral` —, para que o selo não dependa de cor.
+ * O texto é quem diz o estado; o ponto ao lado e a cor reforçam, mas não substituem, o texto. O
+ * tom também aparece como `data-tone`.
  */
 @Component({
   selector: 'ovyx-status-badge',
+  templateUrl: './status-badge.html',
+  styleUrl: './status-badge.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <span class="badge" [attr.data-tone]="tone()">
-      <span class="badge__mark" aria-hidden="true"></span>
-      {{ label() }}
-    </span>
-  `,
-  styles: `
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--ovyx-space-1);
-      padding: 0 var(--ovyx-space-2);
-      border: var(--ovyx-border-width-thin) solid;
-      border-radius: var(--ovyx-radius-pill);
-      font-size: var(--ovyx-font-size-sm);
-      white-space: nowrap;
-    }
-
-    .badge__mark {
-      width: var(--ovyx-space-2);
-      height: var(--ovyx-space-2);
-      border: var(--ovyx-border-width-thick) solid currentcolor;
-      border-radius: var(--ovyx-radius-pill);
-    }
-
-    .badge[data-tone='positive'] {
-      background-color: var(--ovyx-color-success-surface);
-      border-color: var(--ovyx-color-success-border);
-      color: var(--ovyx-color-success-text);
-    }
-
-    .badge[data-tone='positive'] .badge__mark {
-      background-color: currentcolor;
-    }
-
-    .badge[data-tone='neutral'] {
-      background-color: var(--ovyx-color-surface-sunken);
-      border-color: var(--ovyx-color-border);
-      color: var(--ovyx-color-text-muted);
-    }
-  `,
 })
 export class StatusBadge {
   readonly label = input.required<string>();
+
   readonly tone = input<StatusBadgeTone>('neutral');
+
+  protected toneClass(): string {
+    return this.tone() === 'neutral' ? 'badge' : `badge b-${this.tone()}`;
+  }
 }

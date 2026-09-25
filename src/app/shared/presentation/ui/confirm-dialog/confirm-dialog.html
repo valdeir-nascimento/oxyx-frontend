@@ -1,0 +1,22 @@
+<div class="layer" role="presentation" (click)="cancelFromScrim($event)" (keydown.escape)="cancel()">
+  <div
+    class="dialog sm"
+    role="alertdialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="titleId"
+    [attr.aria-describedby]="messageId"
+    ovyxFocusTrap="[data-cancel] button"
+  >
+    <div class="dlg-head">
+      <span class="dlg-ico danger"><ovyx-icon [name]="icon()" /></span>
+      <div class="grow">
+        <h2 [id]="titleId">{{ title() }}</h2>
+        <p [id]="messageId"><ng-content /></p>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <ovyx-button data-cancel variant="secondary" [disabled]="busy()" (pressed)="cancel()">Cancelar</ovyx-button>
+      <ovyx-button variant="danger" [busy]="busy()" (pressed)="confirmed.emit()">{{ confirmLabel() }}</ovyx-button>
+    </div>
+  </div>
+</div>

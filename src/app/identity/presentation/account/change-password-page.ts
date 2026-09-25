@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Notification } from '../../../shared/domain/notification';
+import { AuthLayout } from '../../../shared/presentation/layout/auth-layout/auth-layout';
 import { Alert } from '../../../shared/presentation/ui/alert/alert';
 import { Button } from '../../../shared/presentation/ui/button/button';
 import { ErrorSummary } from '../../../shared/presentation/ui/error-summary/error-summary';
@@ -21,73 +22,10 @@ import { SessionStore } from '../../application/authentication/session-store';
  */
 @Component({
   selector: 'ovyx-change-password-page',
-  imports: [Alert, Button, ErrorSummary, FormField],
+  imports: [AuthLayout, Alert, Button, ErrorSummary, FormField],
+  templateUrl: './change-password-page.html',
+  styleUrl: './change-password-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <section class="change-password">
-      <h1 class="change-password__title">Trocar senha</h1>
-
-      @if (mustChangePassword()) {
-        <ovyx-alert variant="warning">
-          <p>Troque a senha provisória para continuar usando o sistema.</p>
-        </ovyx-alert>
-      }
-
-      @if (notification().hasErrors) {
-        <ovyx-error-summary [errors]="notification().errors" [fields]="fields" />
-      }
-
-      <form class="change-password__form" (submit)="submit($event)">
-        <ovyx-form-field
-          controlId="currentPassword"
-          label="Senha atual"
-          type="password"
-          autocomplete="current-password"
-          [control]="form.controls.currentPassword"
-          [error]="messageFor('currentPassword')"
-        />
-
-        <ovyx-form-field
-          controlId="newPassword"
-          label="Nova senha"
-          type="password"
-          autocomplete="new-password"
-          [control]="form.controls.newPassword"
-          [error]="messageFor('newPassword')"
-        />
-
-        <ovyx-button type="submit" [busy]="submitting()">Trocar senha</ovyx-button>
-      </form>
-    </section>
-  `,
-  styles: `
-    .change-password {
-      display: grid;
-      gap: var(--ovyx-space-4);
-      /* A largura desconta a calha dos dois lados: sem isto, o cartão encosta na
-       * borda do telefone. O topo encolhe no telefone, senão o formulário nasce
-       * abaixo da primeira dobra. */
-      width: calc(100% - 2 * var(--ovyx-layout-gutter));
-      max-width: var(--ovyx-layout-form-max);
-      margin: var(--ovyx-layout-page-top) auto;
-      padding: var(--ovyx-space-5);
-      background-color: var(--ovyx-color-surface-raised);
-      border: var(--ovyx-border-width-thin) solid var(--ovyx-color-border);
-      border-radius: var(--ovyx-radius-md);
-      box-shadow: var(--ovyx-shadow-sm);
-    }
-
-    .change-password__title {
-      font-size: var(--ovyx-font-size-xl);
-      font-weight: var(--ovyx-font-weight-bold);
-      line-height: var(--ovyx-line-height-tight);
-    }
-
-    .change-password__form {
-      display: grid;
-      gap: var(--ovyx-space-4);
-    }
-  `,
 })
 export class ChangePasswordPage {
   private readonly changeOwnPassword = inject(ChangeOwnPasswordUseCase);

@@ -1,0 +1,10 @@
+<div class="toasts" role="status">
+  @for (toast of toaster.toasts(); track toast.id) {
+    <div class="toast" [attr.data-tone]="toast.tone">
+      <span class="t-ico" [class.danger]="toast.tone === 'danger'">
+        <ovyx-icon [name]="toast.tone === 'danger' ? 'alert' : 'check'" [size]="16" />
+      </span>
+      <span>{{ toast.message }}</span>
+    </div>
+  }
+</div>

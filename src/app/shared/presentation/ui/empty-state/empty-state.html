@@ -1,0 +1,12 @@
+<div class="empty">
+  <span class="emblem"><ovyx-icon [name]="icon()" [size]="24" /></span>
+  @if (level() === 1) {
+    <h1>{{ title() }}</h1>
+  } @else {
+    <h2>{{ title() }}</h2>
+  }
+  @if (message(); as text) {
+    <p>{{ text }}</p>
+  }
+  <ng-content />
+</div>

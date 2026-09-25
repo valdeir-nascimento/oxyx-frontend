@@ -1,0 +1,26 @@
+<svg
+  class="i"
+  [class.s16]="size() === 16"
+  [class.s18]="size() === 18"
+  [class.s24]="size() === 24"
+  viewBox="0 0 24 24"
+  aria-hidden="true"
+  focusable="false"
+>
+  @for (shape of shapes(); track $index) {
+    @if (shape.kind === 'path') {
+      <svg:path [attr.d]="shape.d" />
+    } @else if (shape.kind === 'circle') {
+      <svg:circle [attr.cx]="shape.cx" [attr.cy]="shape.cy" [attr.r]="shape.r" />
+    } @else {
+      <svg:rect
+        [attr.x]="shape.x"
+        [attr.y]="shape.y"
+        [attr.width]="shape.width"
+        [attr.height]="shape.height"
+        [attr.rx]="shape.rx"
+        [attr.stroke-dasharray]="shape.dash ?? null"
+      />
+    }
+  }
+</svg>

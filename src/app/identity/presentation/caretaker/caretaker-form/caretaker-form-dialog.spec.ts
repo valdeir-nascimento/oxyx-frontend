@@ -3,21 +3,22 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { Notification } from '../../../../shared/domain/notification';
 import { failure, success } from '../../../../shared/application/result';
+import { Toaster } from '../../../../shared/presentation/ui/toast/toaster';
 import { FindCaretakerByIdUseCase } from '../../../application/caretaker/find-caretaker-by-id.usecase';
 import { RegisterCaretakerUseCase } from '../../../application/caretaker/register-caretaker.usecase';
 import { UpdateCaretakerUseCase } from '../../../application/caretaker/update-caretaker.usecase';
 import { CaretakerDetail } from '../../../domain/caretaker';
-import { CaretakerNotice } from '../caretaker-notice';
-import { CaretakerFormPage } from './caretaker-form-page';
+import { CaretakerChanges } from '../caretaker-changes';
+import { CaretakerFormDialog } from './caretaker-form-dialog';
 
 /** Assinatura de `Router.navigate`, só com o que os testes usam. */
 type Navigate = (commands: readonly unknown[]) => Promise<boolean>;
 
 /**
- * Formulário de cadastro e de edição de responsável (T091): todas as falhas de uma vez, cada uma
- * junto do seu campo, e o resumo da recusa com o foco (FR-017, T234).
+ * Diálogo de cadastro e de edição de responsável (T091): todas as falhas de uma vez, cada uma junto
+ * do seu campo, e o resumo da recusa com o foco (FR-017, T234). Fechar é voltar à lista.
  */
-describe('CaretakerFormPage', () => {
+describe('CaretakerFormDialog', () => {
   const joao: CaretakerDetail = {
     id: '9f8e7d6c-5b4a-4938-2716-0f1e2d3c4b5a',
     fullName: 'João Pereira de Souza',
@@ -34,7 +35,7 @@ describe('CaretakerFormPage', () => {
   let update: Mock;
   let find: Mock;
   let navigate: Mock<Navigate>;
-  let fixture: ComponentFixture<CaretakerFormPage>;
+  let fixture: ComponentFixture<CaretakerFormDialog>;
 
   function element(): HTMLElement {
     return fixture.nativeElement as HTMLElement;
@@ -54,8 +55,8 @@ describe('CaretakerFormPage', () => {
     fixture.detectChanges();
   }
 
-  function submitButton(): HTMLButtonElement {
-    return element().querySelector<HTMLButtonElement>('form button[type="submit"]')!;
+  function submitButton(): HTMLButtonElement | null {
+    return element().querySelector<HTMLButtonElement>('form button[type="submit"]');
   }
 
   async function submit(): Promise<void> {
@@ -63,9 +64,15 @@ describe('CaretakerFormPage', () => {
     await settle();
   }
 
+  function toasts(): readonly string[] {
+    return TestBed.inject(Toaster)
+      .toasts()
+      .map((toast) => toast.message);
+  }
+
   async function render(id?: string): Promise<void> {
     await TestBed.configureTestingModule({
-      imports: [CaretakerFormPage],
+      imports: [CaretakerFormDialog],
       providers: [
         provideRouter([]),
         { provide: RegisterCaretakerUseCase, useValue: { execute: register } },
@@ -80,7 +87,7 @@ describe('CaretakerFormPage', () => {
     navigate = vi.fn<Navigate>().mockResolvedValue(true);
     vi.spyOn(TestBed.inject(Router), 'navigate').mockImplementation(navigate);
 
-    fixture = TestBed.createComponent(CaretakerFormPage);
+    fixture = TestBed.createComponent(CaretakerFormDialog);
     document.body.appendChild(element());
     fixture.detectChanges();
     await settle();
@@ -93,6 +100,16 @@ describe('CaretakerFormPage', () => {
   });
 
   afterEach(() => element().remove());
+
+  it('is a modal dialog named by what it does', async () => {
+    await render();
+
+    const dialog = element().querySelector('[role="dialog"]')!;
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
+    expect(element().querySelector(`#${dialog.getAttribute('aria-labelledby')}`)?.textContent).toBe(
+      'Novo responsável',
+    );
+  });
 
   it('registers what was typed, with the common user as the default role', async () => {
     await render();
@@ -114,13 +131,14 @@ describe('CaretakerFormPage', () => {
     });
   });
 
-  it('goes back to the list, which says the caretaker was registered', async () => {
+  it('confirms the registration in a toast, tells the list, and goes back to it', async () => {
     await render();
 
     await submit();
 
+    expect(toasts()).toEqual(['Responsável cadastrado: João Pereira de Souza.']);
+    expect(TestBed.inject(CaretakerChanges).version()).toBe(1);
     expect(navigate).toHaveBeenCalledWith(['/responsaveis']);
-    expect(TestBed.inject(CaretakerNotice).take()).toBe('Responsável cadastrado: João Pereira de Souza.');
   });
 
   it('shows every refused field at once, each next to its own input, and focuses the summary', async () => {
@@ -146,6 +164,7 @@ describe('CaretakerFormPage', () => {
     expect(element().querySelector('#cpf-error')?.textContent).toContain('CPF inválido.');
     expect(document.activeElement).toBe(summary);
     expect(navigate).not.toHaveBeenCalled();
+    expect(TestBed.inject(CaretakerChanges).version()).toBe(0);
   });
 
   it('loads the caretaker into the form to edit it, without a password field', async () => {
@@ -155,6 +174,19 @@ describe('CaretakerFormPage', () => {
     expect(field('fullName').value).toBe('João Pereira de Souza');
     expect(field('cpf').value).toBe('52998224725');
     expect(element().querySelector('#password')).toBeNull();
+  });
+
+  it('names who is being edited below the title', async () => {
+    await render(joao.id);
+
+    expect(element().querySelector('.dlg-head p')?.textContent).toBe('João Pereira de Souza');
+  });
+
+  it('takes the focus to the first field once the caretaker loads', async () => {
+    // Enquanto carregava, o único alvo do diálogo era o "Fechar".
+    await render(joao.id);
+
+    expect(document.activeElement).toBe(field('fullName'));
   });
 
   it('saves the changes by the caretaker id and goes back to the list', async () => {
@@ -173,6 +205,14 @@ describe('CaretakerFormPage', () => {
       role: 'ADMINISTRATOR',
     });
     expect(navigate).toHaveBeenCalledWith(['/responsaveis']);
+  });
+
+  it('says the changes were saved, and not that someone was registered, after an edit', async () => {
+    await render(joao.id);
+
+    await submit();
+
+    expect(toasts()).toEqual(['Alterações salvas: João Pereira de Souza.']);
   });
 
   it('explains a refused demotion of the last administrator on the role itself', async () => {
@@ -208,10 +248,20 @@ describe('CaretakerFormPage', () => {
     register.mockReturnValue(new Promise(() => undefined));
     await render();
 
-    submitButton().click();
+    submitButton()!.click();
     await settle();
 
-    expect(submitButton().disabled).toBe(true);
+    expect(submitButton()!.disabled).toBe(true);
+  });
+
+  it('ignores a second submission while the first one runs, as when Enter is pressed again', async () => {
+    register.mockReturnValue(new Promise(() => undefined));
+    await render();
+
+    await submit();
+    await submit();
+
+    expect(register).toHaveBeenCalledOnce();
   });
 
   it('frees the form after a refusal, so the corrected data can be sent again (FR-017)', async () => {
@@ -226,37 +276,7 @@ describe('CaretakerFormPage', () => {
     await submit();
 
     expect(register).toHaveBeenCalledTimes(2);
-    expect(submitButton().disabled).toBe(false);
-  });
-
-  it('keeps the empty loading region in the accessibility tree, only out of sight', async () => {
-    // O navegador não conta o texto vazio da interpolação para :empty; o jsdom conta, e o normalize
-    // o retira.
-    await render();
-    const region = element().querySelector<HTMLElement>('.caretaker-form__status')!;
-
-    region.normalize();
-
-    expect(getComputedStyle(region).display).not.toBe('none');
-    expect(getComputedStyle(region).position).toBe('absolute');
-  });
-
-  it('ignores a second submission while the first one runs, as when Enter is pressed again', async () => {
-    register.mockReturnValue(new Promise(() => undefined));
-    await render();
-
-    await submit();
-    await submit();
-
-    expect(register).toHaveBeenCalledOnce();
-  });
-
-  it('says the changes were saved, and not that someone was registered, after an edit', async () => {
-    await render(joao.id);
-
-    await submit();
-
-    expect(TestBed.inject(CaretakerNotice).take()).toBe('Alterações salvas: João Pereira de Souza.');
+    expect(submitButton()!.disabled).toBe(false);
   });
 
   it('does not link a refusal of the password on edit, where there is no password field', async () => {
@@ -274,14 +294,50 @@ describe('CaretakerFormPage', () => {
     expect(element().querySelector('.error-summary a')).toBeNull();
   });
 
+  it('goes back to the list when closed', async () => {
+    await render();
+
+    element().querySelector<HTMLButtonElement>('[aria-label="Fechar"]')!.click();
+
+    expect(navigate).toHaveBeenCalledWith(['/responsaveis']);
+  });
+
+  it('goes back to the list on Escape', async () => {
+    await render();
+
+    field('fullName').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(navigate).toHaveBeenCalledWith(['/responsaveis']);
+  });
+
+  it('does not close while the registration runs, since the result is on its way', async () => {
+    register.mockReturnValue(new Promise(() => undefined));
+    await render();
+    await submit();
+
+    element().querySelector<HTMLButtonElement>('[aria-label="Fechar"]')!.click();
+
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
   it('shows nothing to submit while the caretaker is still loading', async () => {
     // Vazio e enviável durante a carga, o formulário gravaria em branco por cima dos dados.
     find.mockReturnValue(new Promise(() => undefined));
 
     await render(joao.id);
+    await submit();
 
-    expect(element().querySelector('form')).toBeNull();
-    expect(element().querySelector('[role="status"]')?.textContent?.trim()).toBe('Carregando…');
+    expect(element().querySelector('#fullName')).toBeNull();
+    expect(submitButton()).toBeNull();
+    expect(update).not.toHaveBeenCalled();
+    expect(element().querySelector('p[role="status"]')?.textContent?.trim()).toBe('Carregando…');
+  });
+
+  it('empties the loading status region once loaded, keeping it in place', async () => {
+    // A região existe sempre e só troca de texto (T235).
+    await render(joao.id);
+
+    expect(element().querySelector('p[role="status"]')?.textContent?.trim()).toBe('');
   });
 
   it('shows why the caretaker could not be loaded, instead of an empty form', async () => {
@@ -298,7 +354,8 @@ describe('CaretakerFormPage', () => {
     expect(element().querySelector('.error-summary')?.textContent).toContain(
       'Não foi possível concluir a operação. Tente novamente.',
     );
-    expect(element().querySelector('form')).toBeNull();
+    expect(element().querySelector('#fullName')).toBeNull();
+    expect(submitButton()).toBeNull();
   });
 
   it('treats an address that carries no caretaker id as a caretaker that does not exist', async () => {
@@ -318,6 +375,7 @@ describe('CaretakerFormPage', () => {
     await render(joao.id);
 
     expect(element().textContent).toContain('Responsável não encontrado.');
-    expect(element().querySelector('form')).toBeNull();
+    expect(element().querySelector('#fullName')).toBeNull();
+    expect(submitButton()).toBeNull();
   });
 });

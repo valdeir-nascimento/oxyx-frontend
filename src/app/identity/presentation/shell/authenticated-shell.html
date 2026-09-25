@@ -1,0 +1,8 @@
+@if (caretaker(); as caretaker) {
+  <ovyx-authenticated-layout
+    [fullName]="caretaker.fullName"
+    [roleLabel]="roleLabel()"
+    [menuItems]="menuItems()"
+    (signOut)="signOut()"
+  />
+}

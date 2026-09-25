@@ -11,7 +11,8 @@ import {
  *
  * Os caminhos são em português, como o restante da interface (princípio VII). Os guards não são a
  * proteção — quem protege é o backend, que responde 401 e 403 de qualquer forma; eles evitam
- * oferecer uma tela que terminaria em erro.
+ * oferecer uma tela que terminaria em erro. O `data.crumbs` de cada área é o caminho que a barra
+ * superior mostra.
  */
 export const routes: Routes = [
   {
@@ -46,34 +47,34 @@ export const routes: Routes = [
         path: '',
         loadComponent: () => import('./shared/presentation/home/home').then((m) => m.Home),
         title: 'Ovyx',
+        data: { crumbs: ['Início'] },
       },
       {
         // Área administrativa (FR-008): o guard só evita desenhar uma tela de recusas; quem
-        // protege é o backend, que responde 403 a quem não é administrador.
+        // protege é o backend, que responde 403 a quem não é administrador. O cadastro e a edição
+        // abrem em diálogo sobre a lista: são rotas filhas dela, e a lista continua por trás.
         path: 'responsaveis',
         canActivate: [administratorGuard],
+        loadComponent: () =>
+          import('./identity/presentation/caretaker/caretaker-list/caretaker-list-page').then(
+            (m) => m.CaretakerListPage,
+          ),
+        title: 'Responsáveis — Ovyx',
+        data: { crumbs: ['Administração', 'Responsáveis'] },
         children: [
-          {
-            path: '',
-            loadComponent: () =>
-              import('./identity/presentation/caretaker/caretaker-list/caretaker-list-page').then(
-                (m) => m.CaretakerListPage,
-              ),
-            title: 'Responsáveis — Ovyx',
-          },
           {
             path: 'novo',
             loadComponent: () =>
-              import('./identity/presentation/caretaker/caretaker-form/caretaker-form-page').then(
-                (m) => m.CaretakerFormPage,
+              import('./identity/presentation/caretaker/caretaker-form/caretaker-form-dialog').then(
+                (m) => m.CaretakerFormDialog,
               ),
             title: 'Novo responsável — Ovyx',
           },
           {
             path: ':id',
             loadComponent: () =>
-              import('./identity/presentation/caretaker/caretaker-form/caretaker-form-page').then(
-                (m) => m.CaretakerFormPage,
+              import('./identity/presentation/caretaker/caretaker-form/caretaker-form-dialog').then(
+                (m) => m.CaretakerFormDialog,
               ),
             title: 'Editar responsável — Ovyx',
           },

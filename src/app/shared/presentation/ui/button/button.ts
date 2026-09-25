@@ -1,121 +1,47 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { Icon } from '../icon/icon';
+import { IconName } from '../icon/icons';
 
 /** Peso visual da ação: o que ela representa, não a cor que ela tem. */
-export type ButtonVariant = 'primary' | 'secondary' | 'danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'accent' | 'danger';
+
+/** Altura do botão no design system: 32 (`sm`), 40 (o padrão) e 48 px (`lg`). */
+export type ButtonSize = 'sm' | 'md' | 'lg';
 
 /**
- * Ação do sistema.
+ * Ação do sistema, com o `.btn` do design system.
  *
  * Envolve um `<button>` nativo em vez de estilizar um `<div>`: teclado, foco, `disabled` e
  * submissão de formulário continuam sendo trabalho do navegador. O componente não sabe o que a
  * ação faz — ele avisa que foi pressionado, e quem o usa decide.
  *
- * `busy` é o que impede o duplo envio: enquanto a operação corre, o botão fica desabilitado e
- * anuncia `aria-busy`.
+ * `busy` é o que impede o duplo envio: enquanto a operação corre, o botão fica desabilitado, troca
+ * o ícone pelo `.spinner` e anuncia `aria-busy`. O elemento do componente não ocupa caixa
+ * (`display: contents`), para o `<button>` ser o item do `.actions`, do `.dlg-foot` ou do
+ * formulário, como no design system — é assim que `btn-block` e o botão esticado do celular
+ * funcionam.
  */
 @Component({
   selector: 'ovyx-button',
+  imports: [Icon],
+  templateUrl: './button.html',
+  styleUrl: './button.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <button
-      class="button"
-      [type]="type()"
-      [attr.data-variant]="variant()"
-      [disabled]="disabled() || busy()"
-      [attr.aria-busy]="busy() ? 'true' : null"
-      [attr.aria-label]="accessibleName() ?? null"
-      (click)="pressed.emit()"
-    >
-      @if (busy()) {
-        <span class="button__spinner" aria-hidden="true"></span>
-      }
-      <span class="button__label"><ng-content /></span>
-    </button>
-  `,
-  styles: `
-    :host {
-      display: inline-flex;
-    }
-
-    .button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: var(--ovyx-space-2);
-      min-height: var(--ovyx-control-height-md);
-      min-width: var(--ovyx-control-height-md);
-      padding: 0 var(--ovyx-space-4);
-      border: var(--ovyx-border-width-thick) solid transparent;
-      border-radius: var(--ovyx-radius-md);
-      font-size: var(--ovyx-font-size-md);
-      font-weight: var(--ovyx-font-weight-semibold);
-      line-height: var(--ovyx-line-height-tight);
-      cursor: pointer;
-      transition:
-        background-color var(--ovyx-duration-fast) ease,
-        border-color var(--ovyx-duration-fast) ease;
-    }
-
-    .button[data-variant='primary'] {
-      background-color: var(--ovyx-color-brand);
-      color: var(--ovyx-color-text-on-brand);
-    }
-
-    .button[data-variant='primary']:hover:not(:disabled) {
-      background-color: var(--ovyx-color-brand-strong);
-    }
-
-    .button[data-variant='secondary'] {
-      background-color: var(--ovyx-color-surface-raised);
-      border-color: var(--ovyx-color-border-strong);
-      color: var(--ovyx-color-text);
-    }
-
-    .button[data-variant='secondary']:hover:not(:disabled) {
-      background-color: var(--ovyx-color-surface-sunken);
-    }
-
-    .button[data-variant='danger'] {
-      background-color: var(--ovyx-color-danger-solid);
-      color: var(--ovyx-color-text-on-danger);
-    }
-
-    .button[data-variant='danger']:hover:not(:disabled) {
-      border-color: var(--ovyx-color-text);
-    }
-
-    /* Desabilitado não é dito só por cor: o cursor muda e o rótulo continua legível. */
-    .button:disabled {
-      opacity: var(--ovyx-opacity-disabled);
-      cursor: not-allowed;
-    }
-
-    /* Em execução: uma forma girando, não uma mudança de tom. */
-    .button__spinner {
-      width: var(--ovyx-space-4);
-      height: var(--ovyx-space-4);
-      border: var(--ovyx-border-width-thick) solid currentcolor;
-      border-top-color: transparent;
-      border-radius: var(--ovyx-radius-pill);
-      animation: ovyx-button-spin var(--ovyx-duration-base) linear infinite;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .button__spinner {
-        animation: none;
-      }
-    }
-
-    @keyframes ovyx-button-spin {
-      to {
-        transform: rotate(1turn);
-      }
-    }
-  `,
 })
 export class Button {
-  /** Peso da ação. `danger` é reservado ao que destrói ou inativa. */
+  /** Peso da ação. `primary` é uma por tela; `danger` é reservado ao que destrói ou inativa. */
   readonly variant = input<ButtonVariant>('primary');
+
+  readonly size = input<ButtonSize>('md');
+
+  /** Ocupa a largura toda do contêiner, como o "Entrar" da tela de acesso. */
+  readonly block = input(false);
+
+  /** Ícone antes do rótulo, decorativo: o rótulo continua sendo o nome da ação. */
+  readonly icon = input<IconName>();
+
+  /** Ícone depois do rótulo, como a seta de "Entrar". */
+  readonly trailingIcon = input<IconName>();
 
   /** `submit` entrega o envio do formulário ao navegador; `button` é o padrão. */
   readonly type = input<'button' | 'submit'>('button');
@@ -133,4 +59,15 @@ export class Button {
 
   /** O botão avisa que foi pressionado; quem o usa decide o que isso significa. */
   readonly pressed = output<void>();
+
+  protected readonly classes = computed(() =>
+    [
+      'btn',
+      `btn-${this.variant()}`,
+      this.size() === 'md' ? '' : `btn-${this.size()}`,
+      this.block() ? 'btn-block' : '',
+    ]
+      .filter(Boolean)
+      .join(' '),
+  );
 }
