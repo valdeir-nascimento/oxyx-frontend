@@ -1,0 +1,168 @@
+<ovyx-page-header [eyebrow]="sector()?.name ?? 'Setor'" title="Gaiolas" [subtitle]="subtitle()">
+  <a class="btn btn-secondary" routerLink="/setores">
+    <ovyx-icon name="barn" [size]="18" />
+    <span>Voltar aos setores</span>
+  </a>
+  @if (!missing() && canChange()) {
+    <a class="btn btn-primary" [routerLink]="['/setores', sectorId, 'gaiolas', 'nova']">
+      <ovyx-icon name="plus" [size]="18" />
+      <span>Nova gaiola</span>
+    </a>
+  }
+</ovyx-page-header>
+
+@if (missing()) {
+  <ovyx-alert variant="danger">
+    <p>Setor não encontrado.</p>
+  </ovyx-alert>
+} @else {
+  @if (sectorInactive()) {
+    <ovyx-alert variant="warning" data-inactive-notice tabindex="-1">
+      <p>{{ inactiveNotice() }}</p>
+    </ovyx-alert>
+  }
+
+  @if (refusal().hasErrors) {
+    <ovyx-error-summary heading="Não foi possível concluir a operação:" [errors]="refusal().errors" [fields]="[]" />
+  }
+
+  @if (emptySector()) {
+    <section class="card">
+      <ovyx-empty-state
+        icon="cage"
+        title="Nenhuma gaiola neste setor"
+        [message]="emptySectorMessage()"
+      >
+        @if (canChange()) {
+          <a class="btn btn-primary btn-sm" [routerLink]="['/setores', sectorId, 'gaiolas', 'nova']">
+            <ovyx-icon name="plus" [size]="16" />
+            <span>Nova gaiola</span>
+          </a>
+        }
+      </ovyx-empty-state>
+    </section>
+  } @else {
+    <section class="card">
+      <form class="tbl-tools" role="search" aria-label="Buscar gaiolas" (submit)="search($event)">
+        <ovyx-search-field
+          controlId="code"
+          label="Buscar pelo código"
+          placeholder="Buscar pelo código, como B-07"
+          [control]="filters.controls.code"
+        />
+        <ovyx-button type="submit" variant="secondary">Buscar</ovyx-button>
+        <span class="grow"></span>
+        <ovyx-segmented-control
+          label="Bateria"
+          [options]="batteryOptions()"
+          [value]="battery()"
+          (valueChange)="filterByBattery($event)"
+        />
+        <ovyx-segmented-control
+          label="Situação"
+          [options]="statusOptions"
+          [value]="status()"
+          (valueChange)="filterByStatus($event)"
+        />
+      </form>
+
+      <ovyx-data-table
+        [caption]="caption()"
+        emptyTitle="Nenhuma gaiola encontrada"
+        [emptyMessage]="emptyMessage()"
+        [loading]="loading()"
+        [empty]="page().content.length === 0"
+        [summary]="found()"
+      >
+        @if (filtered()) {
+          <ovyx-button empty-actions variant="secondary" size="sm" icon="x" (pressed)="clearSearch()">
+            Limpar busca
+          </ovyx-button>
+        }
+        <thead>
+          <tr>
+            <th scope="col">Gaiola</th>
+            <th scope="col" class="r">Aves</th>
+            <th scope="col">Situação</th>
+            <th scope="col" class="r"><span class="sr">Ações</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (cage of page().content; track cage.id) {
+            <tr [attr.data-cage]="cage.id">
+              <td class="main" data-label="Gaiola">
+                <div class="cell-id">
+                  <span class="ic" aria-hidden="true"><ovyx-icon name="cage" [size]="18" /></span>
+                  <div>
+                    <b>{{ cage.code }}</b>
+                    <small>Bateria {{ cage.battery }} · nº {{ cage.number }}</small>
+                  </div>
+                </div>
+              </td>
+              <td class="r tnum" data-label="Aves">{{ countOf(cage.birdCount) }}</td>
+              <td data-label="Situação">
+                <ovyx-status-badge [label]="statusLabelOf(cage.status)" [tone]="statusToneOf(cage.status)" />
+              </td>
+              <td class="act">
+                <div class="row-actions">
+                  @if (canChange()) {
+                    <a
+                      class="icon-btn sm"
+                      [routerLink]="['/setores', sectorId, 'gaiolas', cage.id]"
+                      [attr.aria-label]="'Editar gaiola ' + cage.code"
+                      [attr.title]="'Editar gaiola ' + cage.code"
+                    >
+                      <ovyx-icon name="edit" [size]="18" />
+                    </a>
+                    @if (cage.status === 'ACTIVE') {
+                      <ovyx-icon-button
+                        icon="lock"
+                        [small]="true"
+                        [danger]="true"
+                        [label]="'Inativar gaiola ' + cage.code"
+                        (pressed)="confirming.set(cage)"
+                      />
+                    } @else {
+                      <ovyx-icon-button
+                        icon="check"
+                        [small]="true"
+                        [label]="'Reativar gaiola ' + cage.code"
+                        (pressed)="reactivate(cage)"
+                      />
+                    }
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </ovyx-data-table>
+
+      @if (page().totalElements > 0) {
+        <ovyx-pager
+          [page]="page().page"
+          [size]="page().size"
+          [totalPages]="page().totalPages"
+          [totalElements]="page().totalElements"
+          (pageChange)="goTo($event)"
+        />
+      }
+    </section>
+  }
+}
+
+@if (confirming(); as cage) {
+  <ovyx-confirm-dialog
+    icon="lock"
+    confirmLabel="Inativar gaiola"
+    [title]="'Inativar gaiola ' + cage.code + '?'"
+    [busy]="deactivating()"
+    (confirmed)="deactivate(cage)"
+    (cancelled)="confirming.set(null)"
+  >
+    A gaiola sai dos totais do setor e continua consultável pelo filtro de inativas. Nada é apagado.
+  </ovyx-confirm-dialog>
+}
+
+<!-- O cadastro e a edição abrem aqui, em diálogo sobre a lista. -->
+<router-outlet (deactivate)="dialogClosed()" />

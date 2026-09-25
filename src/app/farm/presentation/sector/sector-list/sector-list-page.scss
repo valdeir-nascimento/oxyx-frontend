@@ -1,0 +1,57 @@
+/* A página não ocupa caixa: título, avisos e cartões são itens da coluna do .content-inner do design
+ * system, que dá o espaçamento. */
+:host {
+  display: contents;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* O título do cartão é h2 — o h1 é o da página —, com o desenho que o design system dá ao .setor h3. */
+.setor h2 {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+}
+
+/* As ações do cartão, lado a lado, como os ícones do protótipo. */
+.setor-tools {
+  display: flex;
+}
+
+/* Dois totais, e não os três do protótipo: os ovos do dia vêm com os relatórios de produção. */
+.setor-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.emblem {
+  color: var(--accent-ink);
+}
+
+/* A grade recebe o foco quando o cartão de onde a pessoa veio sai da lista; o contorno fica de fora. */
+.setores:focus {
+  outline: none;
+}
+
+/* O cartão de adicionar é link, e não botão: sem o sublinhado nem a cor de link. */
+.setor.add {
+  text-decoration: none;
+}
+
+.setor.add b {
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.setor.add span:last-child {
+  font-size: 13px;
+}
+
+/* O outlet não desenha nada; quem aparece é o diálogo que ele carrega, ao lado dele. */
+router-outlet {
+  display: none;
+}
