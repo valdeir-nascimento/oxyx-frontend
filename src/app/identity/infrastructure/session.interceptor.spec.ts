@@ -2,6 +2,7 @@ import { HttpClient, HttpContext, provideHttpClient, withInterceptors } from '@a
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
+import { RestoreSessionUseCase } from '../application/authentication/restore-session.usecase';
 import { SessionStore } from '../application/authentication/session-store';
 import { SKIP_SESSION_HANDLING, sessionInterceptor } from './session.interceptor';
 
@@ -14,6 +15,7 @@ describe('sessionInterceptor', () => {
   let backend: HttpTestingController;
   let navigate: ReturnType<typeof vi.spyOn>;
   let forget: ReturnType<typeof vi.spyOn>;
+  let restore: ReturnType<typeof vi.fn>;
 
   const problem = (code: string, status: number) => ({
     code,
@@ -22,11 +24,13 @@ describe('sessionInterceptor', () => {
   });
 
   beforeEach(() => {
+    restore = vi.fn().mockResolvedValue(undefined);
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(withInterceptors([sessionInterceptor])),
         provideHttpClientTesting(),
         provideRouter([]),
+        { provide: RestoreSessionUseCase, useValue: { execute: restore } },
       ],
     });
     forget = vi.spyOn(TestBed.inject(SessionStore), 'forget');
@@ -68,10 +72,37 @@ describe('sessionInterceptor', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('goes to the access denied screen on a plain 403', () => {
+  it('forgets the identity and goes to the sign-in screen when the caretaker was deactivated with the session open', () => {
+    // O backend reconfere a sessão a cada requisição, e o inativado recebe 401 CARETAKER_UNAVAILABLE.
+    // Sem esquecer, a casca e o menu continuavam abertos com a sessão já encerrada.
+    failWith(problem('CARETAKER_UNAVAILABLE', 401), 401);
+
+    expect(forget).toHaveBeenCalledOnce();
+    expect(navigate).toHaveBeenCalledWith(['/acesso'], { queryParams: { sessao: 'expirada' } });
+  });
+
+  it('goes to the access denied screen on a plain 403', async () => {
     failWith(problem('FORBIDDEN', 403), 403);
 
-    expect(navigate).toHaveBeenCalledWith(['/acesso-negado']);
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith(['/acesso-negado']));
+  });
+
+  it('asks the backend who is in the session before showing access denied, so the menu follows a demotion', async () => {
+    // Rebaixado com a sessão aberta, a pessoa continuava vendo "Responsáveis" no menu, e o guard
+    // continuava liberando a rota, até recarregar a página (FR-011).
+    failWith(problem('FORBIDDEN', 403), 403);
+
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith(['/acesso-negado']));
+    expect(restore).toHaveBeenCalledOnce();
+    expect(restore.mock.invocationCallOrder[0]).toBeLessThan(navigate.mock.invocationCallOrder[0]);
+  });
+
+  it('takes a session that came to owe the password change to the password change screen', async () => {
+    // A restauração do administrador inicial torna a senha provisória com a sessão aberta.
+    failWith(problem('PASSWORD_CHANGE_REQUIRED', 403), 403);
+
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith(['/trocar-senha']));
+    expect(restore).toHaveBeenCalledOnce();
   });
 
   it('does not treat a missing CSRF token as access denied', () => {

@@ -3,11 +3,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { Notification } from '../../../../shared/domain/notification';
 import { failure, success } from '../../../../shared/application/result';
-import {
-  FindCaretakerUseCase,
-  RegisterCaretakerUseCase,
-  UpdateCaretakerUseCase,
-} from '../../../application/caretaker/caretaker.usecase';
+import { FindCaretakerByIdUseCase } from '../../../application/caretaker/find-caretaker-by-id.usecase';
+import { RegisterCaretakerUseCase } from '../../../application/caretaker/register-caretaker.usecase';
+import { UpdateCaretakerUseCase } from '../../../application/caretaker/update-caretaker.usecase';
 import { CaretakerDetail } from '../../../domain/caretaker';
 import { CaretakerNotice } from '../caretaker-notice';
 import { CaretakerFormPage } from './caretaker-form-page';
@@ -56,6 +54,10 @@ describe('CaretakerFormPage', () => {
     fixture.detectChanges();
   }
 
+  function submitButton(): HTMLButtonElement {
+    return element().querySelector<HTMLButtonElement>('form button[type="submit"]')!;
+  }
+
   async function submit(): Promise<void> {
     element().querySelector('form')!.dispatchEvent(new Event('submit'));
     await settle();
@@ -68,7 +70,7 @@ describe('CaretakerFormPage', () => {
         provideRouter([]),
         { provide: RegisterCaretakerUseCase, useValue: { execute: register } },
         { provide: UpdateCaretakerUseCase, useValue: { execute: update } },
-        { provide: FindCaretakerUseCase, useValue: { execute: find } },
+        { provide: FindCaretakerByIdUseCase, useValue: { execute: find } },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: convertToParamMap(id ? { id } : {}) } },
@@ -192,6 +194,104 @@ describe('CaretakerFormPage', () => {
     expect(element().querySelector('#role-error')?.textContent).toContain(
       'O sistema precisa de ao menos um administrador ativo.',
     );
+  });
+
+  it('does not let the browser block the form before the summary can list every failure', async () => {
+    // A validação nativa barrava o envio no primeiro e-mail malformado, com um balão fora do padrão,
+    // e o resumo nunca aparecia (QA da T275).
+    await render();
+
+    expect(element().querySelector('form')!.noValidate).toBe(true);
+  });
+
+  it('keeps the submit button busy while the registration runs, so it is not sent twice', async () => {
+    register.mockReturnValue(new Promise(() => undefined));
+    await render();
+
+    submitButton().click();
+    await settle();
+
+    expect(submitButton().disabled).toBe(true);
+  });
+
+  it('ignores a second submission while the first one runs, as when Enter is pressed again', async () => {
+    register.mockReturnValue(new Promise(() => undefined));
+    await render();
+
+    await submit();
+    await submit();
+
+    expect(register).toHaveBeenCalledOnce();
+  });
+
+  it('says the changes were saved, and not that someone was registered, after an edit', async () => {
+    await render(joao.id);
+
+    await submit();
+
+    expect(TestBed.inject(CaretakerNotice).take()).toBe('Alterações salvas: João Pereira de Souza.');
+  });
+
+  it('does not link a refusal of the password on edit, where there is no password field', async () => {
+    update.mockResolvedValue(
+      failure(
+        Notification.of([
+          { code: 'VALIDATION_FAILED', field: 'password', message: 'A senha deve ter ao menos 12 caracteres.' },
+        ]),
+      ),
+    );
+    await render(joao.id);
+
+    await submit();
+
+    expect(element().querySelector('.error-summary a')).toBeNull();
+  });
+
+  it('shows nothing to submit while the caretaker is still loading', async () => {
+    // Vazio e enviável durante a carga, o formulário gravaria em branco por cima dos dados.
+    find.mockReturnValue(new Promise(() => undefined));
+
+    await render(joao.id);
+
+    expect(element().querySelector('form')).toBeNull();
+    expect(element().querySelector('[role="status"]')?.textContent?.trim()).toBe('Carregando…');
+  });
+
+  it('shows why the caretaker could not be loaded, instead of an empty form', async () => {
+    find.mockResolvedValue(
+      failure(
+        Notification.of([
+          { code: 'REQUEST_FAILED', message: 'Não foi possível concluir a operação. Tente novamente.' },
+        ]),
+      ),
+    );
+
+    await render(joao.id);
+
+    expect(element().querySelector('.error-summary')?.textContent).toContain(
+      'Não foi possível concluir a operação. Tente novamente.',
+    );
+    expect(element().querySelector('form')).toBeNull();
+  });
+
+  it('treats an address that carries no caretaker id as a caretaker that does not exist', async () => {
+    // Forjado com "../", o endereço levava a tela a chamar outro endpoint da API.
+    await render('..%2F..%2Fme%2Fpassword');
+
+    expect(find).not.toHaveBeenCalled();
+    expect(element().textContent).toContain('Responsável não encontrado.');
+  });
+
+  it('treats an id the backend refuses as malformed as a caretaker that does not exist', async () => {
+    // O 400 traz "caretakerId" em details, que a tela mostrava como se fosse uma mensagem.
+    find.mockResolvedValue(
+      failure(Notification.of([{ code: 'VALIDATION_FAILED', message: "Valor inválido para o parâmetro 'caretakerId'." }])),
+    );
+
+    await render(joao.id);
+
+    expect(element().textContent).toContain('Responsável não encontrado.');
+    expect(element().querySelector('form')).toBeNull();
   });
 
   it('says so when the caretaker does not exist, instead of an empty form', async () => {

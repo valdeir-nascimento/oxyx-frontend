@@ -5,7 +5,12 @@ import { DataTable } from './data-table';
 @Component({
   imports: [DataTable],
   template: `
-    <ovyx-data-table caption="Responsáveis cadastrados" [loading]="loading()" [empty]="rows().length === 0">
+    <ovyx-data-table
+      caption="Responsáveis cadastrados"
+      [loading]="loading()"
+      [empty]="rows().length === 0"
+      [summary]="summary()"
+    >
       <thead>
         <tr><th scope="col">Nome</th></tr>
       </thead>
@@ -20,6 +25,7 @@ import { DataTable } from './data-table';
 class CaretakerRows {
   readonly loading = signal(false);
   readonly rows = signal<readonly string[]>(['Maria Silva']);
+  readonly summary = signal('');
 }
 
 /**
@@ -27,11 +33,12 @@ class CaretakerRows {
  * estreita e os estados de carregamento e de vazio.
  */
 describe('DataTable', () => {
-  function render(loading: boolean, rows: readonly string[]) {
+  function render(loading: boolean, rows: readonly string[], summary = '') {
     TestBed.configureTestingModule({ imports: [CaretakerRows] });
     const fixture = TestBed.createComponent(CaretakerRows);
     fixture.componentInstance.loading.set(loading);
     fixture.componentInstance.rows.set(rows);
+    fixture.componentInstance.summary.set(summary);
     fixture.detectChanges();
     return fixture.nativeElement as HTMLElement;
   }
@@ -64,7 +71,13 @@ describe('DataTable', () => {
     );
   });
 
-  it('keeps the status region quiet while there are rows', () => {
+  it('keeps the status region quiet while there are rows and nothing to say about them', () => {
     expect(render(false, ['Maria Silva']).querySelector('[role="status"]')?.textContent?.trim()).toBe('');
+  });
+
+  it('says what the page gives it about the rows found, so a search that finds someone is heard', () => {
+    expect(
+      render(false, ['Maria Silva'], '1 responsável encontrado.').querySelector('[role="status"]')?.textContent?.trim(),
+    ).toBe('1 responsável encontrado.');
   });
 });

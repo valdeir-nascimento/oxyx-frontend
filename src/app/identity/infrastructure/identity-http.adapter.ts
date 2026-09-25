@@ -30,6 +30,16 @@ const BASE = '/api/v1';
  * <p>Toda recusa vira `Result`, nunca exceção — quem chama é caso de uso, e caso de uso não trata
  * `catch` (princípio IV, espelhado no cliente).
  */
+/**
+ * Endereço de um responsável na API.
+ *
+ * O identificador vem do endereço da tela, e o navegador resolve os `..` de um caminho: sem
+ * codificar, `/responsaveis/..%2F..%2Fme%2Fpassword` chamava `/api/v1/me/password`.
+ */
+function caretakerUrl(id: string): string {
+  return `${BASE}/caretakers/${encodeURIComponent(id)}`;
+}
+
 @Injectable({ providedIn: 'root' })
 export class IdentityHttpAdapter implements AuthenticationGateway, AccountGateway, CaretakerGateway {
   private readonly http = inject(HttpClient);
@@ -82,7 +92,7 @@ export class IdentityHttpAdapter implements AuthenticationGateway, AccountGatewa
   }
 
   async find(id: string): Promise<Result<CaretakerDetail>> {
-    return this.request(() => firstValueFrom(this.http.get<CaretakerDetail>(`${BASE}/caretakers/${id}`)));
+    return this.request(() => firstValueFrom(this.http.get<CaretakerDetail>(caretakerUrl(id))));
   }
 
   async register(registration: CaretakerRegistration): Promise<Result<CaretakerDetail>> {
@@ -93,13 +103,13 @@ export class IdentityHttpAdapter implements AuthenticationGateway, AccountGatewa
 
   async update(id: string, update: CaretakerUpdate): Promise<Result<CaretakerDetail>> {
     return this.request(() =>
-      firstValueFrom(this.http.put<CaretakerDetail>(`${BASE}/caretakers/${id}`, update)),
+      firstValueFrom(this.http.put<CaretakerDetail>(caretakerUrl(id), update)),
     );
   }
 
   async deactivate(id: string): Promise<Result<CaretakerDetail>> {
     return this.request(() =>
-      firstValueFrom(this.http.post<CaretakerDetail>(`${BASE}/caretakers/${id}/deactivation`, null)),
+      firstValueFrom(this.http.post<CaretakerDetail>(`${caretakerUrl(id)}/deactivation`, null)),
     );
   }
 

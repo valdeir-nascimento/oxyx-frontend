@@ -1,20 +1,14 @@
 import { TestBed } from '@angular/core/testing';
-import { success } from '../../../shared/application/result';
+import { Result, failure, success } from '../../../shared/application/result';
+import { Notification } from '../../../shared/domain/notification';
 import { CaretakerDetail, CaretakerPage } from '../../domain/caretaker';
 import { CARETAKER_GATEWAY, CaretakerGateway } from './caretaker-gateway';
-import {
-  DeactivateCaretakerUseCase,
-  FindCaretakerUseCase,
-  RegisterCaretakerUseCase,
-  SearchCaretakersUseCase,
-  UpdateCaretakerUseCase,
-} from './caretaker.usecase';
+import { SearchCaretakersUseCase } from './search-caretakers.usecase';
 
 /**
- * Casos de uso da administração de responsáveis (T087). As regras são do backend; o que cabe ao
- * cliente é pedir a página certa e entregar o que foi digitado, sem filtrar nada no caminho.
+ * Pesquisa de responsáveis (T087): pede a página certa, sem filtro vazio no caminho.
  */
-describe('caretaker use cases', () => {
+describe('SearchCaretakersUseCase', () => {
   const joao: CaretakerDetail = {
     id: '9f8e7d6c-5b4a-4938-2716-0f1e2d3c4b5a',
     fullName: 'João Pereira de Souza',
@@ -27,6 +21,19 @@ describe('caretaker use cases', () => {
     updatedAt: '2026-09-18T13:45:10Z',
   };
   const page: CaretakerPage = { content: [joao], page: 0, size: 20, totalElements: 1, totalPages: 1 };
+
+  /** A recusa como o adaptador a entrega: código da regra e mensagem em português, por campo. */
+  function refusal<T>(): Result<T> {
+    return failure<T>(
+      Notification.of([
+        {
+          code: 'LAST_ADMINISTRATOR',
+          field: 'status',
+          message: 'O sistema precisa de ao menos um administrador ativo.',
+        },
+      ]),
+    );
+  }
 
   let gateway: { [K in keyof CaretakerGateway]: ReturnType<typeof vi.fn> };
 
@@ -59,31 +66,13 @@ describe('caretaker use cases', () => {
     expect(result).toEqual(success(page));
   });
 
-  it('registers exactly what was typed: the backend validates every field at once', async () => {
-    // Filtrar ou validar aqui faria o cliente recusar o que o backend aceita, ou o contrário.
-    const registration = {
-      fullName: '',
-      cpf: '529.982.247-25',
-      email: 'joao.pereira@ovyx.com.br',
-      mobilePhone: '(91) 99123-4567',
-      password: 'AviarioSul2026',
-      role: null,
-    };
+  it('passes the backend refusal through, without rewriting it', async () => {
+    // A recusa é do backend: trocá-la por outra coisa aqui — uma página vazia, o resultado de outra
+    // consulta — escondia da tela o motivo real.
+    gateway.search.mockResolvedValue(refusal());
 
-    await TestBed.inject(RegisterCaretakerUseCase).execute(registration);
+    const result = await TestBed.inject(SearchCaretakersUseCase).execute({ page: 0, size: 20 });
 
-    expect(gateway.register).toHaveBeenCalledWith(registration);
-  });
-
-  it('finds, updates and deactivates through the gateway, by the caretaker id', async () => {
-    const update = { fullName: 'João Pereira', cpf: '52998224725', email: 'joao@ovyx.com.br', mobilePhone: '91991234567', role: 'ADMINISTRATOR' as const };
-
-    await TestBed.inject(FindCaretakerUseCase).execute(joao.id);
-    await TestBed.inject(UpdateCaretakerUseCase).execute(joao.id, update);
-    const deactivated = await TestBed.inject(DeactivateCaretakerUseCase).execute(joao.id);
-
-    expect(gateway.find).toHaveBeenCalledWith(joao.id);
-    expect(gateway.update).toHaveBeenCalledWith(joao.id, update);
-    expect(deactivated).toEqual(success({ ...joao, status: 'INACTIVE' }));
+    expect(result).toEqual(refusal());
   });
 });

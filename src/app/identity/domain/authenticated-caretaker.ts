@@ -1,6 +1,11 @@
 /** Perfil do responsável, no mesmo vocabulário do backend. */
 export type Role = 'ADMINISTRATOR' | 'USER';
 
+/** Se o perfil dá acesso à administração: o menu e o guard perguntam a mesma coisa, num lugar só. */
+export function isAdministrator(role: Role): boolean {
+  return role === 'ADMINISTRATOR';
+}
+
 /**
  * Quem está na sessão, como a tela precisa dele.
  *

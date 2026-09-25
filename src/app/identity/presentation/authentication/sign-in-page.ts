@@ -8,8 +8,6 @@ import { ErrorSummary } from '../../../shared/presentation/ui/error-summary/erro
 import { FormField } from '../../../shared/presentation/ui/form-field/form-field';
 import { SignInUseCase } from '../../application/authentication/sign-in.usecase';
 
-/** Campos que esta tela exibe; o resto das violações vai para o topo do formulário. */
-
 /**
  * Tela de acesso (FR-001).
  *
@@ -98,8 +96,10 @@ export class SignInPage {
     password: '',
   });
 
-  /** Sem validador: o que recusa preenchimento é o caso de uso, e o que recusa a senha é o backend. */
-  /** Campos desta tela: só eles viram link no resumo da recusa. */
+  /**
+   * Campos desta tela: só eles viram link no resumo da recusa. Sem validador: o que recusa
+   * preenchimento é o caso de uso, e o que recusa a senha é o backend.
+   */
   protected readonly fields = ['identifier', 'password'];
 
   protected readonly notification = signal(Notification.empty());
@@ -113,7 +113,6 @@ export class SignInPage {
    */
   protected readonly sessionExpired =
     inject(ActivatedRoute).snapshot.queryParamMap.get('sessao') === 'expirada';
-
 
   protected messageFor(field: string): string | undefined {
     return this.notification().messageFor(field);

@@ -48,9 +48,15 @@ export function toNotification(problem: ProblemDetails | null | undefined): Noti
   ]);
 }
 
+/**
+ * Chave com que o backend identifica um parâmetro do endereço em formato inválido. O valor é o nome
+ * do parâmetro, e não uma mensagem: a mensagem, em português, vem em `detail`.
+ */
+const PARAMETER_KEY = 'parameter';
+
 /** Uma violação por campo recusado, na ordem em que o backend as devolveu. */
 function fieldViolations(problem: ProblemDetails): DomainError[] {
-  if (!problem.details) {
+  if (!problem.details || PARAMETER_KEY in problem.details) {
     return [];
   }
 

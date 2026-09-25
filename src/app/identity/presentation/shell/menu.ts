@@ -1,5 +1,5 @@
 import { MenuItem } from '../../../shared/domain/menu-item';
-import { Role } from '../../domain/authenticated-caretaker';
+import { Role, isAdministrator } from '../../domain/authenticated-caretaker';
 
 /** Item do menu e o perfil mínimo para vê-lo. */
 interface ProtectedMenuItem extends MenuItem {
@@ -19,7 +19,7 @@ const ITEMS: readonly ProtectedMenuItem[] = [
  * oferecer um caminho que terminaria em recusa.
  */
 export function menuFor(role: Role): readonly MenuItem[] {
-  return ITEMS.filter((item) => !item.administratorOnly || role === 'ADMINISTRATOR').map(
+  return ITEMS.filter((item) => !item.administratorOnly || isAdministrator(role)).map(
     ({ label, route }) => ({ label, route }),
   );
 }

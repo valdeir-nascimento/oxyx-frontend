@@ -24,6 +24,22 @@ describe('toNotification', () => {
     expect(notification.messageFor('cpf')).toBe('CPF inválido.');
   });
 
+  it('does not take the name of a malformed address parameter for a message', () => {
+    // O backend identifica o parâmetro em details, { parameter: 'caretakerId' }. Lido como campo, a
+    // tela mostrava "caretakerId" no resumo; a mensagem em português vem em detail.
+    const notification = toNotification({
+      title: 'Dados inválidos',
+      status: 400,
+      code: 'VALIDATION_FAILED',
+      detail: "Valor inválido para o parâmetro 'caretakerId'.",
+      details: { parameter: 'caretakerId' },
+    });
+
+    expect(notification.errors).toEqual([
+      { code: 'VALIDATION_FAILED', message: "Valor inválido para o parâmetro 'caretakerId'." },
+    ]);
+  });
+
   it('builds a single violation from the code when nothing is detailed', () => {
     // É o caso das falhas de credencial: por FR-002 o backend não detalha a causa.
     const notification = toNotification({

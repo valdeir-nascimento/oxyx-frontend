@@ -319,5 +319,14 @@ describe('IdentityHttpAdapter', () => {
       const result = await deactivated;
       expect(result.success && result.value.status).toBe('INACTIVE');
     });
+
+    it('encodes the caretaker id in the address, so a forged id cannot reach another endpoint', async () => {
+      // O navegador resolve os ".." de um caminho: sem codificar, o identificador tirado do endereço
+      // da tela levava a edição a chamar /api/v1/me/password.
+      const found = adapter.find('../../me/password');
+
+      backend.expectOne('/api/v1/caretakers/..%2F..%2Fme%2Fpassword').flush(joao);
+      await found;
+    });
   });
 });
