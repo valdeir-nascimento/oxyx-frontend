@@ -1,0 +1,21 @@
+<nav class="pager" aria-label="Paginação">
+  <span class="tnum">{{ range() }}</span>
+  <div class="pages">
+    <button type="button" aria-label="Página anterior" [disabled]="isFirst()" (click)="goTo(page() - 1)">
+      <ovyx-icon name="chevL" [size]="16" />
+    </button>
+    @for (number of pages(); track number) {
+      <button
+        type="button"
+        [attr.aria-label]="'Página ' + (number + 1)"
+        [attr.aria-current]="number === page() ? 'page' : null"
+        (click)="goTo(number)"
+      >
+        {{ number + 1 }}
+      </button>
+    }
+    <button type="button" aria-label="Próxima página" [disabled]="isLast()" (click)="goTo(page() + 1)">
+      <ovyx-icon name="chevR" [size]="16" />
+    </button>
+  </div>
+</nav>

@@ -1,0 +1,29 @@
+<div class="layer" role="presentation" (click)="closeFromScrim($event)" (keydown.escape)="closed.emit()">
+  <form
+    class="dialog"
+    role="dialog"
+    aria-modal="true"
+    novalidate
+    [attr.aria-labelledby]="titleId"
+    [attr.aria-describedby]="subtitle() ? subtitleId : null"
+    [ovyxFocusTrap]="initialFocus()"
+    (submit)="submit($event)"
+  >
+    <div class="dlg-head">
+      <span class="dlg-ico"><ovyx-icon [name]="icon()" /></span>
+      <div class="grow">
+        <h2 [id]="titleId">{{ title() }}</h2>
+        @if (subtitle(); as text) {
+          <p [id]="subtitleId">{{ text }}</p>
+        }
+      </div>
+      <ovyx-icon-button icon="x" label="Fechar" (pressed)="closed.emit()" />
+    </div>
+    <div class="dlg-body">
+      <ng-content />
+    </div>
+    <div class="dlg-foot">
+      <ng-content select="[dialog-actions]" />
+    </div>
+  </form>
+</div>

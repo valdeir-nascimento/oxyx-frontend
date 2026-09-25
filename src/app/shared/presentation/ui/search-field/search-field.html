@@ -1,0 +1,10 @@
+<div class="control">
+  <ovyx-icon name="search" [size]="18" />
+  <input
+    type="search"
+    [id]="controlId() ?? null"
+    [formControl]="control()"
+    [attr.aria-label]="label()"
+    [placeholder]="placeholder()"
+  />
+</div>
