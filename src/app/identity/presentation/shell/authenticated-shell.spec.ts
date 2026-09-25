@@ -79,7 +79,7 @@ describe('AuthenticatedShell', () => {
     // terminaria em recusa.
     const fixture = await render({ ...maria, role: 'USER' });
 
-    expect(menuLabels(fixture)).toEqual(['Início']);
+    expect(menuLabels(fixture)).toEqual(['Início', 'Trocar senha']);
   });
 
   it('shows the caretaker administration to an administrator', async () => {

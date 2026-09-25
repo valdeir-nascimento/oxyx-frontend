@@ -24,18 +24,23 @@ export const authenticatedGuard: CanActivateFn = () => {
 };
 
 /**
- * Exige apenas sessão.
+ * A tela cheia de troca de senha é a da troca obrigatória (FR-025): a única tela liberada enquanto a
+ * senha provisória valer, e por isso sem saída.
  *
- * É o guard da própria tela de troca de senha: exigir ali a ausência da senha provisória prenderia
- * a pessoa fora da única tela que ela pode usar. A US4 abre esta mesma tela pelo menu, para quem
- * troca a senha por vontade própria.
+ * Quem troca por vontade própria vai para a página da conta, dentro da casca, com caminho de volta
+ * (US4). O interceptador pergunta de novo ao backend quem está na sessão antes de mandar alguém
+ * para cá no 403 `PASSWORD_CHANGE_REQUIRED`, então a obrigação já está na loja quando este guard
+ * decide.
  */
 export const passwordChangeGuard: CanActivateFn = () => {
   const router = inject(Router);
 
-  return sessionOf(inject(SessionStore), inject(RestoreSessionUseCase)).then((caretaker) =>
-    caretaker ? true : router.parseUrl('/acesso'),
-  );
+  return sessionOf(inject(SessionStore), inject(RestoreSessionUseCase)).then((caretaker) => {
+    if (!caretaker) {
+      return router.parseUrl('/acesso');
+    }
+    return caretaker.mustChangePassword ? true : router.parseUrl('/minha-conta/senha');
+  });
 };
 
 /**

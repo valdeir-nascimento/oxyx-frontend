@@ -135,6 +135,36 @@ describe('routes', () => {
     expect(await goTo('/acesso-negado')).toBe('/trocar-senha');
   });
 
+  it('opens the own password change inside the shell to whoever the backend recognizes (US4)', async () => {
+    configure(success(maria));
+
+    expect(await goTo('/minha-conta/senha')).toBe('/minha-conta/senha');
+  });
+
+  it('keeps an anonymous visitor out of the own password change', async () => {
+    configure(noSession());
+
+    expect(await goTo('/minha-conta/senha')).toBe('/acesso');
+  });
+
+  it('takes whoever owes the provisional password to the full screen change, outside the shell', async () => {
+    configure(success({ ...maria, mustChangePassword: true }));
+
+    expect(await goTo('/minha-conta/senha')).toBe('/trocar-senha');
+  });
+
+  it('sends whoever does not owe the provisional password from the full screen change to the account page', async () => {
+    configure(success(maria));
+
+    expect(await goTo('/trocar-senha')).toBe('/minha-conta/senha');
+  });
+
+  it('keeps an anonymous visitor out of the password change screen', async () => {
+    configure(noSession());
+
+    expect(await goTo('/trocar-senha')).toBe('/acesso');
+  });
+
   it.each(['/responsaveis/novo', '/responsaveis/9f8e7d6c-5b4a-4938-2716-0f1e2d3c4b5a'])(
     'keeps a common user out of %s by direct address (SC-003)',
     async (path) => {

@@ -26,7 +26,7 @@ export const routes: Routes = [
     path: 'trocar-senha',
     canActivate: [passwordChangeGuard],
     loadComponent: () =>
-      import('./identity/presentation/account/change-password-page').then(
+      import('./identity/presentation/account/change-password/change-password-page').then(
         (m) => m.ChangePasswordPage,
       ),
     title: 'Trocar senha — Ovyx',
@@ -51,6 +51,15 @@ export const routes: Routes = [
         loadComponent: () => import('./shared/presentation/home/home').then((m) => m.Home),
         title: 'Ovyx',
         data: { crumbs: ['Início'] },
+      },
+      {
+        // A troca por vontade própria, pelo menu (US4). A obrigatória, da senha provisória, é a
+        // tela cheia de /trocar-senha: o guard da casca leva para lá quem ainda a deve.
+        path: 'minha-conta/senha',
+        loadComponent: () =>
+          import('./identity/presentation/account/own-password/own-password-page').then((m) => m.OwnPasswordPage),
+        title: 'Trocar senha — Ovyx',
+        data: { crumbs: ['Minha conta', 'Trocar senha'] },
       },
       {
         // Área administrativa (FR-008): o guard só evita desenhar uma tela de recusas; quem

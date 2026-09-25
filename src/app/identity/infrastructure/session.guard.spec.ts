@@ -78,11 +78,18 @@ describe('authenticatedGuard', () => {
     expect(await run(authenticatedGuard)).toBe('/trocar-senha');
   });
 
-  it('lets an authenticated caretaker reach the change screen even without the obligation', async () => {
-    // A US4 abre a troca pelo menu; o guard da rota de troca só exige sessão.
-    configure(success(maria));
+  it('lets whoever owes the provisional password into the full screen change', async () => {
+    configure(success({ ...maria, mustChangePassword: true }));
 
     expect(await run(passwordChangeGuard)).toBe('true');
+  });
+
+  it('sends a voluntary change to the account page, which has a way back', async () => {
+    // A tela cheia é a da troca obrigatória, sem saída: quem troca por vontade própria usa a página
+    // da conta, dentro da casca (US4).
+    configure(success(maria));
+
+    expect(await run(passwordChangeGuard)).toBe('/minha-conta/senha');
   });
 
   it('sends whoever has no session away from the change screen too', async () => {

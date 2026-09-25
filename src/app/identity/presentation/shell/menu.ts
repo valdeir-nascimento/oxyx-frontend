@@ -10,6 +10,8 @@ interface ProtectedMenuItem extends MenuItem {
 const ITEMS: readonly ProtectedMenuItem[] = [
   { label: 'Início', route: '/', icon: 'chart', group: 'Painel', administratorOnly: false },
   { label: 'Responsáveis', route: '/responsaveis', icon: 'users', group: 'Administração', administratorOnly: true },
+  // Todo perfil troca a própria senha (US4).
+  { label: 'Trocar senha', route: '/minha-conta/senha', icon: 'lock', group: 'Minha conta', administratorOnly: false },
 ];
 
 /**

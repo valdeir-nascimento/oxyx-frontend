@@ -146,6 +146,21 @@ a.icon-btn {
   grid-template-rows: minmax(0, 1fr);
 }
 
+/* ------------------------------------------------------- ações de formulário */
+/* As ações de um formulário fora de diálogo, com a mesma disposição do .dlg-foot: à direita e, no
+ * celular, esticadas para o polegar. */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+@container app (max-width: 640px) {
+  .form-actions .btn {
+    flex: 1;
+  }
+}
+
 /* ------------------------------------------------------------------ campos */
 /* O design system troca a ajuda pela recusa; no Ovyx as duas ficam (a ajuda da senha explica a
  * política justamente quando ela é recusada), e a ajuda mantém a cor neutra. */
