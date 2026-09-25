@@ -1,0 +1,15 @@
+/* A página não ocupa caixa: título, avisos e cartão são itens da coluna do .content-inner do design
+ * system, que dá o espaçamento. */
+:host {
+  display: contents;
+}
+
+/* O ícone da gaiola, ao lado do código, como no protótipo. */
+.ic {
+  color: var(--ink-3);
+}
+
+/* O outlet não desenha nada; quem aparece é o diálogo que ele carrega, ao lado dele. */
+router-outlet {
+  display: none;
+}

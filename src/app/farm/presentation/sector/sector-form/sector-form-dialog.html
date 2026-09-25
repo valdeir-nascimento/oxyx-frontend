@@ -1,0 +1,65 @@
+<ovyx-dialog
+  [title]="editing ? 'Editar setor' : 'Novo setor'"
+  [subtitle]="subtitle()"
+  icon="barn"
+  (closed)="close()"
+  (submitted)="submit()"
+>
+  <p class="sr" role="status">{{ state() === 'loading' ? 'Carregando…' : '' }}</p>
+
+  @switch (state()) {
+    @case ('loading') {
+      <div class="loading span2" aria-hidden="true">
+        <span class="sk"></span>
+        <span class="sk"></span>
+      </div>
+    }
+    @case ('missing') {
+      <ovyx-alert class="span2" variant="danger">
+        <p>Setor não encontrado.</p>
+      </ovyx-alert>
+    }
+    @case ('failed') {
+      <ovyx-error-summary
+        class="span2"
+        heading="Não foi possível carregar o setor:"
+        [errors]="notification().errors"
+        [fields]="[]"
+      />
+    }
+    @case ('ready') {
+      @if (notification().hasErrors) {
+        <ovyx-error-summary class="span2" [errors]="notification().errors" [fields]="fields" />
+      }
+
+      <ovyx-form-field
+        controlId="name"
+        label="Nome"
+        hint="Ex.: Codornas — Galpão 4. De 2 a 80 caracteres."
+        autocomplete="off"
+        [wide]="true"
+        [control]="form.controls.name"
+        [error]="messageFor('name')"
+      />
+      <ovyx-form-field
+        controlId="description"
+        label="Descrição (opcional)"
+        hint="Espécie, linhagem e galpão. Até 500 caracteres."
+        [multiline]="true"
+        [wide]="true"
+        [control]="form.controls.description"
+        [error]="messageFor('description')"
+      />
+    }
+  }
+
+  <!-- Um elemento por condição: um bloco com mais de uma raiz iria para o corpo, e não para as ações. -->
+  <ovyx-button dialog-actions variant="secondary" [disabled]="submitting()" (pressed)="close()">
+    {{ state() === 'ready' ? 'Cancelar' : 'Voltar à lista' }}
+  </ovyx-button>
+  @if (state() === 'ready') {
+    <ovyx-button dialog-actions type="submit" icon="check" [busy]="submitting()">
+      {{ editing ? 'Salvar alterações' : 'Cadastrar' }}
+    </ovyx-button>
+  }
+</ovyx-dialog>

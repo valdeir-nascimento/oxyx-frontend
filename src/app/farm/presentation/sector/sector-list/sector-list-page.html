@@ -1,0 +1,123 @@
+<ovyx-page-header
+  eyebrow="Produção"
+  title="Setores"
+  subtitle="Cada setor reúne as gaiolas de um galpão, de uma espécie ou de um lote acompanhado separadamente."
+>
+  @if (canChange()) {
+    <a class="btn btn-primary" routerLink="/setores/novo">
+      <ovyx-icon name="plus" [size]="18" />
+      <span>Novo setor</span>
+    </a>
+  }
+</ovyx-page-header>
+
+@if (refusal().hasErrors) {
+  <ovyx-error-summary heading="Não foi possível concluir a operação:" [errors]="refusal().errors" [fields]="[]" />
+}
+
+<div class="toolbar">
+  <ovyx-segmented-control
+    label="Situação"
+    [options]="statusOptions"
+    [value]="status()"
+    (valueChange)="filterByStatus($event)"
+  />
+</div>
+
+<p class="sr" role="status">{{ announcement() }}</p>
+
+@if (!loading() && sectors().length === 0 && !refusal().hasErrors) {
+  <section class="card" data-empty tabindex="-1" [attr.aria-label]="emptyTitle()">
+    <ovyx-empty-state icon="barn" [title]="emptyTitle()" [message]="emptyMessage()">
+      @if (invitesToRegister()) {
+        <a class="btn btn-primary btn-sm" routerLink="/setores/novo">
+          <ovyx-icon name="plus" [size]="16" />
+          <span>Novo setor</span>
+        </a>
+      }
+    </ovyx-empty-state>
+  </section>
+} @else {
+  <div class="setores" role="region" aria-label="Lista de setores" tabindex="-1" [attr.aria-busy]="loading()">
+    @for (sector of sectors(); track sector.id) {
+      <article class="setor" [attr.data-sector]="sector.id">
+        <div class="setor-top">
+          <span class="emblem" aria-hidden="true"><ovyx-icon name="barn" [size]="24" /></span>
+          <div class="grow">
+            <h2>{{ sector.name }}</h2>
+            @if (sector.description; as description) {
+              <p>{{ description }}</p>
+            }
+          </div>
+          @if (canChange()) {
+            <div class="setor-tools">
+              <a
+                class="icon-btn sm"
+                [routerLink]="['/setores', sector.id]"
+                [attr.aria-label]="'Editar setor ' + sector.name"
+                [attr.title]="'Editar setor ' + sector.name"
+              >
+                <ovyx-icon name="edit" [size]="18" />
+              </a>
+              @if (sector.status === 'ACTIVE') {
+                <ovyx-icon-button
+                  icon="lock"
+                  [small]="true"
+                  [danger]="true"
+                  [label]="'Inativar setor ' + sector.name"
+                  (pressed)="confirming.set(sector)"
+                />
+              } @else {
+                <ovyx-icon-button
+                  icon="check"
+                  [small]="true"
+                  [label]="'Reativar setor ' + sector.name"
+                  (pressed)="reactivate(sector)"
+                />
+              }
+            </div>
+          }
+        </div>
+        <div class="setor-stats">
+          <div><span>Gaiolas ativas</span><b>{{ countOf(sector.activeCageCount) }}</b></div>
+          <div><span>Aves</span><b>{{ countOf(sector.birdCount) }}</b></div>
+        </div>
+        <div class="setor-actions">
+          <a
+            class="btn btn-secondary btn-sm"
+            [routerLink]="['/setores', sector.id, 'gaiolas']"
+            [attr.aria-label]="'Gaiolas do setor ' + sector.name"
+          >
+            <ovyx-icon name="cage" [size]="16" />
+            <span>Gaiolas</span>
+          </a>
+          <span class="grow"></span>
+          <ovyx-status-badge [label]="statusLabelOf(sector.status)" [tone]="statusToneOf(sector.status)" />
+        </div>
+      </article>
+    }
+    @if (invitesToRegister()) {
+      <a class="setor add" routerLink="/setores/novo">
+        <span class="emblem" aria-hidden="true"><ovyx-icon name="plus" [size]="24" /></span>
+        <b>Adicionar setor</b>
+        <span>Um galpão, uma espécie ou um lote que você acompanha separado.</span>
+      </a>
+    }
+  </div>
+}
+
+@if (confirming(); as sector) {
+  <ovyx-confirm-dialog
+    icon="lock"
+    confirmLabel="Inativar setor"
+    [title]="'Inativar setor ' + sector.name + '?'"
+    [busy]="deactivating()"
+    (confirmed)="deactivate(sector)"
+    (cancelled)="confirming.set(null)"
+  >
+    {{ consequenceOf(sector) }}
+  </ovyx-confirm-dialog>
+}
+
+<!-- O cadastro e a edição abrem aqui, em diálogo sobre a lista. -->
+<router-outlet />

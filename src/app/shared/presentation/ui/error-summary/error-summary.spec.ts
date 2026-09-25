@@ -17,7 +17,7 @@ import { ErrorSummary } from './error-summary';
 class FormWithSummary {
   readonly errors = signal<readonly DomainError[]>([]);
   readonly fields = signal<readonly string[] | undefined>(undefined);
-  readonly heading = signal('Não foi possível concluir. Corrija o que está indicado:');
+  readonly heading = signal<string | undefined>(undefined);
 }
 
 /**
@@ -28,7 +28,7 @@ class FormWithSummary {
 describe('ErrorSummary', () => {
   const refusal: readonly DomainError[] = [
     { code: 'EMAIL_MALFORMED', field: 'email', message: 'Informe um e-mail em formato válido.' },
-    { code: 'REQUEST_FAILED', message: 'Não foi possível concluir a operação. Tente novamente.' },
+    { code: 'REQUEST_FAILED', message: 'Não houve resposta do servidor. Tente novamente em instantes.' },
   ];
 
   let fixture: ComponentFixture<FormWithSummary>;
@@ -60,7 +60,7 @@ describe('ErrorSummary', () => {
 
     expect(items.map((item) => item.textContent?.trim())).toEqual([
       'Informe um e-mail em formato válido.',
-      'Não foi possível concluir a operação. Tente novamente.',
+      'Não houve resposta do servidor. Tente novamente em instantes.',
     ]);
     expect(link?.getAttribute('href')).toBe('#email');
     expect(items[1].querySelector('a')).toBeNull();
@@ -110,6 +110,22 @@ describe('ErrorSummary', () => {
     expect(summary.getAttribute('role')).not.toBe('alert');
   });
 
+  it('does not ask to correct the form when the refusal points to no field of it', async () => {
+    // Observação do QA: a gaiola recusada porque o setor está inativo não tem campo a corrigir, e o
+    // título mandava corrigir "o que está indicado".
+    fixture.componentInstance.fields.set(['email']);
+
+    await refuse([
+      { code: 'SECTOR_INACTIVE', message: 'O setor está inativo.' },
+      { code: 'EMAIL_MALFORMED', field: 'name', message: 'Campo que a tela não mostra.' },
+    ]);
+
+    const summary = element().querySelector('.error-summary')!;
+    expect(element().querySelector(`#${summary.getAttribute('aria-labelledby')}`)?.textContent?.trim()).toBe(
+      'Não foi possível concluir a operação:',
+    );
+  });
+
   it('is a group, a role that admits the name its title gives it', async () => {
     // Um div sem papel é "generic", e o papel generic não admite nome (ARIA 1.2): o título não
     // chegava ao leitor de tela.
@@ -127,5 +143,19 @@ describe('ErrorSummary', () => {
     expect(element().querySelector(`#${summary.getAttribute('aria-labelledby')}`)?.textContent?.trim()).toBe(
       'Não foi possível concluir a operação:',
     );
+  });
+
+  it('lists a message repeated in two fields once, linked to the first field', async () => {
+    // Revisão e QA (D-4): o conflito de gaiola põe a mesma frase na bateria e no número, e o resumo a
+    // lia duas vezes. Junto de cada campo ela continua; no resumo, basta uma.
+    const message = 'Já existe uma gaiola ativa B-07 neste setor.';
+    await refuse([
+      { code: 'CAGE_ALREADY_EXISTS', field: 'email', message },
+      { code: 'CAGE_ALREADY_EXISTS', field: 'number', message },
+    ]);
+
+    const items = Array.from(element().querySelectorAll('.error-summary li'));
+    expect(items.map((item) => item.textContent?.trim())).toEqual([message]);
+    expect(items[0].querySelector('a')?.getAttribute('href')).toBe('#email');
   });
 });

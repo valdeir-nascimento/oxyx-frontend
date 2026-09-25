@@ -9,7 +9,12 @@ import { routes } from './app.routes';
 import { ACCOUNT_GATEWAY } from './identity/application/account/account-gateway';
 import { AUTHENTICATION_GATEWAY } from './identity/application/authentication/authentication-gateway';
 import { CARETAKER_GATEWAY } from './identity/application/caretaker/caretaker-gateway';
+import { CAGE_GATEWAY } from './farm/application/cage/cage-gateway';
+import { SECTOR_GATEWAY } from './farm/application/sector/sector-gateway';
+import { FarmHttpAdapter } from './farm/infrastructure/farm-http.adapter';
+import { SessionViewer } from './identity/application/authentication/session-viewer';
 import { IdentityHttpAdapter } from './identity/infrastructure/identity-http.adapter';
+import { VIEWER } from './shared/application/viewer';
 import { sessionInterceptor } from './identity/infrastructure/session.interceptor';
 
 export const appConfig: ApplicationConfig = {
@@ -30,5 +35,9 @@ export const appConfig: ApplicationConfig = {
     { provide: AUTHENTICATION_GATEWAY, useExisting: IdentityHttpAdapter },
     { provide: ACCOUNT_GATEWAY, useExisting: IdentityHttpAdapter },
     { provide: CARETAKER_GATEWAY, useExisting: IdentityHttpAdapter },
+    { provide: SECTOR_GATEWAY, useExisting: FarmHttpAdapter },
+    { provide: CAGE_GATEWAY, useExisting: FarmHttpAdapter },
+    // O perfil de quem vê, para as telas dos contextos que não conhecem o identity (feature 002).
+    { provide: VIEWER, useExisting: SessionViewer },
   ],
 };

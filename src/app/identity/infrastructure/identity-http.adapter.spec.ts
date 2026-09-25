@@ -153,7 +153,7 @@ describe('IdentityHttpAdapter', () => {
     const result = await pending;
     expect(result.success).toBe(false);
     expect(result.success === false && result.notification.errors[0].message).toContain(
-      'Não foi possível',
+      'Não houve resposta do servidor',
     );
   });
 

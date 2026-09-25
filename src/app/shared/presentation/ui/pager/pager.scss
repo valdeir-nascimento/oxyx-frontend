@@ -1,3 +1,16 @@
 :host {
   display: block;
 }
+
+/*
+ * O botão indisponível continua focável (aria-disabled), com o aspecto de desabilitado: esmaece a
+ * seta, e não o botão inteiro, que levava junto o anel de foco.
+ */
+.pages button[aria-disabled='true'] {
+  color: color-mix(in srgb, var(--ink-2) 40%, transparent);
+  cursor: not-allowed;
+}
+
+.pages button[aria-disabled='true']:hover {
+  background: none;
+}

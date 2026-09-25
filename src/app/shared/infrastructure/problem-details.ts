@@ -24,13 +24,17 @@ const GENERIC_FAILURE_CODE = 'REQUEST_FAILED';
  * Quando o problema não traz `details` — caso das falhas de autenticação, que por FR-002 não
  * detalham a causa — produz uma violação única a partir do `detail`, para que a tela sempre tenha
  * uma mensagem em português a exibir.
+ *
+ * Sem Problem Details — falha de rede, ou uma página de erro de quem fica entre o cliente e o
+ * backend —, a mensagem diz que o servidor não respondeu. Ela não repete o título do resumo ("Não foi
+ * possível concluir a operação:"), que a lia logo acima.
  */
 export function toNotification(problem: ProblemDetails | null | undefined): Notification {
   if (!problem) {
     return Notification.of([
       {
         code: GENERIC_FAILURE_CODE,
-        message: 'Não foi possível concluir a operação. Tente novamente.',
+        message: 'Não houve resposta do servidor. Tente novamente em instantes.',
       },
     ]);
   }

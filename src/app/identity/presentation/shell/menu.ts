@@ -9,6 +9,8 @@ interface ProtectedMenuItem extends MenuItem {
 /** Itens do sistema, na ordem do menu. Cresce conforme os domínios seguintes forem entregues. */
 const ITEMS: readonly ProtectedMenuItem[] = [
   { label: 'Início', route: '/', icon: 'chart', group: 'Painel', administratorOnly: false },
+  // A estrutura da granja: todo perfil consulta; só o administrador altera (feature 002, FR-018).
+  { label: 'Setores', route: '/setores', icon: 'barn', group: 'Produção', administratorOnly: false },
   { label: 'Responsáveis', route: '/responsaveis', icon: 'users', group: 'Administração', administratorOnly: true },
   // Todo perfil troca a própria senha (US4).
   { label: 'Trocar senha', route: '/minha-conta/senha', icon: 'lock', group: 'Minha conta', administratorOnly: false },

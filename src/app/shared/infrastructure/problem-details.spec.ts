@@ -6,7 +6,7 @@ describe('toNotification', () => {
 
     expect(notification.errors).toHaveLength(1);
     expect(notification.errors[0].code).toBe('REQUEST_FAILED');
-    expect(notification.errors[0].message).toContain('Não foi possível');
+    expect(notification.errors[0].message).toContain('Não houve resposta do servidor');
   });
 
   it('keeps every violation listed by the backend', () => {

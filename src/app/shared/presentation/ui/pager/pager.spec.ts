@@ -77,11 +77,22 @@ describe('Pager', () => {
     expect(pageChange.mock.calls).toEqual([[0], [2]]);
   });
 
-  it('cannot step back from the first page nor forward from the last one', () => {
+  it('cannot step back from the first page nor forward from the last one, and keeps the focus on the button', () => {
+    // QA (D-3): desabilitado de verdade, o botão perdia o foco ao chegar à última página, e o Tab
+    // seguinte levava ao começo da tela. Com aria-disabled, ele continua focável e só não faz nada.
     render(0, 1, 5);
+    const pageChange = requested();
+    const next = named('Próxima página');
+    next.focus();
 
-    expect(named('Página anterior').disabled).toBe(true);
-    expect(named('Próxima página').disabled).toBe(true);
+    named('Página anterior').click();
+    next.click();
+
+    expect(named('Página anterior').getAttribute('aria-disabled')).toBe('true');
+    expect(next.getAttribute('aria-disabled')).toBe('true');
+    expect(next.disabled).toBe(false);
+    expect(document.activeElement).toBe(next);
+    expect(pageChange).not.toHaveBeenCalled();
   });
 });
 

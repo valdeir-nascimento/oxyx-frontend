@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { activeSectorGuard, sectorCrumbsResolver, sectorTitleResolver } from './farm/presentation/cage/sector-route';
 import {
   administratorGuard,
   anonymousGuard,
@@ -60,6 +61,60 @@ export const routes: Routes = [
           import('./identity/presentation/account/own-password/own-password-page').then((m) => m.OwnPasswordPage),
         title: 'Trocar senha — Ovyx',
         data: { crumbs: ['Minha conta', 'Trocar senha'] },
+      },
+      {
+        // As gaiolas de um setor (feature 002, US2), antes de `setores`: com ela primeiro, o
+        // `:sectorId` do diálogo de setor tentaria o endereço inteiro. O cadastro e a edição de gaiola
+        // abrem em diálogo sobre a lista, pelas rotas filhas, e não abrem sobre um setor inativo.
+        path: 'setores/:sectorId/gaiolas',
+        loadComponent: () =>
+          import('./farm/presentation/cage/cage-list/cage-list-page').then((m) => m.CageListPage),
+        // O título da aba e o caminho trazem o nome do setor, como no protótipo (Setores › setor ›
+        // Gaiolas). O título é da rota: é o que volta quando um diálogo de gaiola fecha.
+        title: sectorTitleResolver,
+        resolve: { crumbs: sectorCrumbsResolver },
+        children: [
+          {
+            path: 'nova',
+            canActivate: [administratorGuard, activeSectorGuard],
+            loadComponent: () =>
+              import('./farm/presentation/cage/cage-form/cage-form-dialog').then((m) => m.CageFormDialog),
+            title: 'Nova gaiola — Ovyx',
+          },
+          {
+            path: ':cageId',
+            canActivate: [administratorGuard, activeSectorGuard],
+            loadComponent: () =>
+              import('./farm/presentation/cage/cage-form/cage-form-dialog').then((m) => m.CageFormDialog),
+            title: 'Editar gaiola — Ovyx',
+          },
+        ],
+      },
+      {
+        // A estrutura da granja (feature 002): todo perfil consulta. O cadastro e a edição abrem em
+        // diálogo sobre a lista, pelas rotas filhas, só para o administrador (US4): o guard evita
+        // desenhar um formulário que terminaria em recusa; quem protege as escritas é o backend.
+        path: 'setores',
+        loadComponent: () =>
+          import('./farm/presentation/sector/sector-list/sector-list-page').then((m) => m.SectorListPage),
+        title: 'Setores — Ovyx',
+        data: { crumbs: ['Produção', 'Setores'] },
+        children: [
+          {
+            path: 'novo',
+            canActivate: [administratorGuard],
+            loadComponent: () =>
+              import('./farm/presentation/sector/sector-form/sector-form-dialog').then((m) => m.SectorFormDialog),
+            title: 'Novo setor — Ovyx',
+          },
+          {
+            path: ':sectorId',
+            canActivate: [administratorGuard],
+            loadComponent: () =>
+              import('./farm/presentation/sector/sector-form/sector-form-dialog').then((m) => m.SectorFormDialog),
+            title: 'Editar setor — Ovyx',
+          },
+        ],
       },
       {
         // Área administrativa (FR-008): o guard só evita desenhar uma tela de recusas; quem

@@ -79,7 +79,7 @@ describe('AuthenticatedShell', () => {
     // terminaria em recusa.
     const fixture = await render({ ...maria, role: 'USER' });
 
-    expect(menuLabels(fixture)).toEqual(['Início', 'Trocar senha']);
+    expect(menuLabels(fixture)).toEqual(['Início', 'Setores', 'Trocar senha']);
   });
 
   it('shows the caretaker administration to an administrator', async () => {
@@ -105,7 +105,7 @@ describe('AuthenticatedShell', () => {
         Notification.of([
           {
             code: 'REQUEST_FAILED',
-            message: 'Não foi possível concluir a operação. Tente novamente.',
+            message: 'Não houve resposta do servidor. Tente novamente em instantes.',
           },
         ]),
       ),
@@ -116,7 +116,7 @@ describe('AuthenticatedShell', () => {
 
     expect(navigate).not.toHaveBeenCalled();
     expect(TestBed.inject(Toaster).toasts()).toEqual([
-      expect.objectContaining({ message: 'Não foi possível concluir a operação. Tente novamente.', tone: 'danger' }),
+      expect.objectContaining({ message: 'Não houve resposta do servidor. Tente novamente em instantes.', tone: 'danger' }),
     ]);
   });
 });
