@@ -116,9 +116,46 @@ module.exports = defineConfig([
         {
           patterns: [
             {
-              group: ['**/identity/**'],
+              group: ['**/identity/**', '**/farm/**'],
               message:
                 'shared não depende de contexto de negócio; é o contexto que se liga a shared (princípio I).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // Um contexto não conhece o outro (R-008 da feature 002, espelhado no cliente): o que eles dividem
+  // passa pelo `shared`, como o perfil de quem vê (`VIEWER`). Só a composição da aplicação — `app.config`
+  // e `app.routes`, na raiz — liga os dois. A mesma variante da regra do `shared`, pelo mesmo motivo.
+  {
+    files: ['src/app/farm/**/*.ts'],
+    ignores: ['**/*.spec.ts'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/identity/**'],
+              message: 'farm não depende de identity; o que os dois dividem passa pelo shared (princípio I, R-008).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/app/identity/**/*.ts'],
+    ignores: ['**/*.spec.ts'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/farm/**'],
+              message: 'identity não depende de farm; o que os dois dividem passa pelo shared (princípio I, R-008).',
             },
           ],
         },
