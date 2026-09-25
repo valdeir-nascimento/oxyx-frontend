@@ -214,6 +214,33 @@ describe('CaretakerFormPage', () => {
     expect(submitButton().disabled).toBe(true);
   });
 
+  it('frees the form after a refusal, so the corrected data can be sent again (FR-017)', async () => {
+    // Sem soltar o estado ocupado, a guarda contra o segundo envio travava o formulário na primeira
+    // recusa, e corrigir e reenviar ficava impossível.
+    register.mockResolvedValueOnce(
+      failure(Notification.of([{ code: 'VALIDATION_FAILED', field: 'cpf', message: 'CPF inválido.' }])),
+    );
+    await render();
+
+    await submit();
+    await submit();
+
+    expect(register).toHaveBeenCalledTimes(2);
+    expect(submitButton().disabled).toBe(false);
+  });
+
+  it('keeps the empty loading region in the accessibility tree, only out of sight', async () => {
+    // O navegador não conta o texto vazio da interpolação para :empty; o jsdom conta, e o normalize
+    // o retira.
+    await render();
+    const region = element().querySelector<HTMLElement>('.caretaker-form__status')!;
+
+    region.normalize();
+
+    expect(getComputedStyle(region).display).not.toBe('none');
+    expect(getComputedStyle(region).position).toBe('absolute');
+  });
+
   it('ignores a second submission while the first one runs, as when Enter is pressed again', async () => {
     register.mockReturnValue(new Promise(() => undefined));
     await render();
@@ -280,18 +307,6 @@ describe('CaretakerFormPage', () => {
 
     expect(find).not.toHaveBeenCalled();
     expect(element().textContent).toContain('Responsável não encontrado.');
-  });
-
-  it('treats an id the backend refuses as malformed as a caretaker that does not exist', async () => {
-    // O 400 traz "caretakerId" em details, que a tela mostrava como se fosse uma mensagem.
-    find.mockResolvedValue(
-      failure(Notification.of([{ code: 'VALIDATION_FAILED', message: "Valor inválido para o parâmetro 'caretakerId'." }])),
-    );
-
-    await render(joao.id);
-
-    expect(element().textContent).toContain('Responsável não encontrado.');
-    expect(element().querySelector('form')).toBeNull();
   });
 
   it('says so when the caretaker does not exist, instead of an empty form', async () => {

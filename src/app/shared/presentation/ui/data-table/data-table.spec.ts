@@ -75,6 +75,18 @@ describe('DataTable', () => {
     expect(render(false, ['Maria Silva']).querySelector('[role="status"]')?.textContent?.trim()).toBe('');
   });
 
+  it('keeps the empty status region in the accessibility tree, only out of sight', () => {
+    // Com display: none a região saía da árvore de acessibilidade e renascia a cada estado (T235). O
+    // navegador não conta o texto vazio da interpolação para :empty; o jsdom conta, e o normalize o
+    // retira.
+    const region = render(false, ['Maria Silva']).querySelector<HTMLElement>('[role="status"]')!;
+
+    region.normalize();
+
+    expect(getComputedStyle(region).display).not.toBe('none');
+    expect(getComputedStyle(region).position).toBe('absolute');
+  });
+
   it('says what the page gives it about the rows found, so a search that finds someone is heard', () => {
     expect(
       render(false, ['Maria Silva'], '1 responsável encontrado.').querySelector('[role="status"]')?.textContent?.trim(),

@@ -274,8 +274,8 @@ export class CaretakerListPage {
     const notice = inject(CaretakerNotice).take();
     if (notice) {
       // O aviso do formulário recebe o foco: o da tela anterior se perdeu na navegação, e é a mudança
-      // de foco que o leitor de tela anuncia. Entra depois do primeiro desenho, quando a região já
-      // existe para receber o foco.
+      // de foco que o leitor de tela anuncia. O texto entra depois do primeiro desenho, para a
+      // região nascer vazia e só então recebê-lo.
       afterNextRender(() => this.announce(notice));
     }
     void this.load(0);
@@ -288,10 +288,12 @@ export class CaretakerListPage {
   protected search(event: Event): void {
     event.preventDefault();
     this.searched.set(this.filters.getRawValue());
+    this.status.set('');
     void this.load(0);
   }
 
   protected goTo(page: number): void {
+    this.status.set('');
     void this.load(page);
   }
 
@@ -307,7 +309,7 @@ export class CaretakerListPage {
     this.confirming.set(null);
 
     if (!result.success) {
-      this.refusal.set(result.notification);
+      this.refuse(result.notification);
       return;
     }
 
@@ -319,6 +321,15 @@ export class CaretakerListPage {
   private announce(message: string): void {
     this.status.set(message);
     this.focusAfterRender('.caretakers__status');
+  }
+
+  /**
+   * Uma recusa nova toma o lugar do aviso anterior. Juntos, diziam coisas de momentos diferentes:
+   * "Responsável inativado" logo acima de uma inativação que acabara de ser recusada.
+   */
+  private refuse(notification: Notification): void {
+    this.status.set('');
+    this.refusal.set(notification);
   }
 
   private async load(page: number): Promise<void> {
@@ -333,7 +344,7 @@ export class CaretakerListPage {
     this.loading.set(false);
 
     if (!result.success) {
-      this.refusal.set(result.notification);
+      this.refuse(result.notification);
       return;
     }
     this.refusal.set(Notification.empty());

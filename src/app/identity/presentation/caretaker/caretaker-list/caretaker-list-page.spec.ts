@@ -218,6 +218,69 @@ describe('CaretakerListPage', () => {
     expect(document.activeElement).toBe(status);
   });
 
+  it('says a single caretaker was found, in the singular', async () => {
+    search.mockResolvedValue(success(pageOf([maria])));
+
+    await render();
+
+    expect(element().querySelector('.ovyx-data-table__state')?.textContent?.trim()).toBe(
+      '1 responsável encontrado.',
+    );
+  });
+
+  it('keeps the empty notice region in the accessibility tree, only out of sight', async () => {
+    // Com display: none a região saía da árvore de acessibilidade e renascia a cada aviso (T235). O
+    // navegador não conta o texto vazio da interpolação para :empty; o jsdom conta, e o normalize o
+    // retira.
+    await render();
+    const region = element().querySelector<HTMLElement>('.caretakers__status')!;
+
+    region.normalize();
+
+    expect(getComputedStyle(region).display).not.toBe('none');
+    expect(getComputedStyle(region).position).toBe('absolute');
+  });
+
+  it('stops saying it is loading when the search fails', async () => {
+    search.mockResolvedValue(
+      failure(Notification.of([{ code: 'REQUEST_FAILED', message: 'Não foi possível concluir a operação. Tente novamente.' }])),
+    );
+
+    await render();
+
+    expect(element().querySelector('.ovyx-data-table__state')?.textContent?.trim()).not.toBe('Carregando…');
+  });
+
+  it('frees the confirmation once a deactivation ends, so the next one can be confirmed', async () => {
+    // Sem soltar o estado ocupado, a confirmação seguinte já nascia desabilitada.
+    await render();
+    await confirmDeactivation();
+
+    button('Inativar').click();
+    await settle();
+
+    expect(confirmButton().disabled).toBe(false);
+  });
+
+  it('drops the previous notice when a new refusal arrives', async () => {
+    // "Responsável cadastrado" ficava logo acima da recusa de uma inativação (QA da T284).
+    deactivate.mockResolvedValue(lastAdministrator);
+    await render('Responsável cadastrado: Maria Silva.');
+
+    await confirmDeactivation();
+
+    expect(element().querySelector('.caretakers__status')?.textContent?.trim()).toBe('');
+  });
+
+  it('drops the previous notice when a new search is made', async () => {
+    await render('Responsável cadastrado: Maria Silva.');
+
+    element().querySelector('form')!.dispatchEvent(new Event('submit'));
+    await settle();
+
+    expect(element().querySelector('.caretakers__status')?.textContent?.trim()).toBe('');
+  });
+
   it('says how many caretakers the search found', async () => {
     await render();
 

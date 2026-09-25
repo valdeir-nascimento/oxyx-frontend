@@ -15,7 +15,21 @@ export class RestoreSessionUseCase {
   private readonly identity = inject(AUTHENTICATION_GATEWAY);
   private readonly session = inject(SessionStore);
 
-  async execute(): Promise<Result<AuthenticatedCaretaker>> {
+  /** A pergunta em curso, compartilhada por quem pedir enquanto ela não terminar. */
+  private pending: Promise<Result<AuthenticatedCaretaker>> | null = null;
+
+  /**
+   * Várias recusas ao mesmo tempo — o interceptador reconsulta a cada 403 — fazem uma pergunta só ao
+   * backend, em vez de uma por requisição recusada.
+   */
+  execute(): Promise<Result<AuthenticatedCaretaker>> {
+    this.pending ??= this.ask().finally(() => {
+      this.pending = null;
+    });
+    return this.pending;
+  }
+
+  private async ask(): Promise<Result<AuthenticatedCaretaker>> {
     const result = await this.identity.currentCaretaker();
 
     if (result.success) {

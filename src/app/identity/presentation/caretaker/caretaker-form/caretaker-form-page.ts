@@ -16,8 +16,6 @@ import { ROLE_OPTIONS } from '../../labels/labels';
 import { CaretakerNotice } from '../caretaker-notice';
 
 const NOT_FOUND = 'CARETAKER_NOT_FOUND';
-/** O 400 de um identificador que não é UUID: para quem abriu o endereço, é um responsável que não existe. */
-const INVALID_ID = 'VALIDATION_FAILED';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REGISTRATION_FIELDS = ['fullName', 'cpf', 'email', 'mobilePhone', 'password', 'role'];
 const UPDATE_FIELDS = ['fullName', 'cpf', 'email', 'mobilePhone', 'role'];
@@ -244,9 +242,7 @@ export class CaretakerFormPage {
 
     const result = await this.find.execute(id);
     if (!result.success) {
-      const missing = result.notification.errors.some(
-        (error) => error.code === NOT_FOUND || error.code === INVALID_ID,
-      );
+      const missing = result.notification.errors.some((error) => error.code === NOT_FOUND);
       this.notification.set(missing ? Notification.empty() : result.notification);
       this.state.set(missing ? 'missing' : 'failed');
       return;
