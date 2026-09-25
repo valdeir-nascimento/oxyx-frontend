@@ -51,15 +51,33 @@ export const sessionInterceptor: HttpInterceptorFn = (request, next) => {
           session.forget();
           void router.navigate(['/acesso'], { queryParams: { sessao: 'expirada' } });
         } else if (error.status === 403 && problemCode(error) === FORBIDDEN_CODE) {
-          void restoreSession.execute().then(() => router.navigate(['/acesso-negado']));
+          navigateAfterRestoring(restoreSession, router, '/acesso-negado');
         } else if (error.status === 403 && problemCode(error) === PASSWORD_CHANGE_REQUIRED_CODE) {
-          void restoreSession.execute().then(() => router.navigate(['/trocar-senha']));
+          navigateAfterRestoring(restoreSession, router, '/trocar-senha');
         }
       }
       return throwError(() => error);
     }),
   );
 };
+
+/**
+ * Pergunta de novo quem está na sessão e só depois navega.
+ *
+ * Se o backend já não reconhece a sessão, o destino é a tela de acesso com o aviso de expiração, e
+ * não uma tela de permissão para quem nem está mais dentro. Se a pergunta falhar por defeito, a
+ * navegação acontece mesmo assim: a pessoa não pode ficar parada na tela recusada.
+ */
+function navigateAfterRestoring(restoreSession: RestoreSessionUseCase, router: Router, target: string): void {
+  void restoreSession
+    .execute()
+    .then((current) =>
+      current.success
+        ? router.navigate([target])
+        : router.navigate(['/acesso'], { queryParams: { sessao: 'expirada' } }),
+    )
+    .catch(() => router.navigate([target]));
+}
 
 function problemCode(error: HttpErrorResponse): string | undefined {
   const body = error.error as { code?: unknown } | null;

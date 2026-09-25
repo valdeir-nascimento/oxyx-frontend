@@ -21,16 +21,6 @@ import { CaretakerGateway } from '../application/caretaker/caretaker-gateway';
 const BASE = '/api/v1';
 
 /**
- * Implementação das portas de identidade, de conta e da administração de responsáveis sobre HTTP.
- *
- * É o **único** lugar do cliente que conhece `HttpClient`, caminho de endpoint e formato de erro.
- * O cookie de sessão é do navegador: nada de token guardado aqui, e nada de estado de sessão nesta
- * classe.
- *
- * <p>Toda recusa vira `Result`, nunca exceção — quem chama é caso de uso, e caso de uso não trata
- * `catch` (princípio IV, espelhado no cliente).
- */
-/**
  * Endereço de um responsável na API.
  *
  * O identificador vem do endereço da tela, e o navegador resolve os `..` de um caminho: sem
@@ -40,6 +30,16 @@ function caretakerUrl(id: string): string {
   return `${BASE}/caretakers/${encodeURIComponent(id)}`;
 }
 
+/**
+ * Implementação das portas de identidade, de conta e da administração de responsáveis sobre HTTP.
+ *
+ * É o **único** lugar do cliente que conhece `HttpClient`, caminho de endpoint e formato de erro.
+ * O cookie de sessão é do navegador: nada de token guardado aqui, e nada de estado de sessão nesta
+ * classe.
+ *
+ * <p>Toda recusa vira `Result`, nunca exceção — quem chama é caso de uso, e caso de uso não trata
+ * `catch` (princípio IV, espelhado no cliente).
+ */
 @Injectable({ providedIn: 'root' })
 export class IdentityHttpAdapter implements AuthenticationGateway, AccountGateway, CaretakerGateway {
   private readonly http = inject(HttpClient);

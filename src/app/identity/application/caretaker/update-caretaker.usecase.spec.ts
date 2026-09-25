@@ -22,15 +22,11 @@ describe('UpdateCaretakerUseCase', () => {
   };
   const page: CaretakerPage = { content: [joao], page: 0, size: 20, totalElements: 1, totalPages: 1 };
 
-  /** A recusa como o adaptador a entrega: código da regra e mensagem em português, por campo. */
+  /** Uma recusa que esta operação pode receber, como o adaptador a entrega. */
   function refusal<T>(): Result<T> {
     return failure<T>(
       Notification.of([
-        {
-          code: 'LAST_ADMINISTRATOR',
-          field: 'status',
-          message: 'O sistema precisa de ao menos um administrador ativo.',
-        },
+        { code: 'LAST_ADMINISTRATOR', field: 'role', message: 'O sistema precisa de ao menos um administrador ativo.' },
       ]),
     );
   }

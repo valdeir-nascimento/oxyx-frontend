@@ -4,6 +4,8 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { RestoreSessionUseCase } from '../application/authentication/restore-session.usecase';
 import { SessionStore } from '../application/authentication/session-store';
+import { failure, success } from '../../shared/application/result';
+import { Notification } from '../../shared/domain/notification';
 import { SKIP_SESSION_HANDLING, sessionInterceptor } from './session.interceptor';
 
 /**
@@ -24,7 +26,9 @@ describe('sessionInterceptor', () => {
   });
 
   beforeEach(() => {
-    restore = vi.fn().mockResolvedValue(undefined);
+    restore = vi.fn().mockResolvedValue(
+      success({ id: '7c1f0b2e-3d4a-4f5b-8c9d-0e1f2a3b4c5d', fullName: 'Maria Silva', role: 'USER', mustChangePassword: false }),
+    );
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(withInterceptors([sessionInterceptor])),
@@ -95,6 +99,45 @@ describe('sessionInterceptor', () => {
     await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith(['/acesso-negado']));
     expect(restore).toHaveBeenCalledOnce();
     expect(restore.mock.invocationCallOrder[0]).toBeLessThan(navigate.mock.invocationCallOrder[0]);
+  });
+
+  it('navigates only after the backend answered who is in the session', async () => {
+    // Comparar a ordem das chamadas não bastava: navegar sem esperar a resposta passava, e o guard
+    // decidia pela identidade antiga.
+    let answer!: () => void;
+    restore.mockReturnValue(
+      new Promise((resolve) => (answer = () => resolve(success({ id: '1', fullName: 'Maria', role: 'USER', mustChangePassword: true })))),
+    );
+    failWith(problem('FORBIDDEN', 403), 403);
+    failWith(problem('PASSWORD_CHANGE_REQUIRED', 403), 403);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(navigate).not.toHaveBeenCalled();
+    answer();
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledTimes(2));
+  });
+
+  it('goes to the sign-in screen, and not to access denied, when the session is already gone', async () => {
+    // Um 403 seguido de um /auth/me que também recusa: a pessoa já não está dentro.
+    restore.mockResolvedValue(
+      failure(Notification.of([{ code: 'CARETAKER_UNAVAILABLE', message: 'Responsável não encontrado ou inativo.' }])),
+    );
+
+    failWith(problem('FORBIDDEN', 403), 403);
+
+    await vi.waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith(['/acesso'], { queryParams: { sessao: 'expirada' } }),
+    );
+    expect(navigate).not.toHaveBeenCalledWith(['/acesso-negado']);
+  });
+
+  it('still leaves the refused screen when asking the backend fails unexpectedly', async () => {
+    restore.mockRejectedValue(new Error('defeito do cliente'));
+
+    failWith(problem('FORBIDDEN', 403), 403);
+
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith(['/acesso-negado']));
   });
 
   it('takes a session that came to owe the password change to the password change screen', async () => {

@@ -322,11 +322,23 @@ describe('IdentityHttpAdapter', () => {
 
     it('encodes the caretaker id in the address, so a forged id cannot reach another endpoint', async () => {
       // O navegador resolve os ".." de um caminho: sem codificar, o identificador tirado do endereço
-      // da tela levava a edição a chamar /api/v1/me/password.
-      const found = adapter.find('../../me/password');
+      // da tela levava a edição a chamar /api/v1/me/password. A tela confere o formato, mas o
+      // adaptador é o contrato: vale para as três operações por identificador.
+      const forged = '../../me/password';
+      const encoded = '/api/v1/caretakers/..%2F..%2Fme%2Fpassword';
+      const update = { fullName: joao.fullName, cpf: joao.cpf, email: joao.email, mobilePhone: joao.mobilePhone, role: 'USER' as const };
 
-      backend.expectOne('/api/v1/caretakers/..%2F..%2Fme%2Fpassword').flush(joao);
+      const found = adapter.find(forged);
+      backend.expectOne(encoded).flush(joao);
       await found;
+
+      const updated = adapter.update(forged, update);
+      backend.expectOne(encoded).flush(joao);
+      await updated;
+
+      const deactivated = adapter.deactivate(forged);
+      backend.expectOne(`${encoded}/deactivation`).flush(joao);
+      await deactivated;
     });
   });
 });
