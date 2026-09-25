@@ -26,7 +26,7 @@ describe('SearchCaretakersUseCase', () => {
   function refusal<T>(): Result<T> {
     return failure<T>(
       Notification.of([
-        { code: 'REQUEST_FAILED', message: 'Não foi possível concluir a operação. Tente novamente.' },
+        { code: 'REQUEST_FAILED', message: 'Não houve resposta do servidor. Tente novamente em instantes.' },
       ]),
     );
   }

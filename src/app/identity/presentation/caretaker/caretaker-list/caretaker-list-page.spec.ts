@@ -177,7 +177,7 @@ describe('CaretakerListPage', () => {
     search.mockResolvedValue(success(pageOf([maria], 0, 2)));
     await render();
 
-    expect(named('Página anterior').disabled).toBe(true);
+    expect(named('Página anterior').getAttribute('aria-disabled')).toBe('true');
     named('Próxima página').click();
     await settle();
 
@@ -189,7 +189,7 @@ describe('CaretakerListPage', () => {
 
     await render();
 
-    expect(named('Próxima página').disabled).toBe(true);
+    expect(named('Próxima página').getAttribute('aria-disabled')).toBe('true');
   });
 
   it('shows no pages when the search found no one, only the empty state', async () => {
@@ -345,7 +345,7 @@ describe('CaretakerListPage', () => {
 
   it('stops saying it is loading when the search fails', async () => {
     search.mockResolvedValue(
-      failure(Notification.of([{ code: 'REQUEST_FAILED', message: 'Não foi possível concluir a operação. Tente novamente.' }])),
+      failure(Notification.of([{ code: 'REQUEST_FAILED', message: 'Não houve resposta do servidor. Tente novamente em instantes.' }])),
     );
 
     await render();
@@ -357,7 +357,7 @@ describe('CaretakerListPage', () => {
     search.mockResolvedValue(
       failure(
         Notification.of([
-          { code: 'REQUEST_FAILED', message: 'Não foi possível concluir a operação. Tente novamente.' },
+          { code: 'REQUEST_FAILED', message: 'Não houve resposta do servidor. Tente novamente em instantes.' },
         ]),
       ),
     );
@@ -365,7 +365,7 @@ describe('CaretakerListPage', () => {
     await render();
 
     expect(element().querySelector('.error-summary')?.textContent).toContain(
-      'Não foi possível concluir a operação. Tente novamente.',
+      'Não houve resposta do servidor. Tente novamente em instantes.',
     );
   });
 

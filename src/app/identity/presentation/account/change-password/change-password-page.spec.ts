@@ -129,7 +129,7 @@ describe('ChangePasswordPage', () => {
         Notification.of([
           {
             code: 'REQUEST_FAILED',
-            message: 'Não foi possível concluir a operação. Tente novamente.',
+            message: 'Não houve resposta do servidor. Tente novamente em instantes.',
           },
         ]),
       ),
@@ -139,7 +139,7 @@ describe('ChangePasswordPage', () => {
     await submit(fixture);
 
     const summary = (fixture.nativeElement as HTMLElement).querySelector('.error-summary');
-    expect(summary?.textContent).toContain('Não foi possível concluir a operação.');
+    expect(summary?.textContent).toContain('Não houve resposta do servidor. Tente novamente em instantes.');
     expect(navigate).not.toHaveBeenCalled();
   });
 

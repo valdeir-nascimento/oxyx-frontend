@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   afterRenderEffect,
+  computed,
   input,
   viewChild,
 } from '@angular/core';
@@ -10,6 +11,12 @@ import { DomainError } from '../../../domain/domain-error';
 import { Icon } from '../icon/icon';
 
 let nextId = 0;
+
+/** O título da recusa de preenchimento: alguma falha leva a um campo da tela. */
+const FORM_HEADING = 'Não foi possível concluir. Corrija o que está indicado:';
+
+/** O título da recusa que não aponta campo nenhum da tela: não há o que corrigir no formulário. */
+const OPERATION_HEADING = 'Não foi possível concluir a operação:';
 
 /**
  * Resumo da recusa de um formulário: todas as falhas de uma vez (FR-017), cada uma com o caminho até
@@ -49,12 +56,28 @@ export class ErrorSummary {
   readonly fields = input<readonly string[] | undefined>(undefined);
 
   /**
-   * O título, que também nomeia o resumo. O padrão fala de formulário; a tela em que a recusa não é
-   * de preenchimento — uma ação recusada, uma falha de rede — diz o que convém a ela.
+   * O título, que também nomeia o resumo. Sem título dado, fala de formulário quando alguma falha leva
+   * a um campo da tela, e da operação quando nenhuma leva: a gaiola recusada porque o setor está
+   * inativo, ou uma falha de rede, não têm o que corrigir. A tela em que a recusa nunca é de
+   * preenchimento — uma ação recusada — diz o que convém a ela.
    */
-  readonly heading = input('Não foi possível concluir. Corrija o que está indicado:');
+  readonly heading = input<string | undefined>(undefined);
+
+  protected readonly title = computed(
+    () => this.heading() ?? (this.errors().some((error) => this.linkable(error)) ? FORM_HEADING : OPERATION_HEADING),
+  );
 
   protected readonly titleId = `ovyx-error-summary-${++nextId}`;
+
+  /**
+   * As falhas sem repetir a mesma frase: o conflito de gaiola põe a mesma mensagem na bateria e no
+   * número, e o resumo a lia duas vezes. Fica a primeira, com o link para o primeiro campo; junto de
+   * cada campo a mensagem continua.
+   */
+  protected readonly shown = computed(() => {
+    const seen = new Set<string>();
+    return this.errors().filter((error) => !seen.has(error.message) && seen.add(error.message));
+  });
 
   private readonly region = viewChild.required<ElementRef<HTMLElement>>('region');
 

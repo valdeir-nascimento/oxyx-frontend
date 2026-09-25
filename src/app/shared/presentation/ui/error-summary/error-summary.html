@@ -7,9 +7,9 @@
 >
   <ovyx-icon name="alert" [size]="18" />
   <div class="grow">
-    <b [id]="titleId">{{ heading() }}</b>
+    <b [id]="titleId">{{ title() }}</b>
     <ul>
-      @for (error of errors(); track $index) {
+      @for (error of shown(); track $index) {
         <li>
           @if (linkable(error); as field) {
             <a [href]="'#' + field" (click)="goTo($event, field)">{{ error.message }}</a>

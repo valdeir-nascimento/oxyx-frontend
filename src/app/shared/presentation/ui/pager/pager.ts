@@ -23,6 +23,10 @@ export function visiblePages(page: number, totalPages: number): readonly number[
  *
  * As páginas começam em zero, como na API; na tela, em um. Cada botão diz a página por extenso para o
  * leitor de tela, e a atual leva `aria-current`.
+ *
+ * Voltar da primeira página e avançar da última ficam `aria-disabled`, e não `disabled`: desabilitado
+ * de verdade, o botão perdia o foco justo ao chegar à última página, e o Tab seguinte levava ao começo
+ * da tela. Assim ele continua focável, é anunciado como indisponível e só não faz nada.
  */
 @Component({
   selector: 'ovyx-pager',
@@ -53,7 +57,7 @@ export class Pager {
   protected readonly isLast = computed(() => this.page() + 1 >= this.totalPages());
 
   protected goTo(page: number): void {
-    if (page !== this.page()) {
+    if (page !== this.page() && page >= 0 && page < this.totalPages()) {
       this.pageChange.emit(page);
     }
   }

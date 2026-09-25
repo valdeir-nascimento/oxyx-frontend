@@ -1,3 +1,8 @@
 :host {
   display: contents;
 }
+
+/* A pergunta traz o alvo — um setor pode ter 80 caracteres —, e o nome sem espaço quebra aqui. */
+.dlg-head h2 {
+  overflow-wrap: anywhere;
+}

@@ -66,6 +66,18 @@ export class FormField {
   /** Ocupa as duas colunas do corpo do diálogo (`.span2`). */
   readonly wide = input(false);
 
+  /**
+   * Texto longo, numa área de várias linhas (`.control.area` do design system), como a descrição de
+   * um setor: numa linha só, a pessoa não vê o que escreveu.
+   */
+  readonly multiline = input(false);
+
+  /**
+   * O teclado que o celular abre, como `numeric` para quantidades. O campo continua de texto: o que
+   * foi digitado vai como está, e quem recusa um valor que não é número é o backend (FR-017).
+   */
+  readonly inputMode = input<'numeric' | 'text'>();
+
   /** Se a senha está à mostra. Volta a ficar oculta a cada vez que a tela abre. */
   protected readonly revealed = signal(false);
 

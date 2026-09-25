@@ -1,17 +1,28 @@
 <div class="field" [class.err]="!!error()">
   <label [for]="controlId()">{{ label() }}</label>
-  <div class="control">
+  <div class="control" [class.area]="multiline()">
     @if (icon(); as leading) {
       <ovyx-icon [name]="leading" [size]="18" />
     }
-    <input
-      [id]="controlId()"
-      [type]="inputType()"
-      [formControl]="control()"
-      [attr.autocomplete]="autocomplete()"
-      [attr.aria-describedby]="describedBy()"
-      [attr.aria-invalid]="error() ? 'true' : null"
-    />
+    @if (multiline()) {
+      <textarea
+        [id]="controlId()"
+        [formControl]="control()"
+        [attr.autocomplete]="autocomplete()"
+        [attr.aria-describedby]="describedBy()"
+        [attr.aria-invalid]="error() ? 'true' : null"
+      ></textarea>
+    } @else {
+      <input
+        [id]="controlId()"
+        [type]="inputType()"
+        [formControl]="control()"
+        [attr.autocomplete]="autocomplete()"
+        [attr.inputmode]="inputMode()"
+        [attr.aria-describedby]="describedBy()"
+        [attr.aria-invalid]="error() ? 'true' : null"
+      />
+    }
     @if (type() === 'password') {
       <button
         type="button"

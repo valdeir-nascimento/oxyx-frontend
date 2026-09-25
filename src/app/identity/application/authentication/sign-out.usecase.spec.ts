@@ -44,7 +44,7 @@ describe('SignOutUseCase', () => {
     // "fora do sistema" com o cookie ainda valendo — e a próxima requisição passaria.
     const refusal = failure<void>(
       Notification.of([
-        { code: 'REQUEST_FAILED', message: 'Não foi possível concluir a operação. Tente novamente.' },
+        { code: 'REQUEST_FAILED', message: 'Não houve resposta do servidor. Tente novamente em instantes.' },
       ]),
     );
     const useCase = useCaseWith(refusal);

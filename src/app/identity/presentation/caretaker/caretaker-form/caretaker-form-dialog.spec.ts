@@ -344,7 +344,7 @@ describe('CaretakerFormDialog', () => {
     find.mockResolvedValue(
       failure(
         Notification.of([
-          { code: 'REQUEST_FAILED', message: 'Não foi possível concluir a operação. Tente novamente.' },
+          { code: 'REQUEST_FAILED', message: 'Não houve resposta do servidor. Tente novamente em instantes.' },
         ]),
       ),
     );
@@ -352,7 +352,7 @@ describe('CaretakerFormDialog', () => {
     await render(joao.id);
 
     expect(element().querySelector('.error-summary')?.textContent).toContain(
-      'Não foi possível concluir a operação. Tente novamente.',
+      'Não houve resposta do servidor. Tente novamente em instantes.',
     );
     expect(element().querySelector('#fullName')).toBeNull();
     expect(submitButton()).toBeNull();

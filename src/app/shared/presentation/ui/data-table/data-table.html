@@ -12,7 +12,10 @@
     <span class="sk"></span>
   </div>
 } @else if (empty()) {
-  <ovyx-empty-state icon="search" [title]="emptyTitle()" [message]="emptyMessage()" />
+  <ovyx-empty-state icon="search" [title]="emptyTitle()" [message]="emptyMessage()">
+    <!-- O próximo passo do estado vazio, como o "Limpar busca" do protótipo. -->
+    <ng-content select="[empty-actions]" />
+  </ovyx-empty-state>
 }
 
 <p class="sr" role="status">{{ state() }}</p>
