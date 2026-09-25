@@ -1,10 +1,10 @@
 import type { Mock } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { Notification } from '../../../shared/domain/notification';
-import { failure, success } from '../../../shared/application/result';
-import { ChangeOwnPasswordUseCase } from '../../application/account/change-password.usecase';
-import { SessionStore } from '../../application/authentication/session-store';
+import { Notification } from '../../../../shared/domain/notification';
+import { failure, success } from '../../../../shared/application/result';
+import { ChangeOwnPasswordUseCase } from '../../../application/account/change-password.usecase';
+import { SessionStore } from '../../../application/authentication/session-store';
 import { ChangePasswordPage } from './change-password-page';
 
 /** Assinatura de `Router.navigate`, só com o que os testes usam. */
