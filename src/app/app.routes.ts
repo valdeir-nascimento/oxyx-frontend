@@ -32,7 +32,10 @@ export const routes: Routes = [
     title: 'Trocar senha — Ovyx',
   },
   {
+    // Tela interna: quem nunca entrou vai para o acesso, e quem deve a senha provisória, para a
+    // troca (US3, T240).
     path: 'acesso-negado',
+    canActivate: [authenticatedGuard],
     loadComponent: () =>
       import('./shared/presentation/access-denied/access-denied').then((m) => m.AccessDenied),
     title: 'Acesso negado — Ovyx',

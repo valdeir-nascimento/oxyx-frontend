@@ -112,6 +112,38 @@ describe('routes', () => {
     expect(await goTo('/responsaveis/novo')).toBe('/responsaveis/novo');
   });
 
+  it('keeps an anonymous visitor out of the access denied screen, which is an internal one', async () => {
+    // Não vazava nada — o texto é genérico —, mas era tela interna servida a quem nunca entrou
+    // (US3, T240).
+    configure(noSession());
+
+    expect(await goTo('/acesso-negado')).toBe('/acesso');
+  });
+
+  it('shows the access denied screen to whoever the backend recognizes', async () => {
+    configure(success(maria));
+
+    expect(await goTo('/acesso-negado')).toBe('/acesso-negado');
+  });
+
+  it('takes whoever owes the provisional password from access denied to the change screen', async () => {
+    // O usuário comum que deve a troca recebe 403 FORBIDDEN numa rota administrativa — a
+    // autorização roda antes da exigência da troca —, e o interceptador o leva ao acesso negado.
+    // Só este guard o devolve à troca de senha (FR-025).
+    configure(success({ ...maria, mustChangePassword: true }));
+
+    expect(await goTo('/acesso-negado')).toBe('/trocar-senha');
+  });
+
+  it.each(['/responsaveis/novo', '/responsaveis/9f8e7d6c-5b4a-4938-2716-0f1e2d3c4b5a'])(
+    'keeps a common user out of %s by direct address (SC-003)',
+    async (path) => {
+      configure(success(maria));
+
+      expect(await goTo(path)).toBe('/acesso-negado');
+    },
+  );
+
   it('keeps an authenticated visitor out of the access screen', async () => {
     configure(success(maria));
 
