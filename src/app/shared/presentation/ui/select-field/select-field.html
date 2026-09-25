@@ -1,0 +1,19 @@
+<div class="field" [class.err]="!!error()">
+  <label [for]="controlId()">{{ label() }}</label>
+  <div class="control">
+    <select
+      [id]="controlId()"
+      [formControl]="control()"
+      [attr.aria-describedby]="error() ? errorId() : null"
+      [attr.aria-invalid]="error() ? 'true' : null"
+    >
+      @for (option of options(); track option.value) {
+        <option [value]="option.value">{{ option.label }}</option>
+      }
+    </select>
+    <span class="chev"><ovyx-icon name="chevD" [size]="16" /></span>
+  </div>
+  @if (error(); as message) {
+    <span class="msg" [id]="errorId()"><ovyx-icon name="alert" [size]="16" />{{ message }}</span>
+  }
+</div>

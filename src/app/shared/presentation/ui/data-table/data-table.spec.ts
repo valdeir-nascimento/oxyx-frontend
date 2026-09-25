@@ -67,7 +67,7 @@ describe('DataTable', () => {
 
   it('says there is nothing to show when the search found no one', () => {
     expect(render(false, []).querySelector('[role="status"]')?.textContent?.trim()).toBe(
-      'Nenhum registro encontrado.',
+      'Nenhum registro encontrado',
     );
   });
 
@@ -75,16 +75,27 @@ describe('DataTable', () => {
     expect(render(false, ['Maria Silva']).querySelector('[role="status"]')?.textContent?.trim()).toBe('');
   });
 
-  it('keeps the empty status region in the accessibility tree, only out of sight', () => {
-    // Com display: none a região saía da árvore de acessibilidade e renascia a cada estado (T235). O
-    // navegador não conta o texto vazio da interpolação para :empty; o jsdom conta, e o normalize o
-    // retira.
+  it('keeps the status region in the accessibility tree, only out of sight', () => {
+    // Com display: none a região saía da árvore de acessibilidade e renascia a cada estado (T235). A
+    // classe .sr do design system a tira da vista sem tirá-la da árvore.
     const region = render(false, ['Maria Silva']).querySelector<HTMLElement>('[role="status"]')!;
 
-    region.normalize();
+    expect(region.classList).toContain('sr');
+    expect(region.hidden).toBe(false);
+  });
 
-    expect(getComputedStyle(region).display).not.toBe('none');
-    expect(getComputedStyle(region).position).toBe('absolute');
+  it('shows the empty state of the design system, with the next step, when there is no row', () => {
+    const element = render(false, []);
+
+    expect(element.querySelector('.empty h2')?.textContent?.trim()).toBe('Nenhum registro encontrado');
+  });
+
+  it('shows skeleton bars while the first load runs, hidden from the screen reader', () => {
+    // Quem usa leitor de tela ouve "Carregando…" pela região de estado; as barras são só visuais.
+    const loading = render(true, []).querySelector('.loading');
+
+    expect(loading?.querySelectorAll('.sk').length).toBe(3);
+    expect(loading?.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('says what the page gives it about the rows found, so a search that finds someone is heard', () => {

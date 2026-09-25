@@ -1,0 +1,40 @@
+<div class="app">
+  <ovyx-side-nav
+    [fullName]="fullName()"
+    [roleLabel]="roleLabel()"
+    [menuItems]="menuItems()"
+    (signOut)="signOut.emit()"
+  />
+
+  <div class="main">
+    <ovyx-top-bar
+      [crumbs]="crumbs()"
+      [menuOpen]="drawerOpen()"
+      [menuId]="drawerId"
+      (menuToggle)="toggleDrawer()"
+    />
+    <main class="content">
+      <div class="content-inner">
+        <router-outlet />
+      </div>
+    </main>
+  </div>
+
+  <ovyx-bottom-nav [items]="menuItems()" />
+</div>
+
+@if (drawerOpen()) {
+  <div class="drawer" role="presentation" (click)="closeFromScrim($event)" (keydown.escape)="closeDrawer()">
+    <ovyx-side-nav
+      ovyxFocusTrap
+      role="dialog"
+      aria-modal="true"
+      aria-label="Menu"
+      [id]="drawerId"
+      [fullName]="fullName()"
+      [roleLabel]="roleLabel()"
+      [menuItems]="menuItems()"
+      (signOut)="signOut.emit()"
+    />
+  </div>
+}

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { Icon } from '../icon/icon';
 
 /** Uma opção da lista: o valor que vai para o controle e o rótulo em português. */
 export interface SelectOption {
@@ -25,63 +26,11 @@ export interface SelectOption {
  */
 @Component({
   selector: 'ovyx-select-field',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, Icon],
+  host: { '[class.span2]': 'wide()' },
+  templateUrl: './select-field.html',
+  styleUrl: './select-field.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="field">
-      <label class="field__label" [for]="controlId()">{{ label() }}</label>
-      <select
-        class="field__control"
-        [id]="controlId()"
-        [formControl]="control()"
-        [attr.aria-describedby]="error() ? errorId() : null"
-        [attr.aria-invalid]="error() ? 'true' : null"
-      >
-        @for (option of options(); track option.value) {
-          <option [value]="option.value">{{ option.label }}</option>
-        }
-      </select>
-      @if (error(); as message) {
-        <p class="field__error" [id]="errorId()">{{ message }}</p>
-      }
-    </div>
-  `,
-  styles: `
-    :host {
-      display: block;
-    }
-
-    .field {
-      display: grid;
-      gap: var(--ovyx-space-1);
-    }
-
-    .field__label {
-      font-size: var(--ovyx-font-size-sm);
-      font-weight: var(--ovyx-font-weight-medium);
-      color: var(--ovyx-color-text);
-    }
-
-    .field__control {
-      min-height: var(--ovyx-control-height-md);
-      padding: 0 var(--ovyx-space-3);
-      background-color: var(--ovyx-color-surface-raised);
-      border: var(--ovyx-border-width-thin) solid var(--ovyx-color-border);
-      border-radius: var(--ovyx-radius-sm);
-      color: var(--ovyx-color-text);
-    }
-
-    /* Recusado não é dito só por cor, como no ovyx-form-field. */
-    .field__control[aria-invalid='true'] {
-      border-width: var(--ovyx-border-width-thick);
-      border-color: var(--ovyx-color-danger-border);
-    }
-
-    .field__error {
-      font-size: var(--ovyx-font-size-sm);
-      color: var(--ovyx-color-danger-text);
-    }
-  `,
 })
 export class SelectField {
   /** O controle que guarda o valor escolhido. O campo escreve nele e não o valida. */
@@ -97,6 +46,9 @@ export class SelectField {
 
   /** Mensagem de recusa, já em português; ausente quando a escolha não foi recusada. */
   readonly error = input<string>();
+
+  /** Ocupa as duas colunas do corpo do diálogo (`.span2`). */
+  readonly wide = input(false);
 
   protected readonly errorId = computed(() => `${this.controlId()}-error`);
 }

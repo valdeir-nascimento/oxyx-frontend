@@ -1,0 +1,19 @@
+:host {
+  display: block;
+  /* A legenda e a região de estado usam o .sr do design system, que é posicionado. Sem um bloco de
+   * referência aqui, a posição delas se mede pelo .av-app-root, e não pelo conteúdo que rola: numa
+   * lista longa, a região ficava no fim da tabela e esticava a página inteira para baixo. */
+  position: relative;
+}
+
+/* Esqueleto da primeira carga: três faixas no lugar das linhas, com o .sk do design system. */
+.loading {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.loading .sk {
+  display: block;
+  height: 18px;
+}

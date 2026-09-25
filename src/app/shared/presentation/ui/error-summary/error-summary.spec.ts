@@ -123,7 +123,8 @@ describe('ErrorSummary', () => {
 
     await refuse(refusal);
 
-    expect(element().querySelector('.error-summary__title')?.textContent?.trim()).toBe(
+    const summary = element().querySelector('.error-summary')!;
+    expect(element().querySelector(`#${summary.getAttribute('aria-labelledby')}`)?.textContent?.trim()).toBe(
       'Não foi possível concluir a operação:',
     );
   });

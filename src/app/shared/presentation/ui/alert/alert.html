@@ -1,0 +1,11 @@
+<div
+  class="alert"
+  [class.info]="variant() === 'info'"
+  [class.success]="variant() === 'success'"
+  [class.danger]="variant() === 'danger'"
+  [attr.data-variant]="variant()"
+  [attr.role]="role()"
+>
+  <ovyx-icon [name]="icon()" [size]="18" />
+  <div class="grow"><ng-content /></div>
+</div>

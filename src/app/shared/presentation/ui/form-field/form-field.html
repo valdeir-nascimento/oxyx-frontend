@@ -1,0 +1,33 @@
+<div class="field" [class.err]="!!error()">
+  <label [for]="controlId()">{{ label() }}</label>
+  <div class="control">
+    @if (icon(); as leading) {
+      <ovyx-icon [name]="leading" [size]="18" />
+    }
+    <input
+      [id]="controlId()"
+      [type]="inputType()"
+      [formControl]="control()"
+      [attr.autocomplete]="autocomplete()"
+      [attr.aria-describedby]="describedBy()"
+      [attr.aria-invalid]="error() ? 'true' : null"
+    />
+    @if (type() === 'password') {
+      <button
+        type="button"
+        class="pw-toggle"
+        aria-label="Mostrar senha"
+        [attr.aria-pressed]="revealed()"
+        (click)="toggleReveal()"
+      >
+        <ovyx-icon name="eye" [size]="18" />
+      </button>
+    }
+  </div>
+  @if (error(); as message) {
+    <span class="msg" [id]="errorId()"><ovyx-icon name="alert" [size]="16" />{{ message }}</span>
+  }
+  @if (hint(); as text) {
+    <span class="msg hint" [id]="hintId()">{{ text }}</span>
+  }
+</div>

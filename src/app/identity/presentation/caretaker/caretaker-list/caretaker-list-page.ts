@@ -5,240 +5,96 @@ import {
   Injector,
   afterNextRender,
   computed,
+  effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { FormBuilder } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, RouterOutlet } from '@angular/router';
 import { Notification } from '../../../../shared/domain/notification';
+import { Avatar, AvatarTone } from '../../../../shared/presentation/ui/avatar/avatar';
 import { Button } from '../../../../shared/presentation/ui/button/button';
 import { ConfirmDialog } from '../../../../shared/presentation/ui/confirm-dialog/confirm-dialog';
 import { DataTable } from '../../../../shared/presentation/ui/data-table/data-table';
 import { ErrorSummary } from '../../../../shared/presentation/ui/error-summary/error-summary';
-import { FormField } from '../../../../shared/presentation/ui/form-field/form-field';
+import { Icon } from '../../../../shared/presentation/ui/icon/icon';
+import { IconButton } from '../../../../shared/presentation/ui/icon-button/icon-button';
 import { PageHeader } from '../../../../shared/presentation/ui/page-header/page-header';
-import { SelectField, SelectOption } from '../../../../shared/presentation/ui/select-field/select-field';
+import { Pager } from '../../../../shared/presentation/ui/pager/pager';
+import { SearchField } from '../../../../shared/presentation/ui/search-field/search-field';
+import {
+  SegmentOption,
+  SegmentedControl,
+} from '../../../../shared/presentation/ui/segmented-control/segmented-control';
 import { StatusBadge } from '../../../../shared/presentation/ui/status-badge/status-badge';
+import { Toaster } from '../../../../shared/presentation/ui/toast/toaster';
 import { DeactivateCaretakerUseCase } from '../../../application/caretaker/deactivate-caretaker.usecase';
 import { SearchCaretakersUseCase } from '../../../application/caretaker/search-caretakers.usecase';
 import { CaretakerPage, CaretakerStatus, CaretakerSummary } from '../../../domain/caretaker';
 import { roleLabelOf, statusLabelOf } from '../../labels/labels';
-import { CaretakerNotice } from '../caretaker-notice';
+import { CaretakerChanges } from '../caretaker-changes';
 
 const PAGE_SIZE = 20;
 
-const STATUS_OPTIONS: readonly SelectOption[] = [
-  { value: '', label: 'Todas' },
+const STATUS_OPTIONS: readonly SegmentOption[] = [
+  { value: '', label: 'Todos' },
   { value: 'ACTIVE', label: 'Ativos' },
   { value: 'INACTIVE', label: 'Inativos' },
 ];
 
+/** Os tons do avatar se alternam de linha em linha, como no design system. */
+const AVATAR_TONES: readonly AvatarTone[] = ['gema', 'capim', 'ceu'];
+
+/** Os filtros de uma pesquisa: o trecho do nome e a situação, vazia para todas. */
+interface Filters {
+  readonly name: string;
+  readonly status: string;
+}
+
 /**
- * Lista de responsáveis (FR-014, US2): pesquisa por trecho do nome, páginas e inativação.
+ * Lista de responsáveis (FR-014, US2): pesquisa por trecho do nome, filtro de situação, páginas e
+ * inativação, com a tabela, a barra de ferramentas e a paginação do design system.
  *
- * Inativar pede confirmação ao lado da linha (FR-018). Cancelar devolve o foco ao botão de onde a
- * pessoa veio; confirmar diz o que aconteceu numa região de estado que existe sempre, e recarrega a
- * página. Se o backend recusar — o último administrador ativo, por exemplo —, o resumo de recusa
- * recebe o foco e diz por quê (T234). A recusa some na próxima carga que der certo.
+ * Inativar pede confirmação num diálogo modal (FR-018). Cancelar devolve o foco ao botão de onde a
+ * pessoa veio; confirmar diz o que aconteceu num toast, recarrega a página e leva o foco à ação de
+ * editar da mesma linha — o botão de inativar some com a inativação. Se o backend recusar — o último
+ * administrador ativo, por exemplo —, o resumo de recusa recebe o foco e diz por quê (T234). A recusa
+ * some na próxima carga que der certo.
+ *
+ * O cadastro e a edição abrem em diálogo sobre a lista, pelas rotas filhas `novo` e `:id`; quando eles
+ * gravam, avisam por `CaretakerChanges`, e a lista busca de novo a página em que está.
  *
  * As páginas seguem os filtros da última pesquisa feita, e não o que está digitado e ainda não foi
- * pesquisado: senão a página 2 viria de uma pesquisa que ninguém pediu.
+ * pesquisado: senão a página 2 viria de uma pesquisa que ninguém pediu. Escolher a situação já é
+ * pesquisar, com o nome que estiver no campo.
  */
 @Component({
   selector: 'ovyx-caretaker-list-page',
   imports: [
+    Avatar,
     Button,
     ConfirmDialog,
     DataTable,
     ErrorSummary,
-    FormField,
+    Icon,
+    IconButton,
     PageHeader,
+    Pager,
     RouterLink,
-    SelectField,
+    RouterOutlet,
+    SearchField,
+    SegmentedControl,
     StatusBadge,
   ],
+  templateUrl: './caretaker-list-page.html',
+  styleUrl: './caretaker-list-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <section class="caretakers">
-      <ovyx-page-header title="Responsáveis">
-        <a class="caretakers__new" routerLink="/responsaveis/novo">Novo responsável</a>
-      </ovyx-page-header>
-
-      <p class="caretakers__status" role="status" tabindex="-1">{{ status() }}</p>
-
-      @if (refusal().hasErrors) {
-        <ovyx-error-summary
-          heading="Não foi possível concluir a operação:"
-          [errors]="refusal().errors"
-          [fields]="[]"
-        />
-      }
-
-      <form class="caretakers__search" role="search" (submit)="search($event)">
-        <ovyx-form-field controlId="name" label="Nome" [control]="filters.controls.name" />
-        <ovyx-select-field
-          controlId="status"
-          label="Situação"
-          [control]="filters.controls.status"
-          [options]="statusOptions"
-        />
-        <ovyx-button type="submit" variant="secondary">Pesquisar</ovyx-button>
-      </form>
-
-      <ovyx-data-table
-        caption="Responsáveis cadastrados"
-        emptyMessage="Nenhum responsável encontrado."
-        [loading]="loading()"
-        [empty]="page().content.length === 0"
-        [summary]="found()"
-      >
-        <thead>
-          <tr>
-            <th scope="col">Nome</th>
-            <th scope="col">E-mail</th>
-            <th scope="col">Celular</th>
-            <th scope="col">Perfil</th>
-            <th scope="col">Situação</th>
-            <th scope="col">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (caretaker of page().content; track caretaker.id) {
-            <tr [attr.data-caretaker]="caretaker.id">
-              <td>{{ caretaker.fullName }}</td>
-              <td>{{ caretaker.email }}</td>
-              <td>{{ caretaker.mobilePhone }}</td>
-              <td>{{ roleLabelOf(caretaker.role) }}</td>
-              <td>
-                <ovyx-status-badge
-                  [label]="statusLabelOf(caretaker.status)"
-                  [tone]="caretaker.status === 'ACTIVE' ? 'positive' : 'neutral'"
-                />
-              </td>
-              <td class="caretakers__actions">
-                <a
-                  class="caretakers__edit"
-                  [routerLink]="['/responsaveis', caretaker.id]"
-                  [attr.aria-label]="'Editar ' + caretaker.fullName"
-                >
-                  Editar
-                </a>
-                @if (caretaker.status === 'ACTIVE') {
-                  <ovyx-button
-                    variant="danger"
-                    [accessibleName]="'Inativar ' + caretaker.fullName"
-                    (pressed)="confirming.set(caretaker)"
-                  >
-                    Inativar
-                  </ovyx-button>
-                }
-              </td>
-            </tr>
-            @if (confirming()?.id === caretaker.id) {
-              <tr>
-                <td colspan="6">
-                  <ovyx-confirm-dialog
-                    [title]="'Inativar ' + caretaker.fullName + '?'"
-                    confirmLabel="Inativar"
-                    [busy]="deactivating()"
-                    (confirmed)="deactivate(caretaker)"
-                    (cancelled)="cancel(caretaker)"
-                  >
-                    O responsável deixa de conseguir entrar no sistema. O histórico é preservado.
-                  </ovyx-confirm-dialog>
-                </td>
-              </tr>
-            }
-          }
-        </tbody>
-      </ovyx-data-table>
-
-      <nav class="caretakers__pages" aria-label="Páginas da lista">
-        <ovyx-button variant="secondary" [disabled]="page().page === 0" (pressed)="goTo(page().page - 1)">
-          Anterior
-        </ovyx-button>
-        <span>Página {{ page().page + 1 }} de {{ lastPage() }}</span>
-        <ovyx-button
-          variant="secondary"
-          [disabled]="page().page + 1 >= page().totalPages"
-          (pressed)="goTo(page().page + 1)"
-        >
-          Próxima
-        </ovyx-button>
-      </nav>
-    </section>
-  `,
-  styles: `
-    .caretakers {
-      display: grid;
-      gap: var(--ovyx-space-4);
-    }
-
-    .caretakers__new {
-      display: inline-flex;
-      align-items: center;
-      min-height: var(--ovyx-control-height-md);
-      padding: 0 var(--ovyx-space-4);
-      border-radius: var(--ovyx-radius-md);
-      background-color: var(--ovyx-color-brand);
-      color: var(--ovyx-color-text-on-brand);
-      font-weight: var(--ovyx-font-weight-semibold);
-      text-decoration: none;
-    }
-
-    .caretakers__new:hover {
-      background-color: var(--ovyx-color-brand-strong);
-    }
-
-    /* Vazia, sai da tela, mas não da árvore de acessibilidade: região que nasce junto com o texto não
-     * é anunciada (T235). */
-    .caretakers__status:empty {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-    }
-
-    /* No telefone, um campo por linha; na mesa, os filtros lado a lado com o botão. */
-    .caretakers__search {
-      display: grid;
-      gap: var(--ovyx-space-3);
-      align-items: end;
-    }
-
-    @media (min-width: 48rem) {
-      .caretakers__search {
-        grid-template-columns: 2fr 1fr auto;
-      }
-    }
-
-    .caretakers__actions {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: var(--ovyx-space-2);
-    }
-
-    .caretakers__edit {
-      display: inline-flex;
-      align-items: center;
-      min-height: var(--ovyx-control-height-md);
-      padding: 0 var(--ovyx-space-2);
-      color: var(--ovyx-color-brand-text);
-    }
-
-    .caretakers__pages {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: var(--ovyx-space-3);
-    }
-  `,
 })
 export class CaretakerListPage {
   private readonly searchCaretakers = inject(SearchCaretakersUseCase);
   private readonly deactivateCaretaker = inject(DeactivateCaretakerUseCase);
+  private readonly toaster = inject(Toaster);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
 
@@ -246,7 +102,10 @@ export class CaretakerListPage {
   protected readonly roleLabelOf = roleLabelOf;
   protected readonly statusLabelOf = statusLabelOf;
 
-  protected readonly filters = inject(FormBuilder).nonNullable.group({ name: '', status: '' });
+  protected readonly filters = inject(FormBuilder).nonNullable.group({ name: '' });
+
+  /** A situação escolhida no segmento. */
+  protected readonly status = signal('');
 
   protected readonly page = signal<CaretakerPage>({
     content: [],
@@ -256,7 +115,6 @@ export class CaretakerListPage {
     totalPages: 0,
   });
   protected readonly loading = signal(true);
-  protected readonly status = signal('');
   protected readonly refusal = signal(Notification.empty());
   protected readonly confirming = signal<CaretakerSummary | null>(null);
   protected readonly deactivating = signal(false);
@@ -268,38 +126,34 @@ export class CaretakerListPage {
   });
 
   /** Os filtros da última pesquisa feita. */
-  private readonly searched = signal({ name: '', status: '' });
+  private readonly searched = signal<Filters>({ name: '', status: '' });
 
   constructor() {
-    const notice = inject(CaretakerNotice).take();
-    if (notice) {
-      // O aviso do formulário recebe o foco: o da tela anterior se perdeu na navegação, e é a mudança
-      // de foco que o leitor de tela anuncia. O texto entra depois do primeiro desenho, para a
-      // região nascer vazia e só então recebê-lo.
-      afterNextRender(() => this.announce(notice));
-    }
-    void this.load(0);
+    // A primeira carga, e cada gravação do diálogo de cadastro e edição: a lista busca de novo a
+    // página em que está. Só a versão é dependência; a página lida aqui não é.
+    const changes = inject(CaretakerChanges).version;
+    effect(() => {
+      changes();
+      untracked(() => void this.load(this.page().page));
+    });
   }
 
-  protected lastPage(): number {
-    return Math.max(this.page().totalPages, 1);
+  protected toneOf(index: number): AvatarTone {
+    return AVATAR_TONES[index % AVATAR_TONES.length];
   }
 
   protected search(event: Event): void {
     event.preventDefault();
-    this.searched.set(this.filters.getRawValue());
-    this.status.set('');
-    void this.load(0);
+    this.searchWith(this.status());
+  }
+
+  protected filterByStatus(status: string): void {
+    this.status.set(status);
+    this.searchWith(status);
   }
 
   protected goTo(page: number): void {
-    this.status.set('');
     void this.load(page);
-  }
-
-  protected cancel(caretaker: CaretakerSummary): void {
-    this.confirming.set(null);
-    this.focusAfterRender(`tr[data-caretaker="${caretaker.id}"] button`);
   }
 
   protected async deactivate(caretaker: CaretakerSummary): Promise<void> {
@@ -309,27 +163,18 @@ export class CaretakerListPage {
     this.confirming.set(null);
 
     if (!result.success) {
-      this.refuse(result.notification);
+      this.refusal.set(result.notification);
       return;
     }
 
-    // O botão de onde a pessoa veio sumiu com a inativação; o foco vai para o aviso do que aconteceu.
-    this.announce(`Responsável inativado: ${caretaker.fullName}.`);
+    this.toaster.show(`Responsável inativado: ${caretaker.fullName}.`);
     await this.load(this.page().page);
+    this.focusRowAfterRender(caretaker);
   }
 
-  private announce(message: string): void {
-    this.status.set(message);
-    this.focusAfterRender('.caretakers__status');
-  }
-
-  /**
-   * Uma recusa nova toma o lugar do aviso anterior. Juntos, diziam coisas de momentos diferentes:
-   * "Responsável inativado" logo acima de uma inativação que acabara de ser recusada.
-   */
-  private refuse(notification: Notification): void {
-    this.status.set('');
-    this.refusal.set(notification);
+  private searchWith(status: string): void {
+    this.searched.set({ name: this.filters.controls.name.value, status });
+    void this.load(0);
   }
 
   private async load(page: number): Promise<void> {
@@ -344,16 +189,27 @@ export class CaretakerListPage {
     this.loading.set(false);
 
     if (!result.success) {
-      this.refuse(result.notification);
+      this.refusal.set(result.notification);
       return;
     }
     this.refusal.set(Notification.empty());
     this.page.set(result.value);
   }
 
-  private focusAfterRender(selector: string): void {
-    afterNextRender(() => this.host.nativeElement.querySelector<HTMLElement>(selector)?.focus(), {
-      injector: this.injector,
-    });
+  /**
+   * Depois de inativar, o foco vai para a ação de editar da mesma linha. Se a linha saiu da lista —
+   * o filtro mostra só os ativos —, vai para a tabela, que é onde a pessoa estava.
+   */
+  private focusRowAfterRender(caretaker: CaretakerSummary): void {
+    afterNextRender(
+      () => {
+        const root = this.host.nativeElement;
+        const target =
+          root.querySelector<HTMLElement>(`tr[data-caretaker="${caretaker.id}"] a.icon-btn`) ??
+          root.querySelector<HTMLElement>('.tbl-wrap');
+        target?.focus();
+      },
+      { injector: this.injector },
+    );
   }
 }

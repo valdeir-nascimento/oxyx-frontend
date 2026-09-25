@@ -1,0 +1,12 @@
+<div class="page-head">
+  <div>
+    @if (eyebrow(); as text) {
+      <div class="eyebrow">{{ text }}</div>
+    }
+    <h1 class="page-title">{{ title() }}</h1>
+    @if (subtitle(); as text) {
+      <p class="page-sub">{{ text }}</p>
+    }
+  </div>
+  <div class="actions"><ng-content /></div>
+</div>

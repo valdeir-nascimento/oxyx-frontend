@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Notification } from '../../../shared/domain/notification';
+import { AuthLayout } from '../../../shared/presentation/layout/auth-layout/auth-layout';
 import { Alert } from '../../../shared/presentation/ui/alert/alert';
 import { Button } from '../../../shared/presentation/ui/button/button';
 import { ErrorSummary } from '../../../shared/presentation/ui/error-summary/error-summary';
@@ -20,72 +21,10 @@ import { SignInUseCase } from '../../application/authentication/sign-in.usecase'
  */
 @Component({
   selector: 'ovyx-sign-in-page',
-  imports: [Alert, Button, ErrorSummary, FormField],
+  imports: [AuthLayout, Alert, Button, ErrorSummary, FormField],
+  templateUrl: './sign-in-page.html',
+  styleUrl: './sign-in-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <section class="sign-in">
-      <h1 class="sign-in__title">Entrar</h1>
-
-      @if (sessionExpired) {
-        <ovyx-alert variant="warning">
-          <p>Sua sessão expirou. Entre novamente para continuar.</p>
-        </ovyx-alert>
-      }
-
-      @if (notification().hasErrors) {
-        <ovyx-error-summary [errors]="notification().errors" [fields]="fields" />
-      }
-
-      <form class="sign-in__form" (submit)="submit($event)">
-        <ovyx-form-field
-          controlId="identifier"
-          label="E-mail ou celular"
-          autocomplete="username"
-          [control]="form.controls.identifier"
-          [error]="messageFor('identifier')"
-        />
-
-        <ovyx-form-field
-          controlId="password"
-          label="Senha"
-          type="password"
-          autocomplete="current-password"
-          [control]="form.controls.password"
-          [error]="messageFor('password')"
-        />
-
-        <ovyx-button type="submit" [busy]="submitting()">Entrar</ovyx-button>
-      </form>
-    </section>
-  `,
-  styles: `
-    .sign-in {
-      display: grid;
-      gap: var(--ovyx-space-4);
-      /* A largura desconta a calha dos dois lados: sem isto, o cartão encosta na
-       * borda do telefone. O topo encolhe no telefone, senão o formulário nasce
-       * abaixo da primeira dobra. */
-      width: calc(100% - 2 * var(--ovyx-layout-gutter));
-      max-width: var(--ovyx-layout-form-max);
-      margin: var(--ovyx-layout-page-top) auto;
-      padding: var(--ovyx-space-5);
-      background-color: var(--ovyx-color-surface-raised);
-      border: var(--ovyx-border-width-thin) solid var(--ovyx-color-border);
-      border-radius: var(--ovyx-radius-md);
-      box-shadow: var(--ovyx-shadow-sm);
-    }
-
-    .sign-in__title {
-      font-size: var(--ovyx-font-size-xl);
-      font-weight: var(--ovyx-font-weight-bold);
-      line-height: var(--ovyx-line-height-tight);
-    }
-
-    .sign-in__form {
-      display: grid;
-      gap: var(--ovyx-space-4);
-    }
-  `,
 })
 export class SignInPage {
   private readonly signIn = inject(SignInUseCase);

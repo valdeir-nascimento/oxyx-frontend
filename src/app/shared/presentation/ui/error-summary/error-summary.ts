@@ -7,12 +7,13 @@ import {
   viewChild,
 } from '@angular/core';
 import { DomainError } from '../../../domain/domain-error';
+import { Icon } from '../icon/icon';
 
 let nextId = 0;
 
 /**
  * Resumo da recusa de um formulário: todas as falhas de uma vez (FR-017), cada uma com o caminho até
- * o seu campo (T234).
+ * o seu campo (T234). Visualmente é o aviso de perigo do design system (`.alert.danger`).
  *
  * Recebe o foco quando aparece e a cada recusa nova. É a mudança de foco que o leitor de tela
  * anuncia — antes, o foco ficava no botão e a pessoa não ouvia nada, porque a mensagem de cada
@@ -31,58 +32,10 @@ let nextId = 0;
  */
 @Component({
   selector: 'ovyx-error-summary',
+  imports: [Icon],
+  templateUrl: './error-summary.html',
+  styleUrl: './error-summary.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div #region class="error-summary" role="group" tabindex="-1" [attr.aria-labelledby]="titleId">
-      <p class="error-summary__title" [id]="titleId">{{ heading() }}</p>
-      <ul class="error-summary__list">
-        @for (error of errors(); track $index) {
-          <li>
-            @if (linkable(error); as field) {
-              <a class="error-summary__link" [href]="'#' + field" (click)="goTo($event, field)">
-                {{ error.message }}
-              </a>
-            } @else {
-              {{ error.message }}
-            }
-          </li>
-        }
-      </ul>
-    </div>
-  `,
-  styles: `
-    :host {
-      display: block;
-    }
-
-    .error-summary {
-      display: grid;
-      gap: var(--ovyx-space-2);
-      padding: var(--ovyx-space-3);
-      background-color: var(--ovyx-color-danger-surface);
-      /* A borda mais grossa que a do alerta é o que marca o resumo como o lugar a corrigir, sem
-       * depender só da cor. */
-      border: var(--ovyx-border-width-thick) solid var(--ovyx-color-danger-border);
-      border-radius: var(--ovyx-radius-sm);
-      color: var(--ovyx-color-danger-text);
-    }
-
-    .error-summary__title {
-      font-weight: var(--ovyx-font-weight-semibold);
-    }
-
-    .error-summary__list {
-      display: grid;
-      gap: var(--ovyx-space-1);
-      margin: 0;
-      padding-left: var(--ovyx-space-5);
-    }
-
-    .error-summary__link {
-      color: inherit;
-      text-decoration: underline;
-    }
-  `,
 })
 export class ErrorSummary {
   /** As violações da recusa, na ordem em que o backend as devolveu. */

@@ -1,100 +1,43 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-import { MenuItem } from '../../domain/menu-item';
-import { Navigation } from '../navigation/navigation';
-import { Button } from '../ui/button/button';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, input, output, signal } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRouteSnapshot, NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { filter, map } from 'rxjs';
+import { FocusTrap } from '../ui/focus-trap/focus-trap';
+import { BottomNav } from './bottom-nav/bottom-nav';
+import { MenuItem } from './menu-item';
+import { SideNav } from './side-nav/side-nav';
+import { TopBar } from './top-bar/top-bar';
+
+/** O caminho da página em vigor: o `data.crumbs` da rota mais funda que o declara. */
+export function crumbsOf(root: ActivatedRouteSnapshot): readonly string[] {
+  let crumbs: readonly string[] = [];
+  for (let route: ActivatedRouteSnapshot | null = root; route; route = route.firstChild) {
+    const declared = route.data['crumbs'] as readonly string[] | undefined;
+    if (declared) {
+      crumbs = declared;
+    }
+  }
+  return crumbs;
+}
 
 /**
- * Casca da aplicação autenticada: cabeçalho com identificação, navegação e a área de conteúdo.
+ * Casca da aplicação autenticada, o `.app` do design system: menu lateral, barra superior, conteúdo
+ * e, no celular, a navegação inferior e a gaveta.
  *
  * Recebe tudo por entrada e avisa a saída por evento. Não conhece serviço de identidade, não faz
  * chamada HTTP e não decide nada de negócio — o princípio I vale igual no cliente, e é o contexto
  * `identity` que liga este componente aos dados reais.
+ *
+ * A largura quem mede é o contêiner `.av-app-root`, e não a janela: o design system responde por
+ * container queries. A gaveta do celular é o mesmo menu lateral, modal: o foco fica preso nela, o
+ * Esc e o clique fora a fecham, e navegar para outra área também.
  */
 @Component({
   selector: 'ovyx-authenticated-layout',
-  imports: [RouterOutlet, Navigation, Button],
+  imports: [RouterOutlet, BottomNav, FocusTrap, SideNav, TopBar],
+  templateUrl: './authenticated-layout.html',
+  styleUrl: './authenticated-layout.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <header class="topbar">
-      <span class="topbar__brand">Ovyx</span>
-      <ovyx-navigation class="topbar__nav" [items]="menuItems()" />
-      <div class="topbar__identity">
-        <span class="topbar__name">{{ fullName() }}</span>
-        <span class="topbar__role">{{ roleLabel() }}</span>
-        <ovyx-button variant="secondary" (pressed)="signOut.emit()">Sair</ovyx-button>
-      </div>
-    </header>
-
-    <main class="content">
-      <router-outlet />
-    </main>
-  `,
-  styles: `
-    /* Duas linhas no telefone — marca e identificação em cima, navegação embaixo —
-     * e uma linha só a partir de 48rem. A grade nomeia as áreas em vez de mexer na
-     * ordem do template: o HTML continua marca, navegação e identificação, que é a
-     * ordem em que o teclado percorre a barra. */
-    .topbar {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      grid-template-areas:
-        'brand identity'
-        'nav nav';
-      align-items: center;
-      gap: var(--ovyx-space-3) var(--ovyx-space-5);
-      padding: var(--ovyx-space-3) var(--ovyx-layout-gutter);
-      background-color: var(--ovyx-color-surface-raised);
-      border-bottom: var(--ovyx-border-width-thin) solid var(--ovyx-color-border);
-    }
-
-    .topbar__brand {
-      grid-area: brand;
-      font-size: var(--ovyx-font-size-lg);
-      font-weight: var(--ovyx-font-weight-bold);
-      color: var(--ovyx-color-brand-text);
-    }
-
-    .topbar__identity {
-      grid-area: identity;
-      justify-self: end;
-      display: flex;
-      align-items: center;
-      gap: var(--ovyx-space-3);
-    }
-
-    .topbar__name {
-      font-weight: var(--ovyx-font-weight-medium);
-    }
-
-    /* O perfil é apoio, não título: distingue-se por tamanho e por tom de texto com contraste
-     * medido, e não por uma opacidade que o apaga sob luz forte. */
-    .topbar__role {
-      font-size: var(--ovyx-font-size-sm);
-      color: var(--ovyx-color-text-muted);
-    }
-
-    /* A coluna precisa de min-width zero porque uma grade dá à coluna o tamanho do
-     * conteúdo mínimo: sem isto, uma navegação larga estica a barra inteira em vez
-     * de rolar dentro da própria área. */
-    .topbar__nav {
-      grid-area: nav;
-      min-width: 0;
-    }
-
-    @media (min-width: 48rem) {
-      .topbar {
-        grid-template-columns: auto 1fr auto;
-        grid-template-areas: 'brand nav identity';
-      }
-    }
-
-    .content {
-      max-width: var(--ovyx-layout-content-max);
-      margin: 0 auto;
-      padding: var(--ovyx-space-5) var(--ovyx-layout-gutter);
-    }
-  `,
 })
 export class AuthenticatedLayout {
   readonly fullName = input.required<string>();
@@ -108,4 +51,40 @@ export class AuthenticatedLayout {
   /** Emitido quando o responsável escolhe sair; o contexto identity executa o encerramento. */
   readonly signOut = output<void>();
 
+  protected readonly drawerId = 'ovyx-drawer';
+
+  protected readonly drawerOpen = signal(false);
+
+  private readonly router = inject(Router);
+
+  protected readonly crumbs = toSignal(
+    this.router.events.pipe(
+      filter((event) => event instanceof NavigationEnd),
+      map(() => crumbsOf(this.router.routerState.snapshot.root)),
+    ),
+    { initialValue: crumbsOf(this.router.routerState.snapshot.root) },
+  );
+
+  constructor() {
+    this.router.events
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        takeUntilDestroyed(inject(DestroyRef)),
+      )
+      .subscribe(() => this.drawerOpen.set(false));
+  }
+
+  protected toggleDrawer(): void {
+    this.drawerOpen.update((open) => !open);
+  }
+
+  protected closeDrawer(): void {
+    this.drawerOpen.set(false);
+  }
+
+  protected closeFromScrim(event: MouseEvent): void {
+    if (event.target === event.currentTarget) {
+      this.closeDrawer();
+    }
+  }
 }

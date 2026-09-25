@@ -1,31 +1,19 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { EmptyState } from '../ui/empty-state/empty-state';
+import { PageHeader } from '../ui/page-header/page-header';
 
 /**
  * Página inicial da área autenticada.
  *
- * Nesta fatia a fundação de acesso é o que existe: o conteúdo de avicultura chega nas features
- * seguintes. Ela existe para que a entrada leve a algum lugar, e não a um conteúdo vazio.
+ * Nesta fatia a fundação de acesso é o que existe: o painel de produção do design system chega com as
+ * features de avicultura. A página diz isso com o estado vazio, em vez de mostrar indicadores sem
+ * dado — e não inventa número nenhum.
  */
 @Component({
   selector: 'ovyx-home',
+  imports: [EmptyState, PageHeader],
+  templateUrl: './home.html',
+  styleUrl: './home.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <section class="home">
-      <h1 class="home__title">Início</h1>
-      <p>Bem-vindo ao Ovyx. Use a navegação acima para acessar as áreas disponíveis.</p>
-    </section>
-  `,
-  styles: `
-    .home {
-      display: grid;
-      gap: var(--ovyx-space-2);
-    }
-
-    .home__title {
-      font-size: var(--ovyx-font-size-2xl);
-      font-weight: var(--ovyx-font-weight-bold);
-      line-height: var(--ovyx-line-height-tight);
-    }
-  `,
 })
 export class Home {}

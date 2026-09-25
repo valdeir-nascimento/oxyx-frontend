@@ -1,0 +1,43 @@
+:host {
+  display: contents;
+}
+
+/* No painel da tela de acesso, a marca não tem o recuo que tem no menu lateral. */
+.side-brand {
+  padding: 0;
+}
+
+.art-copy {
+  position: relative;
+  z-index: 1;
+  /* No protótipo, os indicadores de produção ocupam o pé do painel e empurram a frase para o meio. O
+   * Ovyx não mostra indicadores inventados; a frase fica no meio do espaço livre, longe dos ovos,
+   * onde o texto claro perderia o contraste. */
+  margin-block: auto;
+}
+
+/* A frase do painel tem a aparência do título do design system (.login-art h1), mas é um parágrafo:
+ * o título da tela é o do formulário. */
+.headline {
+  font-family: var(--font-display);
+  font-size: 40px;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+  max-width: 13ch;
+  margin-top: 0;
+  color: #f6faf8;
+}
+
+.headline em {
+  font-style: normal;
+  color: var(--gema-400);
+}
+
+/* No celular o design system esconde os parágrafos do painel; a frase continua, como o título dele. */
+@container app (max-width: 760px) {
+  .headline {
+    display: block;
+    font-size: 28px;
+  }
+}

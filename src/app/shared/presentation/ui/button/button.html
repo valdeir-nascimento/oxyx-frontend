@@ -1,0 +1,19 @@
+<button
+  [class]="classes()"
+  [type]="type()"
+  [attr.data-variant]="variant()"
+  [disabled]="disabled() || busy()"
+  [attr.aria-busy]="busy() ? 'true' : null"
+  [attr.aria-label]="accessibleName() ?? null"
+  (click)="pressed.emit()"
+>
+  @if (busy()) {
+    <span class="spinner" aria-hidden="true"></span>
+  } @else if (icon(); as leading) {
+    <ovyx-icon [name]="leading" [size]="18" />
+  }
+  <span><ng-content /></span>
+  @if (trailingIcon(); as trailing) {
+    <ovyx-icon [name]="trailing" [size]="18" />
+  }
+</button>
