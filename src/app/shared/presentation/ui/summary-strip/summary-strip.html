@@ -1,0 +1,11 @@
+<div class="summary" role="list" [attr.aria-label]="label()">
+  @for (item of items(); track item.label) {
+    <div role="listitem">
+      <span>{{ item.label }}</span>
+      <b>{{ item.value }}</b>
+      @if (item.note; as note) {
+        <em>{{ note }}</em>
+      }
+    </div>
+  }
+</div>

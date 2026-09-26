@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Result } from '../../shared/application/result';
 import { resultOf } from '../../shared/infrastructure/http-result';
+import { jsonNumberOf } from '../../shared/infrastructure/typed-number';
 import { CageGateway } from '../application/cage/cage-gateway';
 import { SectorGateway } from '../application/sector/sector-gateway';
 import { Cage, CageInput, CagePage, CageSearch } from '../domain/cage';
@@ -25,23 +26,6 @@ function sectorUrl(id: string): string {
 function cagesUrl(sectorId: string, cageId?: string): string {
   const cages = `${sectorUrl(sectorId)}/cages`;
   return cageId === undefined ? cages : `${cages}/${encodeURIComponent(cageId)}`;
-}
-
-/**
- * Um número digitado, como o contrato o recebe: o inteiro vai como número; o vazio, como ausente; e o
- * resto, como foi digitado, para o backend recusar junto do campo, com a mensagem de número inteiro
- * (FR-017). O ponto de milhar vale ("1.000" é mil), porque é assim que a dica e a mensagem escrevem; o
- * "12.5" não tem três dígitos depois do ponto, e continua texto.
- */
-function jsonNumberOf(typed: string): number | string | null {
-  const text = typed.trim();
-  if (text === '') {
-    return null;
-  }
-  if (/^[+-]?\d{1,3}(\.\d{3})+$/.test(text)) {
-    return Number(text.replaceAll('.', ''));
-  }
-  return /^[+-]?\d+$/.test(text) ? Number(text) : typed;
 }
 
 /** O corpo de cadastro e de edição de gaiola. */
