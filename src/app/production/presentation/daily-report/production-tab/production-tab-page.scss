@@ -1,0 +1,20 @@
+/* A aba não ocupa caixa: a faixa e o cartão são itens da coluna do .content-inner. */
+:host {
+  display: contents;
+}
+
+.ic {
+  color: var(--ink-3);
+}
+
+.hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+}
+
+/* O outlet não desenha nada; quem aparece é o diálogo que ele carrega, ao lado dele. */
+router-outlet {
+  display: none;
+}

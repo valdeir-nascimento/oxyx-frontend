@@ -1,0 +1,60 @@
+<ovyx-dialog [title]="title()" [subtitle]="subtitle()" icon="egg" (closed)="close()" (submitted)="submit()">
+  <p class="sr" role="status">{{ state() === 'loading' ? 'Carregando…' : '' }}</p>
+
+  @switch (state()) {
+    @case ('loading') {
+      <div class="loading span2" aria-hidden="true">
+        <span class="sk"></span>
+        <span class="sk"></span>
+      </div>
+    }
+    @case ('missing') {
+      <ovyx-alert class="span2" variant="danger">
+        <p>{{ missing() }}</p>
+      </ovyx-alert>
+    }
+    @case ('failed') {
+      <ovyx-error-summary
+        class="span2"
+        heading="Não foi possível carregar a gaiola:"
+        [errors]="notification().errors"
+        [fields]="[]"
+      />
+    }
+    @case ('ready') {
+      @if (notification().hasErrors) {
+        <ovyx-error-summary class="span2" [errors]="notification().errors" [fields]="fields" />
+      }
+
+      <ovyx-form-field
+        controlId="eggs"
+        label="Ovos coletados"
+        hint="De 0 a 1.000."
+        autocomplete="off"
+        inputMode="numeric"
+        [wide]="true"
+        [control]="form.controls.eggs"
+        [error]="messageFor('eggs')"
+      />
+      <p class="span2 grades-hint">Dos ovos coletados, quantos saíram fora do padrão. Em branco vale zero.</p>
+      @for (grade of grades; track grade.id) {
+        <ovyx-form-field
+          [controlId]="grade.id"
+          [label]="grade.label"
+          autocomplete="off"
+          inputMode="numeric"
+          [control]="form.controls[grade.id]"
+          [error]="messageFor(grade.id)"
+        />
+      }
+    }
+  }
+
+  <!-- Um elemento por condição: um bloco com mais de uma raiz iria para o corpo, e não para as ações. -->
+  <ovyx-button dialog-actions variant="secondary" [disabled]="submitting()" (pressed)="close()">
+    {{ state() === 'ready' ? 'Cancelar' : 'Voltar à produção' }}
+  </ovyx-button>
+  @if (state() === 'ready') {
+    <ovyx-button dialog-actions type="submit" icon="check" [busy]="submitting()">Salvar produção</ovyx-button>
+  }
+</ovyx-dialog>
