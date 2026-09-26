@@ -116,7 +116,7 @@ module.exports = defineConfig([
         {
           patterns: [
             {
-              group: ['**/identity/**', '**/farm/**'],
+              group: ['**/identity/**', '**/farm/**', '**/production/**'],
               message:
                 'shared não depende de contexto de negócio; é o contexto que se liga a shared (princípio I).',
             },
@@ -127,7 +127,9 @@ module.exports = defineConfig([
   },
   // Um contexto não conhece o outro (R-008 da feature 002, espelhado no cliente): o que eles dividem
   // passa pelo `shared`, como o perfil de quem vê (`VIEWER`). Só a composição da aplicação — `app.config`
-  // e `app.routes`, na raiz — liga os dois. A mesma variante da regra do `shared`, pelo mesmo motivo.
+  // e `app.routes`, na raiz — liga os contextos. A mesma variante da regra do `shared`, pelo mesmo motivo.
+  // O `production` entrou na feature 003 (R-011): o cartão do setor chega aos relatórios por endereço,
+  // e não por import.
   {
     files: ['src/app/farm/**/*.ts'],
     ignores: ['**/*.spec.ts'],
@@ -139,6 +141,10 @@ module.exports = defineConfig([
             {
               group: ['**/identity/**'],
               message: 'farm não depende de identity; o que os dois dividem passa pelo shared (princípio I, R-008).',
+            },
+            {
+              group: ['**/production/**'],
+              message: 'farm não depende de production; o que os dois dividem passa pelo shared (princípio I, R-008).',
             },
           ],
         },
@@ -156,6 +162,33 @@ module.exports = defineConfig([
             {
               group: ['**/farm/**'],
               message: 'identity não depende de farm; o que os dois dividem passa pelo shared (princípio I, R-008).',
+            },
+            {
+              group: ['**/production/**'],
+              message:
+                'identity não depende de production; o que os dois dividem passa pelo shared (princípio I, R-008).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/app/production/**/*.ts'],
+    ignores: ['**/*.spec.ts'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/identity/**'],
+              message:
+                'production não depende de identity; o que os dois dividem passa pelo shared (princípio I, R-008).',
+            },
+            {
+              group: ['**/farm/**'],
+              message: 'production não depende de farm; o que os dois dividem passa pelo shared (princípio I, R-008).',
             },
           ],
         },

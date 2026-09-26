@@ -1,0 +1,13 @@
+<nav class="tabs" [attr.aria-label]="label()">
+  @for (tab of tabs(); track tab.label) {
+    <a [routerLink]="tab.link" routerLinkActive ariaCurrentWhenActive="page">
+      @if (tab.icon; as icon) {
+        <ovyx-icon [name]="icon" [size]="18" />
+      }
+      {{ tab.label }}
+      @if (tab.count; as count) {
+        <span class="cnt" [class.highlight]="tab.highlight">{{ count }}</span>
+      }
+    </a>
+  }
+</nav>

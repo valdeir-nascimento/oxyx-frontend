@@ -1,0 +1,13 @@
+/* A página não ocupa caixa: título, avisos e abas são itens da coluna do .content-inner. */
+:host {
+  display: contents;
+}
+
+/* A etiqueta do design system não quebra a linha; a da última correção, com o nome e a hora, passa da
+ * largura do celular e era cortada (QA D-02 da 003). Aqui ela quebra, e cresce para caber. */
+.meta-row .tag {
+  white-space: normal;
+  height: auto;
+  min-height: 26px;
+  max-width: 100%;
+}

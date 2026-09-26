@@ -1,0 +1,25 @@
+/* A página não ocupa caixa: título, avisos e cartão são itens da coluna do .content-inner do design
+ * system, que dá o espaçamento. */
+:host {
+  display: contents;
+}
+
+/* O dia leva ao relatório: o link é a célula inteira, sem o sublinhado. */
+a.cell-id {
+  color: inherit;
+  text-decoration: none;
+}
+
+.ic {
+  color: var(--ink-3);
+}
+
+.note {
+  max-width: 240px;
+  color: var(--ink-2);
+}
+
+/* O outlet não desenha nada; quem aparece é o diálogo que ele carrega, ao lado dele. */
+router-outlet {
+  display: none;
+}

@@ -1,6 +1,13 @@
 import { Routes } from '@angular/router';
 import { activeSectorGuard, sectorCrumbsResolver, sectorTitleResolver } from './farm/presentation/cage/sector-route';
 import {
+  activeReportSectorGuard,
+  reportCrumbsResolver,
+  reportTitleResolver,
+  reportsCrumbsResolver,
+  reportsTitleResolver,
+} from './production/presentation/daily-report/report-route';
+import {
   administratorGuard,
   anonymousGuard,
   authenticatedGuard,
@@ -87,6 +94,97 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./farm/presentation/cage/cage-form/cage-form-dialog').then((m) => m.CageFormDialog),
             title: 'Editar gaiola — Ovyx',
+          },
+        ],
+      },
+      {
+        // Os relatórios diários de um setor (feature 003, US1), antes de `setores`, como as gaiolas.
+        // Qualquer responsável abre relatório (FR-019): a filha `novo` não tem o guard de
+        // administrador. O diálogo abre sobre a lista; num setor inativo, a lista esconde a abertura,
+        // e o backend a recusa.
+        path: 'setores/:sectorId/relatorios',
+        loadComponent: () =>
+          import('./production/presentation/daily-report/report-list/report-list-page').then((m) => m.ReportListPage),
+        title: reportsTitleResolver,
+        resolve: { crumbs: reportsCrumbsResolver },
+        children: [
+          {
+            path: 'novo',
+            canActivate: [activeReportSectorGuard],
+            loadComponent: () =>
+              import('./production/presentation/daily-report/report-dialog/report-dialog').then((m) => m.ReportDialog),
+            title: 'Novo relatório — Ovyx',
+          },
+        ],
+      },
+      {
+        // A página de um relatório, depois da lista: antes dela, o `:reportId` tomaria o `novo`.
+        path: 'setores/:sectorId/relatorios/:reportId',
+        loadComponent: () =>
+          import('./production/presentation/daily-report/report-page/report-page').then((m) => m.ReportPage),
+        title: reportTitleResolver,
+        resolve: { crumbs: reportCrumbsResolver },
+        // As abas dos lançamentos (US2 e US3): o relatório abre na de produção. O lançamento de uma
+        // gaiola abre em diálogo sobre a aba, pela filha `:cageId`, e a correção dos dados gerais, pela
+        // filha `editar`, que vem antes para o `:cageId` não a tomar (US4). Nenhum diálogo abre sobre um
+        // setor inativo.
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'producao' },
+          {
+            path: 'producao',
+            loadComponent: () =>
+              import('./production/presentation/daily-report/production-tab/production-tab-page').then(
+                (m) => m.ProductionTabPage,
+              ),
+            children: [
+              {
+                path: 'editar',
+                canActivate: [activeReportSectorGuard],
+                loadComponent: () =>
+                  import('./production/presentation/daily-report/report-dialog/report-dialog').then(
+                    (m) => m.ReportDialog,
+                  ),
+                title: 'Editar relatório — Ovyx',
+                data: { tab: 'producao' },
+              },
+              {
+                path: ':cageId',
+                canActivate: [activeReportSectorGuard],
+                loadComponent: () =>
+                  import('./production/presentation/daily-report/production-dialog/production-dialog').then(
+                    (m) => m.ProductionDialog,
+                  ),
+                title: 'Lançar produção — Ovyx',
+              },
+            ],
+          },
+          {
+            path: 'mortalidade',
+            loadComponent: () =>
+              import('./production/presentation/daily-report/mortality-tab/mortality-tab-page').then(
+                (m) => m.MortalityTabPage,
+              ),
+            children: [
+              {
+                path: 'editar',
+                canActivate: [activeReportSectorGuard],
+                loadComponent: () =>
+                  import('./production/presentation/daily-report/report-dialog/report-dialog').then(
+                    (m) => m.ReportDialog,
+                  ),
+                title: 'Editar relatório — Ovyx',
+                data: { tab: 'mortalidade' },
+              },
+              {
+                path: ':cageId',
+                canActivate: [activeReportSectorGuard],
+                loadComponent: () =>
+                  import('./production/presentation/daily-report/mortality-dialog/mortality-dialog').then(
+                    (m) => m.MortalityDialog,
+                  ),
+                title: 'Lançar mortalidade — Ovyx',
+              },
+            ],
           },
         ],
       },

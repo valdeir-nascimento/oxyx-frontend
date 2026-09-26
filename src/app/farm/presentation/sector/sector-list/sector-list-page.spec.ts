@@ -159,6 +159,14 @@ describe('SectorListPage', () => {
     expect(cages?.getAttribute('href')).toBe(`/setores/${galpao1.id}/gaiolas`);
   });
 
+  it('leads from each card to the reports of the sector, named by it (003, FR-017)', async () => {
+    await render(false);
+
+    const reports = named('Relatórios do setor Codornas — Galpão 1') as unknown as HTMLAnchorElement;
+    expect(reports.textContent?.trim()).toBe('Relatórios');
+    expect(reports.getAttribute('href')).toBe(`/setores/${galpao1.id}/relatorios`);
+  });
+
   it('invites to register the first sector when there is none', async () => {
     list.mockResolvedValue(success([]));
     await render();
