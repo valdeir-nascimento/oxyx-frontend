@@ -91,6 +91,15 @@
             <ovyx-icon name="cage" [size]="16" />
             <span>Gaiolas</span>
           </a>
+          <!-- Os relatórios do setor (feature 003): link por endereço; o farm não importa o production. -->
+          <a
+            class="btn btn-secondary btn-sm"
+            [routerLink]="['/setores', sector.id, 'relatorios']"
+            [attr.aria-label]="'Relatórios do setor ' + sector.name"
+          >
+            <ovyx-icon name="report" [size]="16" />
+            <span>Relatórios</span>
+          </a>
           <span class="grow"></span>
           <ovyx-status-badge [label]="statusLabelOf(sector.status)" [tone]="statusToneOf(sector.status)" />
         </div>

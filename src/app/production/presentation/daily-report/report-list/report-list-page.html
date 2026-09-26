@@ -1,0 +1,130 @@
+<ovyx-page-header
+  [eyebrow]="page()?.sector.name ?? 'Setor'"
+  title="Relatórios diários"
+  subtitle="Um relatório por dia reúne a produção e a mortalidade de todas as gaiolas do setor."
+>
+  <a class="btn btn-secondary" routerLink="/setores">
+    <ovyx-icon name="barn" [size]="18" />
+    <span>Voltar aos setores</span>
+  </a>
+  @if (canOpen()) {
+    <a class="btn btn-primary" [routerLink]="['/setores', sectorId, 'relatorios', 'novo']">
+      <ovyx-icon name="plus" [size]="18" />
+      <span>Novo relatório</span>
+    </a>
+  }
+</ovyx-page-header>
+
+@if (missing()) {
+  <ovyx-alert variant="danger">
+    <p>Setor não encontrado.</p>
+  </ovyx-alert>
+} @else {
+  @if (sectorInactive()) {
+    <ovyx-alert variant="warning" data-inactive-notice tabindex="-1">
+      <p>{{ inactiveNotice }}</p>
+    </ovyx-alert>
+  }
+
+  @if (refusal().hasErrors) {
+    <ovyx-error-summary heading="Não foi possível concluir a operação:" [errors]="refusal().errors" [fields]="[]" />
+  }
+
+  @if (neverOpened()) {
+    <section class="card">
+      <ovyx-empty-state icon="report" title="Nenhum relatório ainda" [message]="emptyMessage()">
+        @if (canOpen()) {
+          <a class="btn btn-primary btn-sm" [routerLink]="['/setores', sectorId, 'relatorios', 'novo']">
+            <ovyx-icon name="plus" [size]="16" />
+            <span>Novo relatório</span>
+          </a>
+        }
+      </ovyx-empty-state>
+    </section>
+  } @else {
+    <section class="card">
+      <form class="tbl-tools" role="search" aria-label="Buscar relatório pelo dia" (submit)="search($event)">
+        <ovyx-form-field
+          controlId="searchedDay"
+          label="Dia da coleta"
+          type="date"
+          [control]="filters.controls.collectionDate"
+        />
+        <ovyx-button type="submit" variant="secondary">Buscar</ovyx-button>
+        @if (searchedDate()) {
+          <ovyx-button variant="secondary" icon="x" (pressed)="clear()">Limpar</ovyx-button>
+        }
+      </form>
+
+      <ovyx-data-table
+        [caption]="caption()"
+        [emptyTitle]="searchEmptyTitle()"
+        emptyMessage="Confira o dia, ou limpe a busca para ver todos os relatórios do setor."
+        [loading]="loading()"
+        [empty]="reports().length === 0"
+        [summary]="found()"
+      >
+        <thead>
+          <tr>
+            <th scope="col">Data</th>
+            <th scope="col" class="r">Idade</th>
+            <th scope="col" class="r">Produção</th>
+            <th scope="col" class="r">Removidos</th>
+            <th scope="col" class="r">Saldo de aves</th>
+            <th scope="col">Observação</th>
+            <th scope="col">Lançamentos</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (report of reports(); track report.id) {
+            <tr [attr.data-report]="report.id">
+              <td class="main" data-label="Data">
+                <a class="cell-id" [routerLink]="['/setores', sectorId, 'relatorios', report.id]">
+                  <span class="ic" aria-hidden="true"><ovyx-icon name="report" [size]="18" /></span>
+                  <span>
+                    <b>{{ dayWithWeekdayOf(report.collectionDate) }}</b>
+                    <small>{{ report.collectionTime }} · {{ report.openedByName }}</small>
+                  </span>
+                </a>
+              </td>
+              <td class="r tnum" data-label="Idade">{{ report.flockAge }} sem.</td>
+              <td class="r tnum strong" data-label="Produção">{{ countOf(report.collectedEggs) }}</td>
+              <td class="r tnum" data-label="Removidos">{{ countOf(report.removedBirds) }}</td>
+              <td class="r tnum" data-label="Saldo de aves">{{ countOf(report.closingBirdCount) }}</td>
+              <td class="wide note" data-label="Observação">{{ report.note ?? '—' }}</td>
+              <td data-label="Lançamentos">
+                <div class="meta-row">
+                  <span class="tag" [class.pending]="report.productionStatus === 'PENDING'">
+                    <ovyx-icon [name]="report.productionStatus === 'PENDING' ? 'clock' : 'check'" [size]="16" />{{
+                      productionLabelOf(report.productionStatus, report.pendingCages)
+                    }}</span
+                  >
+                  <span class="tag" [class.pending]="report.mortalityStatus === 'PENDING'">
+                    <ovyx-icon [name]="report.mortalityStatus === 'PENDING' ? 'clock' : 'check'" [size]="16" />{{
+                      mortalityLabelOf(report.mortalityStatus)
+                    }}</span
+                  >
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </ovyx-data-table>
+
+      @if (page(); as current) {
+        @if (current.totalElements > 0) {
+          <ovyx-pager
+            [page]="current.page"
+            [size]="current.size"
+            [totalPages]="current.totalPages"
+            [totalElements]="current.totalElements"
+            (pageChange)="goTo($event)"
+          />
+        }
+      }
+    </section>
+  }
+}
+
+<!-- A abertura do relatório abre aqui, em diálogo sobre a lista. -->
+<router-outlet />

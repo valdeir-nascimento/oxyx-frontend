@@ -12,6 +12,8 @@ import { CARETAKER_GATEWAY } from './identity/application/caretaker/caretaker-ga
 import { CAGE_GATEWAY } from './farm/application/cage/cage-gateway';
 import { SECTOR_GATEWAY } from './farm/application/sector/sector-gateway';
 import { FarmHttpAdapter } from './farm/infrastructure/farm-http.adapter';
+import { DAILY_REPORT_GATEWAY } from './production/application/daily-report/daily-report-gateway';
+import { ProductionHttpAdapter } from './production/infrastructure/production-http.adapter';
 import { SessionViewer } from './identity/application/authentication/session-viewer';
 import { IdentityHttpAdapter } from './identity/infrastructure/identity-http.adapter';
 import { VIEWER } from './shared/application/viewer';
@@ -37,6 +39,7 @@ export const appConfig: ApplicationConfig = {
     { provide: CARETAKER_GATEWAY, useExisting: IdentityHttpAdapter },
     { provide: SECTOR_GATEWAY, useExisting: FarmHttpAdapter },
     { provide: CAGE_GATEWAY, useExisting: FarmHttpAdapter },
+    { provide: DAILY_REPORT_GATEWAY, useExisting: ProductionHttpAdapter },
     // O perfil de quem vê, para as telas dos contextos que não conhecem o identity (feature 002).
     { provide: VIEWER, useExisting: SessionViewer },
   ],

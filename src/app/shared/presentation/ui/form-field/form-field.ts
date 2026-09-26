@@ -4,7 +4,8 @@ import { Icon } from '../icon/icon';
 import { IconName } from '../icon/icons';
 
 /** Natureza do que se digita. Decide o teclado do celular e o sigilo do que aparece na tela. */
-export type FormFieldType = 'text' | 'password' | 'email' | 'tel';
+/** Os tipos de campo em uso; data e hora vieram com o relatório diário (feature 003). */
+export type FormFieldType = 'text' | 'password' | 'email' | 'tel' | 'date' | 'time';
 
 /**
  * Campo de formulário com o `.field` do design system: rótulo, entrada, texto de ajuda e mensagem de

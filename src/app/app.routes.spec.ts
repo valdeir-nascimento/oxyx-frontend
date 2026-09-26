@@ -12,6 +12,7 @@ import { CARETAKER_GATEWAY } from './identity/application/caretaker/caretaker-ga
 import { CAGE_GATEWAY } from './farm/application/cage/cage-gateway';
 import { SECTOR_GATEWAY } from './farm/application/sector/sector-gateway';
 import { Sector } from './farm/domain/sector';
+import { DAILY_REPORT_GATEWAY } from './production/application/daily-report/daily-report-gateway';
 import { SessionStore } from './identity/application/authentication/session-store';
 import { sessionInterceptor } from './identity/infrastructure/session.interceptor';
 import { AuthenticatedCaretaker } from './identity/domain/authenticated-caretaker';
@@ -37,6 +38,9 @@ describe('routes', () => {
       ]),
     );
   }
+
+  const REPORT_ID = '6b1d3f5a-7c9e-4a2b-8d4f-1e3a5c7b9d55';
+  const CAGE_ID = '9d2e4f6a-1b3c-4d5e-8f7a-2b4c6d8e0f44';
 
   const codornas: Sector = {
     id: '3f6c2b1a-8d4e-4c7f-9a2b-1e5d7c9f0a11',
@@ -102,6 +106,48 @@ describe('routes', () => {
             ),
             registerCage: vi.fn(),
             updateCage: vi.fn(),
+          },
+        },
+        {
+          provide: DAILY_REPORT_GATEWAY,
+          useValue: {
+            listDailyReports: vi.fn().mockResolvedValue(
+              success({
+                sector: { id: codornas.id, name: codornas.name, status: 'ACTIVE' },
+                content: [],
+                page: 0,
+                size: 20,
+                totalElements: 0,
+                totalPages: 0,
+              }),
+            ),
+            suggestDailyReport: vi
+              .fn()
+              .mockResolvedValue(success({ collectionDate: '2026-09-25', collectionTime: '06:42', openingBirdCount: 98 })),
+            openDailyReport: vi.fn(),
+            findReportCage: vi
+              .fn()
+              .mockResolvedValue(success({ cageId: CAGE_ID, code: 'B-07', battery: 'B', number: 7, birdCount: 50 })),
+            recordProduction: vi.fn(),
+            recordMortality: vi.fn(),
+            confirmNoMortality: vi.fn(),
+            correctDailyReport: vi.fn(),
+            findDailyReport: vi.fn().mockResolvedValue(
+              success({
+                id: REPORT_ID,
+                sector: { id: codornas.id, name: codornas.name, status: 'ACTIVE' },
+                collectionDate: '2026-09-24',
+                collectionTime: '06:30',
+                openingBirdCount: 98,
+                flockAge: 20,
+                noMortalityConfirmed: false,
+                openedBy: { id: maria.id, name: maria.fullName },
+                openedAt: '2026-09-24T09:31:40Z',
+                production: { status: 'PENDING', pendingCages: 0, collectedEggs: 0, standardEggs: 0, unsellableEggs: 0, layingRate: 0 },
+                mortality: { status: 'PENDING', deaths: 0, culls: 0, removalRate: 0, closingBirdCount: 98 },
+                cages: [],
+              }),
+            ),
           },
         },
       ],
@@ -278,6 +324,108 @@ describe('routes', () => {
       expect(await goTo(`/setores/${codornas.id}/gaiolas/${dialog}`)).toBe(`/setores/${codornas.id}/gaiolas`);
     },
   );
+
+  it('opens the reports of a sector to a common user, named by the sector (003, US1)', async () => {
+    configure(success(maria));
+
+    expect(await goTo(`/setores/${codornas.id}/relatorios`)).toBe(`/setores/${codornas.id}/relatorios`);
+    expect(TestBed.inject(Title).getTitle()).toBe('Relatórios de Codornas — Galpão 1 — Ovyx');
+  });
+
+  it('opens the dialog of a new report to a common user, and not only to an administrator (003, FR-019)', async () => {
+    configure(success(maria));
+
+    expect(await goTo(`/setores/${codornas.id}/relatorios/novo`)).toBe(`/setores/${codornas.id}/relatorios/novo`);
+  });
+
+  it('opens the page of a report on the production tab, named by its day (003, US1 and US2)', async () => {
+    configure(success(maria));
+
+    expect(await goTo(`/setores/${codornas.id}/relatorios/${REPORT_ID}`)).toBe(
+      `/setores/${codornas.id}/relatorios/${REPORT_ID}/producao`,
+    );
+    expect(TestBed.inject(Title).getTitle()).toBe('Relatório de 24/09/2026 — Ovyx');
+  });
+
+  it('opens the production dialog of a cage over the production tab (003, US2)', async () => {
+    configure(success(maria));
+    const cage = `/setores/${codornas.id}/relatorios/${REPORT_ID}/producao/${CAGE_ID}`;
+
+    expect(await goTo(cage)).toBe(cage);
+    expect(TestBed.inject(Title).getTitle()).toBe('Lançar produção — Ovyx');
+  });
+
+  it('opens the mortality tab of a report (003, US3)', async () => {
+    configure(success(maria));
+    const tab = `/setores/${codornas.id}/relatorios/${REPORT_ID}/mortalidade`;
+
+    expect(await goTo(tab)).toBe(tab);
+    expect(TestBed.inject(Title).getTitle()).toBe('Relatório de 24/09/2026 — Ovyx');
+  });
+
+  it('opens the mortality dialog of a cage over the mortality tab (003, US3)', async () => {
+    configure(success(maria));
+    const cage = `/setores/${codornas.id}/relatorios/${REPORT_ID}/mortalidade/${CAGE_ID}`;
+
+    expect(await goTo(cage)).toBe(cage);
+    expect(TestBed.inject(Title).getTitle()).toBe('Lançar mortalidade — Ovyx');
+  });
+
+  it('opens the correction of the general data over each tab (003, US4)', async () => {
+    configure(success(maria));
+    const edit = `/setores/${codornas.id}/relatorios/${REPORT_ID}/mortalidade/editar`;
+
+    expect(await goTo(edit)).toBe(edit);
+    expect(TestBed.inject(Title).getTitle()).toBe('Editar relatório — Ovyx');
+  });
+
+  it('sends the dialogs of the report of an inactive sector back to the tab (003, US4)', async () => {
+    configure(success(maria));
+    const gateway = TestBed.inject(DAILY_REPORT_GATEWAY);
+    const found = await gateway.findDailyReport(codornas.id, REPORT_ID);
+    const report = found.success ? found.value : undefined;
+    vi.mocked(gateway.findDailyReport).mockResolvedValue(
+      success({ ...report!, sector: { ...report!.sector, status: 'INACTIVE' } }),
+    );
+    const tab = `/setores/${codornas.id}/relatorios/${REPORT_ID}/producao`;
+
+    expect(await goTo(`${tab}/${CAGE_ID}`)).toBe(tab);
+  });
+
+  it('sends the new report dialog of an inactive sector back to the list (003, US4)', async () => {
+    configure(success(maria));
+    const gateway = TestBed.inject(DAILY_REPORT_GATEWAY);
+    vi.mocked(gateway.listDailyReports).mockResolvedValue(
+      success({
+        sector: { id: codornas.id, name: codornas.name, status: 'INACTIVE' },
+        content: [],
+        page: 0,
+        size: 20,
+        totalElements: 0,
+        totalPages: 0,
+      }),
+    );
+    const reports = `/setores/${codornas.id}/relatorios`;
+
+    expect(await goTo(`${reports}/novo`)).toBe(reports);
+  });
+
+  it('brings the title of the report back after a dialog closes (003, US4)', async () => {
+    configure(success(maria));
+    const tab = `/setores/${codornas.id}/relatorios/${REPORT_ID}/producao`;
+    const harness = await RouterTestingHarness.create();
+
+    await harness.navigateByUrl(`${tab}/${CAGE_ID}`);
+    await harness.navigateByUrl(tab);
+
+    expect(TestBed.inject(Title).getTitle()).toBe('Relatório de 24/09/2026 — Ovyx');
+  });
+
+  it('keeps an anonymous visitor out of the reports', async () => {
+    configure(noSession());
+
+    expect(await goTo(`/setores/${codornas.id}/relatorios`)).toBe('/acesso');
+  });
 
   it('keeps an anonymous visitor out of the sectors', async () => {
     configure(noSession());

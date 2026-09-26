@@ -1,0 +1,4 @@
+<label class="switch" [for]="controlId()">
+  <input type="checkbox" role="switch" [id]="controlId()" [checked]="checked()" (change)="toggle($event)" />
+  {{ label() }}
+</label>

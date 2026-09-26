@@ -197,3 +197,41 @@ a.icon-btn {
   letter-spacing: -0.02em;
   margin-top: 6px;
 }
+
+/* ------------------------------------------------------- abas de navegação */
+/* O .tabs do design system estiliza botões de aba (role="tab"). As abas do Ovyx que trocam de rota
+ * são links, com a mesma aparência, e a da página atual vem marcada por aria-current. */
+.tabs a {
+  height: 42px;
+  padding: 0 14px;
+  color: var(--ink-3);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.tabs a:hover {
+  color: var(--ink);
+}
+.tabs a[aria-current="page"] {
+  color: var(--ink);
+  border-bottom-color: var(--primary);
+}
+/* A contagem em destaque de aviso, como o "pendente" do protótipo. */
+.tabs .cnt.highlight {
+  background: var(--warning-soft);
+  color: var(--warning-ink);
+}
+
+/* ------------------------------------------------------- lançamento pendente */
+/* A etiqueta do que falta lançar, em destaque de aviso, como no protótipo: na lista de relatórios, na
+ * página do relatório e na aba de produção. */
+.tag.pending {
+  border-color: var(--warning);
+  color: var(--warning-ink);
+}

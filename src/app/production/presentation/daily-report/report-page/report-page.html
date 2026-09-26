@@ -1,0 +1,60 @@
+<ovyx-page-header [eyebrow]="report()?.sector.name ?? 'Setor'" [title]="title()">
+  <a class="btn btn-secondary" [routerLink]="['/setores', sectorId(), 'relatorios']">
+    <ovyx-icon name="report" [size]="18" />
+    <span>Voltar aos relatórios</span>
+  </a>
+  @if (!missing() && canEdit()) {
+    <a class="btn btn-secondary" [routerLink]="editLink()">
+      <ovyx-icon name="edit" [size]="18" />
+      <span>Editar relatório</span>
+    </a>
+  }
+</ovyx-page-header>
+
+@if (missing(); as message) {
+  <ovyx-alert variant="danger">
+    <p>{{ message }}</p>
+  </ovyx-alert>
+} @else {
+  @if (refusal().hasErrors) {
+    <ovyx-error-summary heading="Não foi possível concluir a operação:" [errors]="refusal().errors" [fields]="[]" />
+  }
+
+  @if (report(); as current) {
+    @if (sectorInactive()) {
+      <ovyx-alert variant="warning" data-inactive-notice tabindex="-1">
+        <p>{{ inactiveNotice }}</p>
+      </ovyx-alert>
+    }
+
+    <div class="meta-row">
+      <span class="tag"><ovyx-icon name="clock" [size]="16" />Coleta às {{ current.collectionTime }}</span>
+      <span class="tag"><ovyx-icon name="user" [size]="16" />Aberto por {{ current.openedBy.name }}</span>
+      @if (current.lastCorrectedBy; as corrector) {
+        @if (current.lastCorrectedAt; as correctedAt) {
+          <span class="tag"
+            ><ovyx-icon name="edit" [size]="16" />Corrigido por {{ corrector.name }} em
+            {{ dateTimeAtTheFarmOf(correctedAt) }}</span
+          >
+        }
+      }
+      <span class="tag">Idade: {{ weeksOf(current.flockAge) }}</span>
+      <span class="tag">{{ countOf(current.openingBirdCount) }} aves no início do dia</span>
+      <span class="tag" [class.pending]="current.production.status === 'PENDING'">
+        <ovyx-icon [name]="current.production.status === 'PENDING' ? 'clock' : 'check'" [size]="16" />{{
+          productionLabelOf(current.production.status, current.production.pendingCages)
+        }}</span
+      >
+      <span class="tag" [class.pending]="current.mortality.status === 'PENDING'">
+        <ovyx-icon [name]="current.mortality.status === 'PENDING' ? 'clock' : 'check'" [size]="16" />{{
+          mortalityLabelOf(current.mortality.status)
+        }}</span
+      >
+    </div>
+
+    <ovyx-tab-nav label="Lançamentos do relatório" [tabs]="tabs()" />
+  }
+}
+
+<!-- As abas de produção e de mortalidade entram aqui. -->
+<router-outlet />

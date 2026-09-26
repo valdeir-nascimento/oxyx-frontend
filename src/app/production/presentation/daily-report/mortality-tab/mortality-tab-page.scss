@@ -1,0 +1,31 @@
+/* A aba não ocupa caixa: a faixa, os avisos e o cartão são itens da coluna do .content-inner. */
+:host {
+  display: contents;
+}
+
+.ic {
+  color: var(--ink-3);
+}
+
+.note {
+  max-width: 320px;
+  color: var(--ink-2);
+}
+
+/* O convite a confirmar o dia, com o botão ao lado do texto e, no celular, abaixo dele. */
+.confirm-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+.confirm-row p {
+  margin: 0;
+  flex: 1 1 240px;
+}
+
+/* O outlet não desenha nada; quem aparece é o diálogo que ele carrega, ao lado dele. */
+router-outlet {
+  display: none;
+}

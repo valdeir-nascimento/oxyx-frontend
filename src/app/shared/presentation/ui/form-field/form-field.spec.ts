@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormField } from './form-field';
+import { FormField, FormFieldType } from './form-field';
 
 /**
  * O campo é o que as duas telas de senha repetiam linha por linha: rótulo, entrada, ajuda e
@@ -27,7 +27,7 @@ describe('FormField', () => {
   })
   class FormFieldHost {
     readonly control = new FormControl('', { nonNullable: true });
-    readonly type = signal<'text' | 'password'>('text');
+    readonly type = signal<FormFieldType>('text');
     readonly hint = signal<string | undefined>(undefined);
     readonly error = signal<string | undefined>(undefined);
   }
@@ -178,6 +178,16 @@ describe('FormField', () => {
     fixture.detectChanges();
 
     expect(control(fixture).type).toBe('password');
+  });
+
+  it.each(['date', 'time'] as const)('renders a %s field for the day and the hour of a collection', async (kind) => {
+    await TestBed.configureTestingModule({ imports: [FormFieldHost] }).compileComponents();
+    const fixture = TestBed.createComponent(FormFieldHost);
+    fixture.componentInstance.type.set(kind);
+    fixture.detectChanges();
+
+    const input = (fixture.nativeElement as HTMLElement).querySelector('input')!;
+    expect(input.type).toBe(kind);
   });
 
   it('shows an ordinary field as text when nothing else was asked', async () => {
