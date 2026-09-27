@@ -74,10 +74,11 @@ export class FormField {
   readonly multiline = input(false);
 
   /**
-   * O teclado que o celular abre, como `numeric` para quantidades. O campo continua de texto: o que
-   * foi digitado vai como está, e quem recusa um valor que não é número é o backend (FR-017).
+   * O teclado que o celular abre, como `numeric` para quantidades e `decimal` para o preço, que tem a
+   * vírgula. O campo continua de texto: o que foi digitado vai como está, e quem recusa um valor que não
+   * é número é o backend (FR-017).
    */
-  readonly inputMode = input<'numeric' | 'text'>();
+  readonly inputMode = input<'numeric' | 'decimal' | 'text'>();
 
   /** Se a senha está à mostra. Volta a ficar oculta a cada vez que a tela abre. */
   protected readonly revealed = signal(false);

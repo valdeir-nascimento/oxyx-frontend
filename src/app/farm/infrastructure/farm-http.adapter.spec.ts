@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Cage, CagePage } from '../domain/cage';
+import { FeedFormula } from '../domain/feed-formula';
 import { Sector, SectorSummary } from '../domain/sector';
 import { FarmHttpAdapter } from './farm-http.adapter';
 
@@ -264,6 +265,140 @@ describe('FarmHttpAdapter', () => {
       const result = await pending;
       expect(result.success === false && result.notification.errors[0].message).toBe(
         'Já existe um setor ativo com este nome.',
+      );
+    });
+  });
+
+  describe('feed formulas', () => {
+    const posturaPlus: FeedFormula = {
+      id: '4e6a8c0e-2a4c-4e6a-9c0e-2a4c6e8a0c11',
+      name: 'Postura Plus',
+      description: 'Milho, farelo de soja, calcário e premix vitamínico; para codornas em postura',
+      pricePerKg: 2.85,
+      expectedIntake: 28,
+      costPerBirdDay: 0.08,
+      status: 'ACTIVE',
+      createdAt: '2026-09-20T10:15:00Z',
+      updatedAt: '2026-09-24T17:40:12Z',
+    };
+
+    it('lists the formulas of the asked status', async () => {
+      const pending = adapter.listFeedFormulas('ALL');
+
+      const request = backend.expectOne((candidate) => candidate.url === '/api/v1/feed-formulas');
+      expect(request.request.method).toBe('GET');
+      expect(request.request.params.get('status')).toBe('ALL');
+      request.flush([posturaPlus]);
+
+      const result = await pending;
+      expect(result.success && result.value).toEqual([posturaPlus]);
+    });
+
+    it('finds a formula by its identifier, encoded in the path', async () => {
+      const pending = adapter.findFeedFormula('../me');
+
+      const request = backend.expectOne('/api/v1/feed-formulas/..%2Fme');
+      expect(request.request.method).toBe('GET');
+      request.flush(posturaPlus);
+
+      const result = await pending;
+      expect(result.success && result.value).toEqual(posturaPlus);
+    });
+
+    it('posts a new formula with the price as typed and the expected intake as a number', async () => {
+      // O preço vai como foi digitado, com a vírgula: quem lê o decimal, e recusa as três casas, é o
+      // backend (R-011 da 004).
+      const pending = adapter.registerFeedFormula({
+        name: 'Postura Plus',
+        pricePerKg: '2,85',
+        expectedIntake: '28',
+        description: '',
+      });
+
+      const request = backend.expectOne('/api/v1/feed-formulas');
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body).toEqual({
+        name: 'Postura Plus',
+        pricePerKg: '2,85',
+        expectedIntake: 28,
+        description: '',
+      });
+      request.flush(posturaPlus, { status: 201, statusText: 'Created' });
+
+      const result = await pending;
+      expect(result.success && result.value).toEqual(posturaPlus);
+    });
+
+    it('sends an expected intake that is not an integer as typed, for the backend to refuse it in the field', async () => {
+      const pending = adapter.registerFeedFormula({
+        name: 'Postura Plus',
+        pricePerKg: '',
+        expectedIntake: '28,5',
+        description: '',
+      });
+
+      const request = backend.expectOne('/api/v1/feed-formulas');
+      expect(request.request.body).toEqual({ name: 'Postura Plus', pricePerKg: '', expectedIntake: '28,5', description: '' });
+      request.flush(posturaPlus, { status: 201, statusText: 'Created' });
+      await pending;
+    });
+
+    it('puts the edition of a formula, with the identifier encoded', async () => {
+      const pending = adapter.updateFeedFormula(posturaPlus.id, {
+        name: 'Postura Plus',
+        pricePerKg: '2,90',
+        expectedIntake: '28',
+        description: 'Nova composição',
+      });
+
+      const request = backend.expectOne(`/api/v1/feed-formulas/${posturaPlus.id}`);
+      expect(request.request.method).toBe('PUT');
+      expect(request.request.body).toEqual({
+        name: 'Postura Plus',
+        pricePerKg: '2,90',
+        expectedIntake: 28,
+        description: 'Nova composição',
+      });
+      request.flush(posturaPlus);
+
+      const result = await pending;
+      expect(result.success).toBe(true);
+    });
+
+    it.each([
+      ['deactivateFeedFormula', 'deactivation'],
+      ['reactivateFeedFormula', 'reactivation'],
+    ] as const)('%s posts to the %s of the formula, without a body', async (method, action) => {
+      const pending = adapter[method]('a/b');
+
+      const request = backend.expectOne(`/api/v1/feed-formulas/a%2Fb/${action}`);
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body).toBeNull();
+      request.flush(posturaPlus);
+
+      const result = await pending;
+      expect(result.success).toBe(true);
+    });
+
+    it('turns the refusal of the backend into the messages of each field', async () => {
+      const pending = adapter.registerFeedFormula({ name: ' ', pricePerKg: '0', expectedIntake: '300', description: '' });
+
+      backend.expectOne('/api/v1/feed-formulas').flush(
+        {
+          code: 'VALIDATION_FAILED',
+          title: 'Dados inválidos',
+          status: 400,
+          detail: 'Dados inválidos.',
+          details: { name: 'Informe o nome da fórmula.', pricePerKg: 'O preço deve ficar entre R$ 0,01 e R$ 1.000,00 o quilo.' },
+        },
+        { status: 400, statusText: 'Bad Request' },
+      );
+
+      const result = await pending;
+      expect(result.success).toBe(false);
+      expect(!result.success && result.notification.messageFor('name')).toBe('Informe o nome da fórmula.');
+      expect(!result.success && result.notification.messageFor('pricePerKg')).toBe(
+        'O preço deve ficar entre R$ 0,01 e R$ 1.000,00 o quilo.',
       );
     });
   });

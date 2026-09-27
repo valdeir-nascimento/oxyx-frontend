@@ -12,6 +12,9 @@ export function cageStatusLabelOf(status: FarmStatus): string {
   return status === 'ACTIVE' ? 'Ativa' : 'Inativa';
 }
 
+/** A situação de uma fórmula concorda como a da gaiola: "fórmula ativa". */
+export const formulaStatusLabelOf = cageStatusLabelOf;
+
 /** O tom do selo de situação: ativo em verde, inativo neutro. */
 export function statusToneOf(status: FarmStatus): StatusBadgeTone {
   return status === 'ACTIVE' ? 'success' : 'neutral';
@@ -30,6 +33,17 @@ export const CAGE_STATUS_OPTIONS: readonly SegmentOption[] = [
   { value: 'INACTIVE', label: 'Inativas' },
   { value: 'ALL', label: 'Todas' },
 ];
+
+/** O filtro de situação da lista de fórmulas, no feminino como o das gaiolas; as ativas primeiro. */
+export const FORMULA_STATUS_OPTIONS: readonly SegmentOption[] = CAGE_STATUS_OPTIONS;
+
+/**
+ * Um valor em reais, com as casas pedidas: "R$ 2,85", ou "R$ 0,080" para o custo por ave ao dia (R-007 da
+ * 004). É exibição: o valor vem pronto do backend.
+ */
+export function moneyOf(value: number, decimals = 2): string {
+  return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+}
 
 /** Um número inteiro como a granja o lê: com o ponto dos milhares. */
 export function countOf(value: number): string {

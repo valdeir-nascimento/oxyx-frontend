@@ -1,0 +1,85 @@
+<ovyx-dialog
+  [title]="editing ? 'Editar fórmula' : 'Nova fórmula'"
+  [subtitle]="
+    editing ? loadedName() : 'A ração que a granja compra, com o preço e o consumo esperado.'
+  "
+  icon="flask"
+  (closed)="close()"
+  (submitted)="submit()"
+>
+  <p class="sr" role="status">{{ state() === 'loading' ? 'Carregando…' : '' }}</p>
+
+  @switch (state()) {
+    @case ('loading') {
+      <div class="loading span2" aria-hidden="true">
+        <span class="sk"></span>
+        <span class="sk"></span>
+      </div>
+    }
+    @case ('missing') {
+      <ovyx-alert class="span2" variant="danger">
+        <p>Fórmula não encontrada.</p>
+      </ovyx-alert>
+    }
+    @case ('failed') {
+      <ovyx-error-summary
+        class="span2"
+        heading="Não foi possível carregar a fórmula:"
+        [errors]="notification().errors"
+        [fields]="[]"
+      />
+    }
+    @case ('ready') {
+      @if (notification().hasErrors) {
+        <ovyx-error-summary class="span2" [errors]="notification().errors" [fields]="fields" />
+      }
+
+      <ovyx-form-field
+        controlId="name"
+        label="Nome"
+        hint="Ex.: Postura Plus. De 2 a 80 caracteres, sem repetir o de outra fórmula."
+        autocomplete="off"
+        [wide]="true"
+        [control]="form.controls.name"
+        [error]="messageFor('name')"
+      />
+      <ovyx-form-field
+        controlId="pricePerKg"
+        label="Preço por quilo (R$)"
+        hint="Ex.: 2,85. De R$ 0,01 a R$ 1.000,00."
+        autocomplete="off"
+        inputMode="decimal"
+        [control]="form.controls.pricePerKg"
+        [error]="messageFor('pricePerKg')"
+      />
+      <ovyx-form-field
+        controlId="expectedIntake"
+        label="Consumo esperado (g por ave ao dia)"
+        hint="Ex.: 28. De 1 a 200 gramas."
+        autocomplete="off"
+        inputMode="numeric"
+        [control]="form.controls.expectedIntake"
+        [error]="messageFor('expectedIntake')"
+      />
+      <ovyx-form-field
+        controlId="description"
+        label="Descrição (opcional)"
+        hint="Ingredientes e indicação. Até 500 caracteres."
+        [multiline]="true"
+        [wide]="true"
+        [control]="form.controls.description"
+        [error]="messageFor('description')"
+      />
+    }
+  }
+
+  <!-- Um elemento por condição: um bloco com mais de uma raiz iria para o corpo, e não para as ações. -->
+  <ovyx-button dialog-actions variant="secondary" [disabled]="submitting()" (pressed)="close()">
+    {{ state() === 'ready' ? 'Cancelar' : 'Voltar à lista' }}
+  </ovyx-button>
+  @if (state() === 'ready') {
+    <ovyx-button dialog-actions type="submit" icon="check" [busy]="submitting()">
+      {{ editing ? 'Salvar alterações' : 'Cadastrar' }}
+    </ovyx-button>
+  }
+</ovyx-dialog>
