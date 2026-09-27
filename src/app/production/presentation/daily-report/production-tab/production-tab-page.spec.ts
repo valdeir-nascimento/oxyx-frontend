@@ -39,6 +39,7 @@ describe('ProductionTabPage', () => {
     openedAt: '2026-09-24T09:31:40Z',
     production: { status: 'COMPLETE', pendingCages: 0, collectedEggs: 89, standardEggs: 79, unsellableEggs: 4, layingRate: 90.82 },
     mortality: { status: 'PENDING', deaths: 0, culls: 0, removalRate: 0, closingBirdCount: 98 },
+    feed: { status: 'PENDING', pendingCages: 2, consumption: 0, cost: 0 },
     cages: [a01, b07],
   };
 

@@ -30,6 +30,8 @@ describe('ReportListPage', () => {
       productionStatus: 'COMPLETE',
       pendingCages: 0,
       mortalityStatus: 'RECORDED',
+      feedStatus: 'COMPLETE',
+      feedPendingCages: 0,
       ...overrides,
     };
   }
@@ -111,7 +113,15 @@ describe('ReportListPage', () => {
     list.mockResolvedValue(
       success(
         pageOf([
-          summary({ id: 'hoje', collectionDate: '2026-09-25', productionStatus: 'PENDING', pendingCages: 1, mortalityStatus: 'PENDING' }),
+          summary({
+            id: 'hoje',
+            collectionDate: '2026-09-25',
+            productionStatus: 'PENDING',
+            pendingCages: 1,
+            mortalityStatus: 'PENDING',
+            feedStatus: 'PENDING',
+            feedPendingCages: 2,
+          }),
           summary({ id: 'ontem', productionStatus: 'PENDING', pendingCages: 3 }),
           summary({ id: 'anteontem', collectionDate: '2026-09-23' }),
         ]),
@@ -129,6 +139,10 @@ describe('ReportListPage', () => {
     expect(before.querySelector('.tag.pending')).toBeNull();
     expect(before.textContent).toContain('Produção completa');
     expect(before.textContent).toContain('Mortalidade lançada');
+    expect(Array.from(today.querySelectorAll('.tag.pending')).map((tag) => tag.textContent?.trim())).toContain(
+      'Ração pendente',
+    );
+    expect(before.textContent).toContain('Ração lançada');
   });
 
   it('leads from each report to its page, named by its day', async () => {

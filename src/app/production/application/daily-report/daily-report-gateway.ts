@@ -6,6 +6,9 @@ import {
   DailyReportPage,
   DailyReportSearch,
   DailyReportSuggestion,
+  FeedFormulaOption,
+  FeedInput,
+  FeedSuggestion,
   MortalityInput,
   ProductionInput,
   ReportCage,
@@ -35,6 +38,11 @@ export interface DailyReportGateway {
     input: MortalityInput,
   ): Promise<Result<ReportCage>>;
   confirmNoMortality(sectorId: string, reportId: string): Promise<Result<DailyReport>>;
+  /** As fórmulas ativas, que o lançamento de ração oferece (feature 004). */
+  listActiveFormulas(): Promise<Result<readonly FeedFormulaOption[]>>;
+  suggestFeed(sectorId: string, reportId: string, formulaId: string): Promise<Result<FeedSuggestion>>;
+  recordFeedBySuggestion(sectorId: string, reportId: string, formulaId: string): Promise<Result<DailyReport>>;
+  recordFeed(sectorId: string, reportId: string, cageId: string, input: FeedInput): Promise<Result<ReportCage>>;
 }
 
 export const DAILY_REPORT_GATEWAY = new InjectionToken<DailyReportGateway>('DailyReportGateway');

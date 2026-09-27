@@ -99,6 +99,11 @@
                       productionLabelOf(report.productionStatus, report.pendingCages)
                     }}</span
                   >
+                  <span class="tag" [class.pending]="report.feedStatus === 'PENDING'">
+                    <ovyx-icon [name]="report.feedStatus === 'PENDING' ? 'clock' : 'check'" [size]="16" />{{
+                      feedLabelOf(report.feedStatus)
+                    }}</span
+                  >
                   <span class="tag" [class.pending]="report.mortalityStatus === 'PENDING'">
                     <ovyx-icon [name]="report.mortalityStatus === 'PENDING' ? 'clock' : 'check'" [size]="16" />{{
                       mortalityLabelOf(report.mortalityStatus)

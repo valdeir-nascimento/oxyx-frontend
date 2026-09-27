@@ -159,6 +159,32 @@ export const routes: Routes = [
             ],
           },
           {
+            // A aba de ração (feature 004, US2), entre a produção e a mortalidade.
+            path: 'racao',
+            loadComponent: () =>
+              import('./production/presentation/daily-report/feed-tab/feed-tab-page').then((m) => m.FeedTabPage),
+            children: [
+              {
+                path: 'editar',
+                canActivate: [activeReportSectorGuard],
+                loadComponent: () =>
+                  import('./production/presentation/daily-report/report-dialog/report-dialog').then(
+                    (m) => m.ReportDialog,
+                  ),
+                title: 'Editar relatório — Ovyx',
+                data: { tab: 'racao' },
+              },
+              {
+                // A ração de uma gaiola (US3 da 004), depois de `editar`, para o `:cageId` não o tomar.
+                path: ':cageId',
+                canActivate: [activeReportSectorGuard],
+                loadComponent: () =>
+                  import('./production/presentation/daily-report/feed-dialog/feed-dialog').then((m) => m.FeedDialog),
+                title: 'Lançar ração — Ovyx',
+              },
+            ],
+          },
+          {
             path: 'mortalidade',
             loadComponent: () =>
               import('./production/presentation/daily-report/mortality-tab/mortality-tab-page').then(
@@ -211,6 +237,31 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./farm/presentation/sector/sector-form/sector-form-dialog').then((m) => m.SectorFormDialog),
             title: 'Editar setor — Ovyx',
+          },
+        ],
+      },
+      {
+        // As fórmulas de ração (feature 004, US1): todo perfil consulta. O cadastro e a edição abrem em
+        // diálogo sobre a lista, só para o administrador, como os setores.
+        path: 'formulas',
+        loadComponent: () =>
+          import('./farm/presentation/formula/formula-list/formula-list-page').then((m) => m.FormulaListPage),
+        title: 'Fórmulas — Ovyx',
+        data: { crumbs: ['Produção', 'Fórmulas'] },
+        children: [
+          {
+            path: 'nova',
+            canActivate: [administratorGuard],
+            loadComponent: () =>
+              import('./farm/presentation/formula/formula-form/formula-form-dialog').then((m) => m.FormulaFormDialog),
+            title: 'Nova fórmula — Ovyx',
+          },
+          {
+            path: ':formulaId',
+            canActivate: [administratorGuard],
+            loadComponent: () =>
+              import('./farm/presentation/formula/formula-form/formula-form-dialog').then((m) => m.FormulaFormDialog),
+            title: 'Editar fórmula — Ovyx',
           },
         ],
       },

@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { Result } from '../../shared/application/result';
+import { Result, success } from '../../shared/application/result';
 import { resultOf } from '../../shared/infrastructure/http-result';
 import { jsonNumberOf } from '../../shared/infrastructure/typed-number';
 import { DailyReportGateway } from '../application/daily-report/daily-report-gateway';
@@ -11,6 +11,9 @@ import {
   DailyReportPage,
   DailyReportSearch,
   DailyReportSuggestion,
+  FeedFormulaOption,
+  FeedInput,
+  FeedSuggestion,
   MortalityInput,
   ProductionInput,
   ReportCage,
@@ -24,6 +27,9 @@ function reportsUrl(sectorId: string, reportId?: string): string {
   const reports = `/api/v1/sectors/${encodeURIComponent(sectorId)}/daily-reports`;
   return reportId === undefined ? reports : `${reports}/${encodeURIComponent(reportId)}`;
 }
+
+/** As fórmulas de ração, no farm (feature 004). */
+const FORMULAS = '/api/v1/feed-formulas';
 
 /** Endereço de uma gaiola do relatório, com o identificador dela também codificado. */
 function cageUrl(sectorId: string, reportId: string, cageId: string): string {
@@ -122,6 +128,43 @@ export class ProductionHttpAdapter implements DailyReportGateway {
   async confirmNoMortality(sectorId: string, reportId: string): Promise<Result<DailyReport>> {
     return resultOf(() =>
       firstValueFrom(this.http.post<DailyReport>(`${reportsUrl(sectorId, reportId)}/mortality-confirmation`, null)),
+    );
+  }
+
+  async listActiveFormulas(): Promise<Result<readonly FeedFormulaOption[]>> {
+    // As fórmulas são do farm: o production as lê pela API delas, e só o que o lançamento precisa, como o
+    // FeedCatalog do backend (R-004 da 004).
+    const params = new HttpParams().set('status', 'ACTIVE');
+    const result = await resultOf(() => firstValueFrom(this.http.get<FeedFormulaOption[]>(FORMULAS, { params })));
+    return result.success
+      ? success(
+          result.value.map(({ id, name, pricePerKg, expectedIntake }) => ({ id, name, pricePerKg, expectedIntake })),
+        )
+      : result;
+  }
+
+  async suggestFeed(sectorId: string, reportId: string, formulaId: string): Promise<Result<FeedSuggestion>> {
+    const params = new HttpParams().set('formulaId', formulaId);
+    return resultOf(() =>
+      firstValueFrom(this.http.get<FeedSuggestion>(`${reportsUrl(sectorId, reportId)}/feed-suggestion`, { params })),
+    );
+  }
+
+  async recordFeedBySuggestion(sectorId: string, reportId: string, formulaId: string): Promise<Result<DailyReport>> {
+    return resultOf(() =>
+      firstValueFrom(this.http.post<DailyReport>(`${reportsUrl(sectorId, reportId)}/feed`, { formulaId })),
+    );
+  }
+
+  async recordFeed(
+    sectorId: string,
+    reportId: string,
+    cageId: string,
+    input: FeedInput,
+  ): Promise<Result<ReportCage>> {
+    const body = { formulaId: input.formulaId, consumption: jsonNumberOf(input.consumption) };
+    return resultOf(() =>
+      firstValueFrom(this.http.put<ReportCage>(`${cageUrl(sectorId, reportId, cageId)}/feed`, body)),
     );
   }
 }

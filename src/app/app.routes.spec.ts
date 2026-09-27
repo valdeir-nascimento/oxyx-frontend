@@ -10,6 +10,7 @@ import { ACCOUNT_GATEWAY } from './identity/application/account/account-gateway'
 import { AUTHENTICATION_GATEWAY } from './identity/application/authentication/authentication-gateway';
 import { CARETAKER_GATEWAY } from './identity/application/caretaker/caretaker-gateway';
 import { CAGE_GATEWAY } from './farm/application/cage/cage-gateway';
+import { FEED_FORMULA_GATEWAY } from './farm/application/formula/feed-formula-gateway';
 import { SECTOR_GATEWAY } from './farm/application/sector/sector-gateway';
 import { Sector } from './farm/domain/sector';
 import { DAILY_REPORT_GATEWAY } from './production/application/daily-report/daily-report-gateway';
@@ -96,6 +97,17 @@ describe('routes', () => {
           },
         },
         {
+          provide: FEED_FORMULA_GATEWAY,
+          useValue: {
+            listFeedFormulas: vi.fn().mockResolvedValue(success([])),
+            findFeedFormula: vi.fn().mockResolvedValue(
+              failure(Notification.of([{ code: 'FEED_FORMULA_NOT_FOUND', message: 'Fórmula não encontrada.' }])),
+            ),
+            registerFeedFormula: vi.fn(),
+            updateFeedFormula: vi.fn(),
+          },
+        },
+        {
           provide: CAGE_GATEWAY,
           useValue: {
             searchCages: vi
@@ -111,6 +123,7 @@ describe('routes', () => {
         {
           provide: DAILY_REPORT_GATEWAY,
           useValue: {
+            listActiveFormulas: vi.fn().mockResolvedValue(success([])),
             listDailyReports: vi.fn().mockResolvedValue(
               success({
                 sector: { id: codornas.id, name: codornas.name, status: 'ACTIVE' },
@@ -145,6 +158,7 @@ describe('routes', () => {
                 openedAt: '2026-09-24T09:31:40Z',
                 production: { status: 'PENDING', pendingCages: 0, collectedEggs: 0, standardEggs: 0, unsellableEggs: 0, layingRate: 0 },
                 mortality: { status: 'PENDING', deaths: 0, culls: 0, removalRate: 0, closingBirdCount: 98 },
+                feed: { status: 'PENDING', pendingCages: 2, consumption: 0, cost: 0 },
                 cages: [],
               }),
             ),
@@ -278,6 +292,36 @@ describe('routes', () => {
     },
   );
 
+  it('opens the feed formulas to a common user (004, US1)', async () => {
+    configure(success(maria));
+
+    expect(await goTo('/formulas')).toBe('/formulas');
+  });
+
+  it.each(['/formulas/nova', '/formulas/4e6a8c0e-2a4c-4e6a-9c0e-2a4c6e8a0c11'])(
+    'opens the formula dialog %s over the list to an administrator',
+    async (path) => {
+      configure(success({ ...maria, role: 'ADMINISTRATOR' }));
+
+      expect(await goTo(path)).toBe(path);
+    },
+  );
+
+  it.each(['/formulas/nova', '/formulas/4e6a8c0e-2a4c-4e6a-9c0e-2a4c6e8a0c11'])(
+    'keeps a common user out of the formula dialog %s by direct address',
+    async (path) => {
+      configure(success(maria));
+
+      expect(await goTo(path)).toBe('/acesso-negado');
+    },
+  );
+
+  it('keeps an anonymous visitor out of the feed formulas', async () => {
+    configure(noSession());
+
+    expect(await goTo('/formulas')).toBe('/acesso');
+  });
+
   it('opens the cages of a sector to a common user (002, US2 and US4)', async () => {
     configure(success(maria));
 
@@ -353,6 +397,42 @@ describe('routes', () => {
 
     expect(await goTo(cage)).toBe(cage);
     expect(TestBed.inject(Title).getTitle()).toBe('Lançar produção — Ovyx');
+  });
+
+  it('opens the feed tab of a report, between production and mortality (004, US2)', async () => {
+    configure(success(maria));
+    const tab = `/setores/${codornas.id}/relatorios/${REPORT_ID}/racao`;
+
+    expect(await goTo(tab)).toBe(tab);
+    expect(TestBed.inject(Title).getTitle()).toBe('Relatório de 24/09/2026 — Ovyx');
+  });
+
+  it('opens the correction of the general data over the feed tab (004, US2)', async () => {
+    configure(success(maria));
+    const dialog = `/setores/${codornas.id}/relatorios/${REPORT_ID}/racao/editar`;
+
+    expect(await goTo(dialog)).toBe(dialog);
+  });
+
+  it('opens the feed dialog of a cage over the feed tab (004, US3)', async () => {
+    configure(success(maria));
+    const dialog = `/setores/${codornas.id}/relatorios/${REPORT_ID}/racao/${CAGE_ID}`;
+
+    expect(await goTo(dialog)).toBe(dialog);
+    expect(TestBed.inject(Title).getTitle()).toBe('Lançar ração — Ovyx');
+  });
+
+  it('sends the feed dialog of a cage of an inactive sector back to the feed tab (004, US3)', async () => {
+    configure(success(maria));
+    const gateway = TestBed.inject(DAILY_REPORT_GATEWAY);
+    const found = await gateway.findDailyReport(codornas.id, REPORT_ID);
+    const report = found.success ? found.value : undefined;
+    vi.mocked(gateway.findDailyReport).mockResolvedValue(
+      success({ ...report!, sector: { ...report!.sector, status: 'INACTIVE' } }),
+    );
+    const tab = `/setores/${codornas.id}/relatorios/${REPORT_ID}/racao`;
+
+    expect(await goTo(`${tab}/${CAGE_ID}`)).toBe(tab);
   });
 
   it('opens the mortality tab of a report (003, US3)', async () => {

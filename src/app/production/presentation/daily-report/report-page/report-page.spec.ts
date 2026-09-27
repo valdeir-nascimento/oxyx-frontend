@@ -1,6 +1,6 @@
 import type { Mock } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, ParamMap, convertToParamMap, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, ParamMap, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import { failure, success } from '../../../../shared/application/result';
 import { Notification } from '../../../../shared/domain/notification';
@@ -29,6 +29,7 @@ describe('ReportPage', () => {
     openedAt: '2026-09-24T09:31:40Z',
     production: { status: 'PENDING', pendingCages: 2, collectedEggs: 0, standardEggs: 0, unsellableEggs: 0, layingRate: 0 },
     mortality: { status: 'PENDING', deaths: 0, culls: 0, removalRate: 0, closingBirdCount: 2400 },
+    feed: { status: 'PENDING', pendingCages: 2, consumption: 0, cost: 0 },
     cages: [],
   };
 
@@ -45,7 +46,7 @@ describe('ReportPage', () => {
     fixture.detectChanges();
   }
 
-  async function render(): Promise<void> {
+  async function render(url?: string): Promise<void> {
     await TestBed.configureTestingModule({
       imports: [ReportPage],
       providers: [
@@ -54,6 +55,9 @@ describe('ReportPage', () => {
         { provide: ActivatedRoute, useValue: { paramMap: params } },
       ],
     }).compileComponents();
+    if (url) {
+      vi.spyOn(TestBed.inject(Router), 'url', 'get').mockReturnValue(url);
+    }
     fixture = TestBed.createComponent(ReportPage);
     document.body.appendChild(element());
     fixture.detectChanges();
@@ -85,18 +89,36 @@ describe('ReportPage', () => {
     await render();
 
     const pending = Array.from(element().querySelectorAll('.tag.pending')).map((tag) => tag.textContent?.trim());
-    expect(pending).toEqual(['Produção: faltam 2 gaiolas', 'Mortalidade pendente']);
+    expect(pending).toEqual(['Produção: faltam 2 gaiolas', 'Ração pendente', 'Mortalidade pendente']);
   });
 
-  it('leads to the production and the mortality tabs, each marked as pending while it lacks entries', async () => {
+  it('says the feed is recorded once every cage has it (004, US2)', async () => {
+    find.mockResolvedValue(success({ ...report, feed: { ...report.feed, status: 'COMPLETE', pendingCages: 0 } }));
+
+    await render();
+
+    expect(element().querySelector('.meta-row')?.textContent).toContain('Ração lançada');
+  });
+
+  it('leads to the production, the feed and the mortality tabs, each marked as pending while it lacks entries', async () => {
     await render();
 
     const tabs = Array.from(element().querySelectorAll<HTMLAnchorElement>('nav.tabs a'));
+    expect(tabs.map((tab) => tab.textContent?.replace('pendente', '').trim())).toEqual([
+      'Produção',
+      'Ração',
+      'Mortalidade',
+    ]);
     expect(tabs.map((tab) => tab.getAttribute('href'))).toEqual([
       `/setores/${sectorId}/relatorios/${reportId}/producao`,
+      `/setores/${sectorId}/relatorios/${reportId}/racao`,
       `/setores/${sectorId}/relatorios/${reportId}/mortalidade`,
     ]);
-    expect(tabs.map((tab) => tab.querySelector('.cnt')?.textContent?.trim())).toEqual(['pendente', 'pendente']);
+    expect(tabs.map((tab) => tab.querySelector('.cnt')?.textContent?.trim())).toEqual([
+      'pendente',
+      'pendente',
+      'pendente',
+    ]);
   });
 
   it('leaves the pending mark out of the tabs whose entries are done', async () => {
@@ -105,6 +127,7 @@ describe('ReportPage', () => {
         ...report,
         production: { ...report.production, status: 'COMPLETE', pendingCages: 0 },
         mortality: { ...report.mortality, status: 'RECORDED' },
+        feed: { ...report.feed, status: 'COMPLETE', pendingCages: 0 },
       }),
     );
 
@@ -175,6 +198,15 @@ describe('ReportPage', () => {
       (link) => link.textContent?.trim() === 'Editar relatório',
     );
     expect(edit?.getAttribute('href')).toBe(`/setores/${sectorId}/relatorios/${reportId}/producao/editar`);
+  });
+
+  it('leads to the correction over the feed tab when it is the tab in use (004)', async () => {
+    await render(`/setores/${sectorId}/relatorios/${reportId}/racao`);
+
+    const edit = Array.from(element().querySelectorAll<HTMLAnchorElement>('a')).find(
+      (link) => link.textContent?.trim() === 'Editar relatório',
+    );
+    expect(edit?.getAttribute('href')).toBe(`/setores/${sectorId}/relatorios/${reportId}/racao/editar`);
   });
 
   it('offers no correction in an inactive sector', async () => {

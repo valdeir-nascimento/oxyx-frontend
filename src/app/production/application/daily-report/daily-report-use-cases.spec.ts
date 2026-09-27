@@ -6,11 +6,15 @@ import { CorrectDailyReportUseCase } from './correct-daily-report.usecase';
 import { DAILY_REPORT_GATEWAY } from './daily-report-gateway';
 import { FindDailyReportUseCase } from './find-daily-report.usecase';
 import { FindReportCageUseCase } from './find-report-cage.usecase';
+import { ListActiveFormulasUseCase } from './list-active-formulas.usecase';
 import { ListDailyReportsUseCase } from './list-daily-reports.usecase';
 import { OpenDailyReportUseCase } from './open-daily-report.usecase';
+import { RecordFeedBySuggestionUseCase } from './record-feed-by-suggestion.usecase';
+import { RecordFeedUseCase } from './record-feed.usecase';
 import { RecordMortalityUseCase } from './record-mortality.usecase';
 import { RecordProductionUseCase } from './record-production.usecase';
 import { SuggestDailyReportUseCase } from './suggest-daily-report.usecase';
+import { SuggestFeedUseCase } from './suggest-feed.usecase';
 
 /** Os casos de uso do relatório entregam ao backend o que a pessoa pediu, sem regra no cliente. */
 describe('daily report use cases', () => {
@@ -28,6 +32,10 @@ describe('daily report use cases', () => {
       recordMortality: vi.fn().mockResolvedValue(success(null)),
       confirmNoMortality: vi.fn().mockResolvedValue(success(null)),
       correctDailyReport: vi.fn().mockResolvedValue(success(null)),
+      listActiveFormulas: vi.fn().mockResolvedValue(success([])),
+      suggestFeed: vi.fn().mockResolvedValue(success(null)),
+      recordFeedBySuggestion: vi.fn().mockResolvedValue(success(null)),
+      recordFeed: vi.fn().mockResolvedValue(success(null)),
     };
     TestBed.configureTestingModule({ providers: [{ provide: DAILY_REPORT_GATEWAY, useValue: gateway }] });
   });
@@ -98,5 +106,31 @@ describe('daily report use cases', () => {
     await TestBed.inject(FindDailyReportUseCase).execute(sectorId, 'report-1');
 
     expect(gateway['findDailyReport']).toHaveBeenCalledWith(sectorId, 'report-1');
+  });
+
+  it('lists the active formulas the feed can use (004, US2)', async () => {
+    await TestBed.inject(ListActiveFormulasUseCase).execute();
+
+    expect(gateway['listActiveFormulas']).toHaveBeenCalledWith();
+  });
+
+  it('asks for the suggestion of the feed of the sector with the formula', async () => {
+    await TestBed.inject(SuggestFeedUseCase).execute(sectorId, 'r1', 'f1');
+
+    expect(gateway['suggestFeed']).toHaveBeenCalledWith(sectorId, 'r1', 'f1');
+  });
+
+  it('records the feed of the sector by the suggestion of the formula', async () => {
+    await TestBed.inject(RecordFeedBySuggestionUseCase).execute(sectorId, 'r1', 'f1');
+
+    expect(gateway['recordFeedBySuggestion']).toHaveBeenCalledWith(sectorId, 'r1', 'f1');
+  });
+
+  it('records the feed of a cage with the formula and the consumption as typed (004, US3)', async () => {
+    const typed = { formulaId: 'f1', consumption: '1.250' };
+
+    await TestBed.inject(RecordFeedUseCase).execute(sectorId, 'r1', 'c1', typed);
+
+    expect(gateway['recordFeed']).toHaveBeenCalledWith(sectorId, 'r1', 'c1', typed);
   });
 });

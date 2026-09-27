@@ -1,4 +1,4 @@
-import { MortalityStatus, ProductionStatus } from '../../domain/daily-report';
+import { FeedStatus, MortalityStatus, ProductionStatus } from '../../domain/daily-report';
 
 /** Os dias da semana abreviados, como o protótipo os escreve ("Qui, 24/09/2026"). */
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -48,6 +48,39 @@ export function productionLabelOf(status: ProductionStatus, pendingCages: number
     return 'Produção completa';
   }
   return pendingCages === 1 ? 'Produção: falta 1 gaiola' : `Produção: faltam ${countOf(pendingCages)} gaiolas`;
+}
+
+/** A situação da ração, no texto da etiqueta (feature 004). */
+export function feedLabelOf(status: FeedStatus): string {
+  return status === 'COMPLETE' ? 'Ração lançada' : 'Ração pendente';
+}
+
+/** Um número com as casas pedidas, em português: "2,85", "28,0". */
+function decimalOf(value: number, decimals: number): string {
+  return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(
+    value,
+  );
+}
+
+/** Um valor em reais, com as casas pedidas: "R$ 7,82", ou "R$ 0,088" para o custo por ovo (R-007 da 004). */
+export function moneyOf(value: number, decimals = 2): string {
+  return `R$ ${decimalOf(value, decimals)}`;
+}
+
+/** Gramas, inteiras ou com as casas pedidas: "1.344 g", "28,0 g". */
+export function gramsOf(value: number, decimals = 0): string {
+  return `${decimalOf(value, decimals)} g`;
+}
+
+/** O desvio do consumo sobre o esperado, com o sinal e uma casa: "+3,1%", "−10,7%" (R-007 da 004). */
+export function deviationOf(value: number): string {
+  const sign = value > 0 ? '+' : value < 0 ? '−' : '';
+  return `${sign}${decimalOf(Math.abs(value), 1)}%`;
+}
+
+/** Gramas escritas em quilos, com uma casa: 2.744 g são "2,7 kg". É só a unidade: o total vem do backend. */
+export function kilogramsOf(grams: number): string {
+  return `${decimalOf(grams / 1000, 1)} kg`;
 }
 
 /** A situação da mortalidade, no texto da etiqueta. */
