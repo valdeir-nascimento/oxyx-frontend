@@ -2,7 +2,11 @@
   @for (item of items(); track item.label) {
     <div role="listitem">
       <span>{{ item.label }}</span>
-      <b>{{ item.value }}</b>
+      @if (item.tone; as tone) {
+        <b class="badged"><ovyx-status-badge [label]="item.value" [tone]="tone" /></b>
+      } @else {
+        <b>{{ item.value }}</b>
+      }
       @if (item.note; as note) {
         <em>{{ note }}</em>
       }
