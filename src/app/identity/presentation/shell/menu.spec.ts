@@ -2,17 +2,23 @@ import { menuFor } from './menu';
 
 const HOME = { label: 'Início', route: '/', icon: 'chart', group: 'Painel' };
 const SECTORS = { label: 'Setores', route: '/setores', icon: 'barn', group: 'Produção' };
+const FORMULAS = { label: 'Fórmulas', route: '/formulas', icon: 'flask', group: 'Produção' };
 const CARETAKERS = { label: 'Responsáveis', route: '/responsaveis', icon: 'users', group: 'Administração' };
 const OWN_PASSWORD = { label: 'Trocar senha', route: '/minha-conta/senha', icon: 'lock', group: 'Minha conta' };
 
 /** O menu de quem está na sessão (FR-011), com o ícone e o grupo de cada item. */
 describe('menuFor', () => {
-  it('offers a common user the home, the sectors and the own password, and nothing administrative', () => {
-    expect(menuFor('USER')).toEqual([HOME, SECTORS, OWN_PASSWORD]);
+  it('offers a common user the home, the sectors, the formulas and the own password, and nothing administrative', () => {
+    expect(menuFor('USER')).toEqual([HOME, SECTORS, FORMULAS, OWN_PASSWORD]);
   });
 
   it('adds the caretaker administration for an administrator, under its own group', () => {
-    expect(menuFor('ADMINISTRATOR')).toEqual([HOME, SECTORS, CARETAKERS, OWN_PASSWORD]);
+    expect(menuFor('ADMINISTRATOR')).toEqual([HOME, SECTORS, FORMULAS, CARETAKERS, OWN_PASSWORD]);
+  });
+
+  it('offers the feed formulas to every profile, after the sectors (004, R-013)', () => {
+    expect(menuFor('USER')).toContainEqual(FORMULAS);
+    expect(menuFor('ADMINISTRATOR')).toContainEqual(FORMULAS);
   });
 
   it('offers the sectors to every profile, under the production group (002, US4)', () => {

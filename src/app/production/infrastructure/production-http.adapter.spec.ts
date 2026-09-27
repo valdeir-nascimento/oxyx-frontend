@@ -36,6 +36,7 @@ describe('ProductionHttpAdapter', () => {
     openedAt: '2026-09-24T09:31:40Z',
     production: { status: 'PENDING', pendingCages: 2, collectedEggs: 0, standardEggs: 0, unsellableEggs: 0, layingRate: 0 },
     mortality: { status: 'PENDING', deaths: 0, culls: 0, removalRate: 0, closingBirdCount: 98 },
+    feed: { status: 'PENDING', pendingCages: 2, consumption: 0, cost: 0 },
     cages: [],
   };
 
@@ -268,5 +269,64 @@ describe('ProductionHttpAdapter', () => {
     expect(!result.success && result.notification.messageFor('openingBirdCount')).toBe(
       'As aves do início do dia devem ficar entre 1 e 1.000.000.',
     );
+  });
+
+  describe('feed (004, US2)', () => {
+    const formulas = '/api/v1/feed-formulas';
+    const posturaPlus = {
+      id: '4e6a8c0e-2a4c-4e6a-9c0e-2a4c6e8a0c11',
+      name: 'Postura Plus',
+      pricePerKg: 2.85,
+      expectedIntake: 28,
+    };
+
+    it('lists the active formulas the feed can use, from the formulas of the farm', async () => {
+      const pending = adapter.listActiveFormulas();
+
+      const request = backend.expectOne((candidate) => candidate.url === formulas);
+      expect(request.request.method).toBe('GET');
+      expect(request.request.params.get('status')).toBe('ACTIVE');
+      request.flush([{ ...posturaPlus, costPerBirdDay: 0.08, status: 'ACTIVE' }]);
+
+      const result = await pending;
+      expect(result.success && result.value).toEqual([posturaPlus]);
+    });
+
+    it('asks for the suggestion of the sector with the formula in the query', async () => {
+      const suggestion = { formula: posturaPlus, cages: [], totals: report.feed };
+      const pending = adapter.suggestFeed(sectorId, report.id, posturaPlus.id);
+
+      const request = backend.expectOne((candidate) => candidate.url === `${reports}/${report.id}/feed-suggestion`);
+      expect(request.request.method).toBe('GET');
+      expect(request.request.params.get('formulaId')).toBe(posturaPlus.id);
+      request.flush(suggestion);
+
+      const result = await pending;
+      expect(result.success && result.value).toEqual(suggestion);
+    });
+
+    it('puts the feed of a cage with the consumption as a number (004, US3)', async () => {
+      const pending = adapter.recordFeed(sectorId, report.id, 'b/07', { formulaId: posturaPlus.id, consumption: '1.250' });
+
+      const request = backend.expectOne(`${reports}/${report.id}/cages/b%2F07/feed`);
+      expect(request.request.method).toBe('PUT');
+      expect(request.request.body).toEqual({ formulaId: posturaPlus.id, consumption: 1250 });
+      request.flush({ cageId: 'b/07', code: 'B-07', battery: 'B', number: 7, birdCount: 50 });
+
+      const result = await pending;
+      expect(result.success && result.value.code).toBe('B-07');
+    });
+
+    it('posts the feed of the sector by the suggestion with the formula', async () => {
+      const pending = adapter.recordFeedBySuggestion(sectorId, report.id, posturaPlus.id);
+
+      const request = backend.expectOne(`${reports}/${report.id}/feed`);
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body).toEqual({ formulaId: posturaPlus.id });
+      request.flush(report);
+
+      const result = await pending;
+      expect(result.success && result.value.id).toBe(report.id);
+    });
   });
 });

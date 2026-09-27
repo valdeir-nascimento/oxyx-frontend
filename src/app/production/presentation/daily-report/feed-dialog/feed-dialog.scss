@@ -1,0 +1,13 @@
+/* O diálogo se posiciona pela raiz da aplicação (.layer); este componente não ocupa caixa. */
+:host {
+  display: contents;
+}
+
+.loading {
+  display: grid;
+  gap: 10px;
+}
+
+.loading .sk {
+  height: 42px;
+}

@@ -45,6 +45,11 @@
           productionLabelOf(current.production.status, current.production.pendingCages)
         }}</span
       >
+      <span class="tag" [class.pending]="current.feed.status === 'PENDING'">
+        <ovyx-icon [name]="current.feed.status === 'PENDING' ? 'clock' : 'check'" [size]="16" />{{
+          feedLabelOf(current.feed.status)
+        }}</span
+      >
       <span class="tag" [class.pending]="current.mortality.status === 'PENDING'">
         <ovyx-icon [name]="current.mortality.status === 'PENDING' ? 'clock' : 'check'" [size]="16" />{{
           mortalityLabelOf(current.mortality.status)
@@ -56,5 +61,5 @@
   }
 }
 
-<!-- As abas de produção e de mortalidade entram aqui. -->
+<!-- As abas de produção, de ração e de mortalidade entram aqui. -->
 <router-outlet />

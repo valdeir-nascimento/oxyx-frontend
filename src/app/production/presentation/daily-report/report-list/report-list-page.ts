@@ -29,6 +29,7 @@ import {
   countOf,
   dayOf,
   dayWithWeekdayOf,
+  feedLabelOf,
   mortalityLabelOf,
   productionLabelOf,
 } from '../../labels/labels';
@@ -84,6 +85,7 @@ export class ReportListPage {
   protected readonly dayWithWeekdayOf = dayWithWeekdayOf;
   protected readonly productionLabelOf = productionLabelOf;
   protected readonly mortalityLabelOf = mortalityLabelOf;
+  protected readonly feedLabelOf = feedLabelOf;
   protected readonly inactiveNotice = INACTIVE_SECTOR_NOTICE;
 
   /**

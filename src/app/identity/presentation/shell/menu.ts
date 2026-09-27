@@ -11,6 +11,8 @@ const ITEMS: readonly ProtectedMenuItem[] = [
   { label: 'Início', route: '/', icon: 'chart', group: 'Painel', administratorOnly: false },
   // A estrutura da granja: todo perfil consulta; só o administrador altera (feature 002, FR-018).
   { label: 'Setores', route: '/setores', icon: 'barn', group: 'Produção', administratorOnly: false },
+  // As fórmulas de ração: todo perfil consulta; só o administrador altera (feature 004, R-013).
+  { label: 'Fórmulas', route: '/formulas', icon: 'flask', group: 'Produção', administratorOnly: false },
   { label: 'Responsáveis', route: '/responsaveis', icon: 'users', group: 'Administração', administratorOnly: true },
   // Todo perfil troca a própria senha (US4).
   { label: 'Trocar senha', route: '/minha-conta/senha', icon: 'lock', group: 'Minha conta', administratorOnly: false },

@@ -25,6 +25,7 @@ import {
   countOf,
   dateTimeAtTheFarmOf,
   dayOf,
+  feedLabelOf,
   mortalityLabelOf,
   notFoundMessageOf,
   productionLabelOf,
@@ -35,7 +36,8 @@ import { ReportView } from '../report-view';
 
 /**
  * A página do relatório (US1 a US4): o cabeçalho com o dia, quem abriu, quem corrigiu por último, a
- * idade, as aves e a situação dos lançamentos, como no protótipo, e as abas de produção e de mortalidade,
+ * idade, as aves e a situação dos lançamentos, como no protótipo, e as abas de produção, de ração (feature
+ * 004) e de mortalidade,
  * que entram pela saída da rota, cada uma marcada como pendente enquanto faltar lançamento.
  *
  * A página busca o relatório e o reparte com as abas e os diálogos por {@link ReportView}: eles leem o
@@ -71,6 +73,7 @@ export class ReportPage {
   protected readonly weeksOf = weeksOf;
   protected readonly productionLabelOf = productionLabelOf;
   protected readonly mortalityLabelOf = mortalityLabelOf;
+  protected readonly feedLabelOf = feedLabelOf;
   protected readonly inactiveNotice = INACTIVE_SECTOR_NOTICE;
 
   protected readonly report = inject(ReportView).report;
@@ -79,7 +82,10 @@ export class ReportPage {
   protected readonly refusal = signal(Notification.empty());
 
   /** A aba em uso, pelo endereço: a correção abre sobre ela e volta para ela. */
-  private readonly tab = computed(() => (this.url().includes('/mortalidade') ? 'mortalidade' : 'producao'));
+  private readonly tab = computed(() => {
+    const url = this.url();
+    return url.includes('/mortalidade') ? 'mortalidade' : url.includes('/racao') ? 'racao' : 'producao';
+  });
   private readonly url: () => string;
 
   protected readonly title = computed(() => {
@@ -103,6 +109,13 @@ export class ReportPage {
         icon: 'egg',
         link: [...this.base(), 'producao'],
         count: report?.production.status === 'PENDING' ? 'pendente' : undefined,
+        highlight: true,
+      },
+      {
+        label: 'Ração',
+        icon: 'grain',
+        link: [...this.base(), 'racao'],
+        count: report?.feed.status === 'PENDING' ? 'pendente' : undefined,
         highlight: true,
       },
       {

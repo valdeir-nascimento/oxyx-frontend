@@ -38,6 +38,7 @@ describe('MortalityTabPage', () => {
     openedAt: '2026-09-24T09:31:40Z',
     production: { status: 'PENDING', pendingCages: 2, collectedEggs: 0, standardEggs: 0, unsellableEggs: 0, layingRate: 0 },
     mortality: { status: 'RECORDED', deaths: 2, culls: 1, removalRate: 0.13, closingBirdCount: 2397 },
+    feed: { status: 'PENDING', pendingCages: 2, consumption: 0, cost: 0 },
     cages: [a01, b07],
   };
   const withoutOccurrence: DailyReport = {

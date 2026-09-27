@@ -5,12 +5,15 @@ import { Result } from '../../shared/application/result';
 import { resultOf } from '../../shared/infrastructure/http-result';
 import { jsonNumberOf } from '../../shared/infrastructure/typed-number';
 import { CageGateway } from '../application/cage/cage-gateway';
+import { FeedFormulaGateway } from '../application/formula/feed-formula-gateway';
 import { SectorGateway } from '../application/sector/sector-gateway';
 import { Cage, CageInput, CagePage, CageSearch } from '../domain/cage';
+import { FeedFormula, FeedFormulaInput } from '../domain/feed-formula';
 import { Sector, SectorInput, SectorSummary } from '../domain/sector';
 import { StatusFilter } from '../domain/status';
 
 const SECTORS = '/api/v1/sectors';
+const FORMULAS = '/api/v1/feed-formulas';
 
 /**
  * Endereço de um setor na API.
@@ -28,6 +31,25 @@ function cagesUrl(sectorId: string, cageId?: string): string {
   return cageId === undefined ? cages : `${cages}/${encodeURIComponent(cageId)}`;
 }
 
+/** Endereço de uma fórmula de ração, com o identificador codificado, como o do setor. */
+function formulaUrl(id: string): string {
+  return `${FORMULAS}/${encodeURIComponent(id)}`;
+}
+
+/**
+ * O corpo de cadastro e de edição de fórmula. O preço vai como foi digitado, com a vírgula: quem lê o
+ * decimal, e recusa as três casas no campo, é o backend (R-011 da 004). O consumo esperado vai como
+ * número, como as quantidades da gaiola.
+ */
+function formulaBodyOf(input: FeedFormulaInput): Record<string, unknown> {
+  return {
+    name: input.name,
+    pricePerKg: input.pricePerKg,
+    expectedIntake: jsonNumberOf(input.expectedIntake),
+    description: input.description,
+  };
+}
+
 /** O corpo de cadastro e de edição de gaiola. */
 function cageBodyOf(input: CageInput): Record<string, unknown> {
   return {
@@ -38,13 +60,14 @@ function cageBodyOf(input: CageInput): Record<string, unknown> {
 }
 
 /**
- * Implementação das portas do contexto farm sobre HTTP (contracts/farm-api.yaml).
+ * Implementação das portas do contexto farm sobre HTTP (contracts/farm-api.yaml e
+ * contracts/feed-formulas-api.yaml).
  *
  * É o único lugar do contexto que conhece `HttpClient`, caminho de endpoint e formato de erro. Toda
  * recusa vira `Result`, nunca exceção, por `resultOf`.
  */
 @Injectable({ providedIn: 'root' })
-export class FarmHttpAdapter implements SectorGateway, CageGateway {
+export class FarmHttpAdapter implements SectorGateway, CageGateway, FeedFormulaGateway {
   private readonly http = inject(HttpClient);
 
   async listSectors(status: StatusFilter): Promise<Result<readonly SectorSummary[]>> {
@@ -108,5 +131,30 @@ export class FarmHttpAdapter implements SectorGateway, CageGateway {
     return resultOf(() =>
       firstValueFrom(this.http.post<Cage>(`${cagesUrl(sectorId, cageId)}/reactivation`, null)),
     );
+  }
+
+  async listFeedFormulas(status: StatusFilter): Promise<Result<readonly FeedFormula[]>> {
+    const params = new HttpParams().set('status', status);
+    return resultOf(() => firstValueFrom(this.http.get<FeedFormula[]>(FORMULAS, { params })));
+  }
+
+  async findFeedFormula(id: string): Promise<Result<FeedFormula>> {
+    return resultOf(() => firstValueFrom(this.http.get<FeedFormula>(formulaUrl(id))));
+  }
+
+  async registerFeedFormula(input: FeedFormulaInput): Promise<Result<FeedFormula>> {
+    return resultOf(() => firstValueFrom(this.http.post<FeedFormula>(FORMULAS, formulaBodyOf(input))));
+  }
+
+  async updateFeedFormula(id: string, input: FeedFormulaInput): Promise<Result<FeedFormula>> {
+    return resultOf(() => firstValueFrom(this.http.put<FeedFormula>(formulaUrl(id), formulaBodyOf(input))));
+  }
+
+  async deactivateFeedFormula(id: string): Promise<Result<FeedFormula>> {
+    return resultOf(() => firstValueFrom(this.http.post<FeedFormula>(`${formulaUrl(id)}/deactivation`, null)));
+  }
+
+  async reactivateFeedFormula(id: string): Promise<Result<FeedFormula>> {
+    return resultOf(() => firstValueFrom(this.http.post<FeedFormula>(`${formulaUrl(id)}/reactivation`, null)));
   }
 }

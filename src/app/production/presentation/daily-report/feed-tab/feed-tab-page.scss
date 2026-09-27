@@ -1,0 +1,38 @@
+/* A aba não ocupa caixa: a faixa, o aviso e o cartão são itens da coluna do .content-inner. */
+:host {
+  display: contents;
+}
+
+.ic {
+  color: var(--ink-3);
+}
+
+.hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+}
+
+/* A escolha da fórmula e a confirmação, lado a lado abaixo do aviso; no celular, uma abaixo da outra. */
+.suggestion-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.suggestion-tools ovyx-select-field {
+  flex: 1 1 260px;
+  max-width: 420px;
+}
+
+/* O selo da proposta e o do desvio ficam ao lado do número, na mesma linha. */
+td .badge {
+  margin-left: 6px;
+}
+
+/* O outlet não desenha nada; quem aparece é o diálogo que ele carrega, ao lado dele. */
+router-outlet {
+  display: none;
+}

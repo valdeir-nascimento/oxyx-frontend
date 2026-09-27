@@ -1,0 +1,164 @@
+@if (report(); as current) {
+  <ovyx-summary-strip [label]="summaryLabel()" [items]="summary()" />
+  <p class="sr" role="status" data-feed-status>{{ statusMessage() }}</p>
+
+  @if (refusal().hasErrors) {
+    <ovyx-error-summary
+      heading="Não foi possível concluir a operação:"
+      [errors]="refusal().errors"
+      [fields]="refusalFields()"
+    />
+  }
+
+  @if (current.production.status === 'PENDING') {
+    <ovyx-alert variant="warning" data-production-pending>
+      <p>A produção do dia ainda não está completa: o custo por ovo muda quando ela for lançada.</p>
+    </ovyx-alert>
+  }
+
+  @if (offersSuggestion() && !formulasFailed()) {
+    @if (formulas(); as options) {
+      @if (options.length === 0) {
+        <ovyx-alert variant="info" data-no-formula>
+          <p>
+            <b>Nenhuma fórmula ativa para lançar a ração.</b>
+            @if (canManageFormulas()) {
+              Cadastre ou reative uma fórmula e volte a este relatório.
+            } @else {
+              Peça ao administrador para cadastrar uma fórmula.
+            }
+          </p>
+          @if (canManageFormulas()) {
+            <a class="btn btn-secondary btn-sm" routerLink="/formulas">Cadastrar fórmula</a>
+          }
+        </ovyx-alert>
+      } @else {
+        <!-- O aviso só fala; a escolha e a confirmação ficam fora dele, fora da região que ele anuncia. -->
+        <ovyx-alert variant="info" data-feed-suggestion>
+          <p>
+            <b>{{ pendingNotice() }}</b> Escolha a fórmula para ver a proposta — as aves de cada
+            gaiola vezes o consumo esperado —, confira as gaiolas e confirme.
+          </p>
+        </ovyx-alert>
+        <div class="suggestion-tools">
+          <ovyx-select-field
+            [controlId]="sectorFormula"
+            label="Fórmula do setor"
+            [control]="formula"
+            [options]="formulaOptions()"
+            [error]="refusal().messageFor(sectorFormula)"
+          />
+          @if (suggestion()) {
+            <ovyx-button icon="check" [busy]="recording()" (pressed)="confirm()">
+              Confirmar lançamento
+            </ovyx-button>
+          }
+        </div>
+      }
+    }
+  }
+
+  <section class="card">
+    <div class="tbl-tools">
+      <ovyx-segmented-control
+        label="Bateria"
+        [options]="batteryOptions()"
+        [value]="battery()"
+        (valueChange)="battery.set($event)"
+      />
+      <span class="grow"></span>
+      @if (writable()) {
+        <span class="muted hint"
+          >Toque em <ovyx-icon name="edit" [size]="16" /><span class="sr">editar</span> para lançar
+          ou corrigir uma gaiola</span
+        >
+      }
+    </div>
+
+    <ovyx-data-table
+      [caption]="caption()"
+      emptyTitle="Nenhuma gaiola nesta bateria"
+      [empty]="cages().length === 0"
+    >
+      <thead>
+        <tr>
+          <th scope="col">Gaiola</th>
+          <th scope="col">Fórmula</th>
+          <th scope="col" class="r">Consumo</th>
+          <th scope="col" class="r">Por ave</th>
+          <th scope="col" class="r">Custo</th>
+          <th scope="col" class="r"><span class="sr">Ações</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (cage of cages(); track cage.cageId) {
+          <tr [attr.data-cage]="cage.cageId">
+            <td class="main" data-label="Gaiola">
+              <div class="cell-id">
+                <span class="ic" aria-hidden="true"><ovyx-icon name="cage" [size]="18" /></span>
+                <div>
+                  <b>{{ cage.code }}</b>
+                  <small>{{ countOf(cage.birdCount) }} aves</small>
+                </div>
+              </div>
+            </td>
+            @if (cage.feed; as feed) {
+              <td data-label="Fórmula">
+                {{ feed.formulaName }}
+                <small class="muted">{{ moneyOf(feed.pricePerKg) }}/kg</small>
+              </td>
+              <td class="r tnum strong" data-label="Consumo">{{ gramsOf(feed.consumption) }}</td>
+              <td class="r tnum" data-label="Por ave">
+                {{ feed.intakePerBird === undefined ? '—' : gramsOf(feed.intakePerBird, 1) }}
+                @if (highlighted(feed.deviation)) {
+                  <span
+                    class="badge"
+                    [class.b-warning]="feed.deviation! > 0"
+                    [class.b-info]="feed.deviation! < 0"
+                    [attr.title]="'Desvio sobre o esperado de ' + gramsOf(feed.expectedIntake)"
+                    ><span class="sr">desvio de </span>{{ deviationOf(feed.deviation!) }}</span
+                  >
+                }
+              </td>
+              <td class="r tnum" data-label="Custo">{{ moneyOf(feed.cost) }}</td>
+            } @else {
+              @if (proposalOf(cage); as proposal) {
+                <td data-label="Fórmula">
+                  {{ suggestedFormula().name }}
+                  <small class="muted">{{ suggestedFormula().price }}</small>
+                </td>
+                <td class="r tnum strong" data-label="Consumo">
+                  {{ gramsOf(proposal.consumption) }} <span class="badge b-info">sugerido</span>
+                </td>
+                <td class="r muted" data-label="Por ave">—</td>
+                <td class="r tnum" data-label="Custo">{{ moneyOf(proposal.cost) }}</td>
+              } @else {
+                <td class="muted" data-label="Fórmula">—</td>
+                <td class="r" data-label="Consumo"><span class="tag pending">Não lançada</span></td>
+                <td class="r muted" data-label="Por ave">—</td>
+                <td class="r muted" data-label="Custo">—</td>
+              }
+            }
+            <td class="act">
+              <div class="row-actions">
+                @if (writable()) {
+                  <a
+                    class="icon-btn sm"
+                    [routerLink]="cageLink(cage)"
+                    [attr.aria-label]="actionOf(cage)"
+                    [attr.title]="actionOf(cage)"
+                  >
+                    <ovyx-icon name="edit" [size]="18" />
+                  </a>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </ovyx-data-table>
+  </section>
+}
+
+<!-- A ração de uma gaiola e a correção dos dados gerais abrem aqui, em diálogo sobre a aba. -->
+<router-outlet />

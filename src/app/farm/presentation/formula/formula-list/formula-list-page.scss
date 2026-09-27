@@ -1,0 +1,28 @@
+/* A página não ocupa caixa: título, avisos e a tabela são itens da coluna do .content-inner do design
+ * system, que dá o espaçamento. */
+:host {
+  display: contents;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* O ícone da fórmula, no tom de destaque do protótipo. */
+.cell-id .ic {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+/* A descrição cabe numa medida de leitura, abaixo do nome, como no protótipo. */
+.cell-id small {
+  display: block;
+  max-width: 44ch;
+}
+
+
+/* O outlet não desenha nada; quem aparece é o diálogo que ele carrega, ao lado dele. */
+router-outlet {
+  display: none;
+}
