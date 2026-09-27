@@ -1,7 +1,7 @@
 import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { success } from '../../../shared/application/result';
-import { Sector } from '../../domain/sector';
+import { Sector, SectorInput } from '../../domain/sector';
 import { DeactivateSectorUseCase } from './deactivate-sector.usecase';
 import { FindSectorByIdUseCase } from './find-sector-by-id.usecase';
 import { ListSectorsUseCase } from './list-sectors.usecase';
@@ -25,6 +25,7 @@ describe('sector use cases', () => {
     createdAt: '2026-09-20T10:15:00Z',
     updatedAt: '2026-09-20T10:15:00Z',
   };
+  const typedSector: SectorInput = { name: ' Galpão 4 ', description: '', minimumWeight: '', maximumWeight: '' };
 
   let gateway: Record<string, Mock>;
 
@@ -55,15 +56,20 @@ describe('sector use cases', () => {
   });
 
   it('registers a sector with the fields as typed', async () => {
-    await TestBed.inject(RegisterSectorUseCase).execute({ name: ' Galpão 4 ', description: '' });
+    await TestBed.inject(RegisterSectorUseCase).execute(typedSector);
 
-    expect(gateway['registerSector']).toHaveBeenCalledWith({ name: ' Galpão 4 ', description: '' });
+    expect(gateway['registerSector']).toHaveBeenCalledWith(typedSector);
   });
 
   it('updates a sector with the fields as typed', async () => {
-    await TestBed.inject(UpdateSectorUseCase).execute(galpao.id, { name: 'Galpão 1 (norte)', description: 'Ala norte' });
+    await TestBed.inject(UpdateSectorUseCase).execute(galpao.id, {
+      ...typedSector,
+      name: 'Galpão 1 (norte)',
+      description: 'Ala norte',
+    });
 
     expect(gateway['updateSector']).toHaveBeenCalledWith(galpao.id, {
+      ...typedSector,
       name: 'Galpão 1 (norte)',
       description: 'Ala norte',
     });

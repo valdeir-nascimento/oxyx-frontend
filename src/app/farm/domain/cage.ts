@@ -1,4 +1,5 @@
 import { FarmStatus, StatusFilter } from './status';
+import { WeighingPoint } from './weighing';
 
 /** Gaiola na lista, como o backend a devolve (`CageSummary`). */
 export interface CageSummary {
@@ -10,6 +11,8 @@ export interface CageSummary {
   readonly number: number;
   readonly birdCount: number;
   readonly status: FarmStatus;
+  /** A última pesagem válida da gaiola; ausente sem pesagem (feature 005). */
+  readonly lastWeighing?: WeighingPoint;
 }
 
 /** Gaiola no detalhe e na edição: o resumo, mais os instantes do cadastro e da última alteração. */

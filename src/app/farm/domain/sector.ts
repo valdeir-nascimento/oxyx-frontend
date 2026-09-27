@@ -14,6 +14,14 @@ export interface SectorSummary {
   readonly activeCageCount: number;
   /** Soma das aves das gaiolas ativas. */
   readonly birdCount: number;
+  /** A faixa de peso de referência das aves, em gramas; ausente sem faixa (feature 005). */
+  readonly referenceWeight?: ReferenceWeight;
+}
+
+/** A faixa de peso de referência das aves de um setor, em gramas, com os limites incluídos (feature 005). */
+export interface ReferenceWeight {
+  readonly minimum: number;
+  readonly maximum: number;
 }
 
 /**
@@ -36,4 +44,7 @@ export interface Sector extends SectorSummary {
 export interface SectorInput {
   readonly name: string;
   readonly description: string;
+  /** Os limites da faixa de peso, como digitados; os dois vazios, o setor fica sem faixa (feature 005). */
+  readonly minimumWeight: string;
+  readonly maximumWeight: string;
 }

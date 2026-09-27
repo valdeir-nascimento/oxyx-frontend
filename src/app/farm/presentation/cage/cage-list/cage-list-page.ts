@@ -38,7 +38,7 @@ import { FindSectorByIdUseCase } from '../../../application/sector/find-sector-b
 import { CagePage, CageSummary } from '../../../domain/cage';
 import { Sector } from '../../../domain/sector';
 import { StatusFilter } from '../../../domain/status';
-import { CAGE_STATUS_OPTIONS, cageStatusLabelOf, countOf, statusToneOf } from '../../labels/labels';
+import { CAGE_STATUS_OPTIONS, cageStatusLabelOf, countOf, statusToneOf, weightOf } from '../../labels/labels';
 import { CageChanges } from '../cage-changes';
 
 const PAGE_SIZE = 20;
@@ -126,6 +126,7 @@ export class CageListPage {
   protected readonly statusLabelOf = cageStatusLabelOf;
   protected readonly statusToneOf = statusToneOf;
   protected readonly countOf = countOf;
+  protected readonly weightOf = weightOf;
 
   protected readonly filters = inject(FormBuilder).nonNullable.group({ code: '' });
   protected readonly battery = signal('');
@@ -173,7 +174,11 @@ export class CageListPage {
     }
     const cages = sector.activeCageCount === 1 ? '1 gaiola ativa' : `${countOf(sector.activeCageCount)} gaiolas ativas`;
     const birds = sector.birdCount === 1 ? '1 ave' : `${countOf(sector.birdCount)} aves`;
-    return `${cages} · ${birds}`;
+    const range = sector.referenceWeight;
+    // A faixa de peso de referência do setor, como o protótipo mostra (feature 005).
+    return range
+      ? `${cages} · ${birds} · peso de referência ${countOf(range.minimum)}–${countOf(range.maximum)} g`
+      : `${cages} · ${birds}`;
   });
 
   /**
@@ -294,7 +299,7 @@ export class CageListPage {
       () => {
         const root = this.host.nativeElement;
         const target =
-          root.querySelector<HTMLElement>(`tr[data-cage="${cage.id}"] a.icon-btn`) ??
+          root.querySelector<HTMLElement>(`tr[data-cage="${cage.id}"] a[data-edit]`) ??
           root.querySelector<HTMLElement>('.tbl-wrap');
         target?.focus();
       },

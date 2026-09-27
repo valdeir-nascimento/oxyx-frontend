@@ -13,6 +13,7 @@ import {
   authenticatedGuard,
   passwordChangeGuard,
 } from './identity/infrastructure/session.guard';
+import { activeWeighingCageGuard, weighingCrumbsResolver } from './farm/presentation/weighing/weighing-route';
 
 /**
  * Rotas da aplicação.
@@ -68,6 +69,37 @@ export const routes: Routes = [
           import('./identity/presentation/account/own-password/own-password-page').then((m) => m.OwnPasswordPage),
         title: 'Trocar senha — Ovyx',
         data: { crumbs: ['Minha conta', 'Trocar senha'] },
+      },
+      {
+        // O peso médio de uma gaiola (feature 005), antes das gaiolas: com elas primeiro, o `:cageId` do
+        // diálogo de gaiola tentaria o endereço, e o `peso` sobraria. Qualquer responsável registra e
+        // corrige: as filhas `nova` e `:weighingId` não têm o guard de administrador, e não abrem numa
+        // gaiola ou num setor inativos.
+        path: 'setores/:sectorId/gaiolas/:cageId/peso',
+        loadComponent: () =>
+          import('./farm/presentation/weighing/weighing-page/weighing-page').then((m) => m.WeighingPage),
+        title: 'Peso médio — Ovyx',
+        resolve: { crumbs: weighingCrumbsResolver },
+        children: [
+          {
+            path: 'nova',
+            canActivate: [activeWeighingCageGuard],
+            loadComponent: () =>
+              import('./farm/presentation/weighing/weighing-form/weighing-form-dialog').then(
+                (m) => m.WeighingFormDialog,
+              ),
+            title: 'Registrar pesagem — Ovyx',
+          },
+          {
+            path: ':weighingId',
+            canActivate: [activeWeighingCageGuard],
+            loadComponent: () =>
+              import('./farm/presentation/weighing/weighing-form/weighing-form-dialog').then(
+                (m) => m.WeighingFormDialog,
+              ),
+            title: 'Corrigir pesagem — Ovyx',
+          },
+        ],
       },
       {
         // As gaiolas de um setor (feature 002, US2), antes de `setores`: com ela primeiro, o

@@ -1,0 +1,183 @@
+<ovyx-page-header
+  [eyebrow]="eyebrow()"
+  title="Peso médio"
+  subtitle="Pesagem semanal de uma amostra de aves da gaiola, em gramas."
+>
+  <a class="btn btn-secondary" [routerLink]="['/setores', sectorId, 'gaiolas']">
+    <ovyx-icon name="cage" [size]="18" />
+    <span>Voltar às gaiolas</span>
+  </a>
+  @if (writable()) {
+    <a
+      class="btn btn-primary"
+      [routerLink]="['/setores', sectorId, 'gaiolas', cageId, 'peso', 'nova']"
+    >
+      <ovyx-icon name="plus" [size]="18" />
+      <span>Registrar pesagem</span>
+    </a>
+  }
+</ovyx-page-header>
+
+@if (missing()) {
+  <ovyx-alert variant="danger">
+    <p>Gaiola não encontrada.</p>
+  </ovyx-alert>
+} @else {
+  @if (readOnlyNotice()) {
+    <ovyx-alert variant="warning" data-read-only-notice>
+      <p>{{ readOnlyNotice() }}</p>
+    </ovyx-alert>
+  }
+
+  @if (refusal().hasErrors) {
+    <ovyx-error-summary
+      heading="Não foi possível carregar as pesagens:"
+      [errors]="refusal().errors"
+      [fields]="[]"
+    />
+  }
+
+  @if (exclusionRefusal().hasErrors) {
+    <ovyx-error-summary
+      heading="Não foi possível excluir a pesagem:"
+      [errors]="exclusionRefusal().errors"
+      [fields]="[]"
+    />
+  }
+
+  @if (overview(); as data) {
+    @if (!weighed()) {
+      <section class="card" data-empty tabindex="-1" aria-label="Nenhuma pesagem registrada">
+        <ovyx-empty-state
+          icon="scale"
+          title="Nenhuma pesagem registrada"
+          [message]="
+            'Pese uma amostra de aves e registre a média para acompanhar a curva da gaiola ' +
+            data.cage.code +
+            '.'
+          "
+        >
+          @if (writable()) {
+            <a
+              class="btn btn-primary btn-sm"
+              [routerLink]="['/setores', sectorId, 'gaiolas', cageId, 'peso', 'nova']"
+            >
+              <ovyx-icon name="plus" [size]="16" />
+              <span>Registrar pesagem</span>
+            </a>
+          }
+        </ovyx-empty-state>
+      </section>
+    } @else {
+      <ovyx-summary-strip [label]="'Peso da gaiola ' + data.cage.code" [items]="summary()" />
+
+      @if (chart().length > 0) {
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h2>Evolução do peso</h2>
+              <div class="sub">{{ chartSubtitle() }}</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <ovyx-line-chart
+              [label]="chartLabel()"
+              [points]="chart()"
+              [band]="chartBand()"
+              [format]="formatWeight"
+            />
+          </div>
+        </section>
+      }
+
+      <section class="card">
+        <ovyx-data-table
+          [caption]="caption()"
+          emptyTitle="Nenhuma pesagem registrada"
+          [loading]="loading()"
+          [empty]="data.history.length === 0"
+        >
+          <thead>
+            <tr>
+              <th scope="col">Data</th>
+              <th scope="col" class="r">Peso médio</th>
+              <th scope="col" class="r">Δ semana</th>
+              @if (writable()) {
+                <th scope="col" class="r"><span class="sr">Ações</span></th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (weighing of data.history; track weighing.id) {
+              <tr [attr.data-weighing]="weighing.id">
+                <td class="main" data-label="Data">
+                  <b>{{ dayOf(weighing.weighedOn) }}</b>
+                </td>
+                <td class="r strong tnum" data-label="Peso médio">
+                  {{ weightOf(weighing.averageWeight) }}
+                </td>
+                <td class="r tnum" data-label="Δ semana">
+                  @if (weighing.change === undefined) {
+                    <span class="zero">—</span>
+                  } @else {
+                    <span
+                      [class.delta]="weighing.change < 0"
+                      [class.bad]="weighing.change < 0"
+                      [class.muted]="weighing.change >= 0"
+                    >
+                      {{ changeOf(weighing.change) }}
+                    </span>
+                  }
+                </td>
+                @if (writable()) {
+                  <td class="act">
+                    <div class="row-actions">
+                      <a
+                        class="icon-btn sm"
+                        [routerLink]="[
+                          '/setores',
+                          sectorId,
+                          'gaiolas',
+                          cageId,
+                          'peso',
+                          weighing.id,
+                        ]"
+                        [attr.aria-label]="'Corrigir pesagem de ' + dayOf(weighing.weighedOn)"
+                        [attr.title]="'Corrigir pesagem de ' + dayOf(weighing.weighedOn)"
+                      >
+                        <ovyx-icon name="edit" [size]="18" />
+                      </a>
+                      <ovyx-icon-button
+                        icon="trash"
+                        [small]="true"
+                        [danger]="true"
+                        [label]="'Excluir pesagem de ' + dayOf(weighing.weighedOn)"
+                        (pressed)="confirming.set(weighing)"
+                      />
+                    </div>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </ovyx-data-table>
+      </section>
+    }
+  }
+}
+
+@if (confirming(); as weighing) {
+  <ovyx-confirm-dialog
+    icon="trash"
+    confirmLabel="Excluir pesagem"
+    [title]="'Excluir a pesagem de ' + dayOf(weighing.weighedOn) + '?'"
+    [busy]="voiding()"
+    (confirmed)="exclude(weighing)"
+    (cancelled)="confirming.set(null)"
+  >
+    {{ consequenceOf(weighing) }}
+  </ovyx-confirm-dialog>
+}
+
+<!-- O registro e a correção de pesagem abrem aqui, em diálogo sobre a tela. -->
+<router-outlet />

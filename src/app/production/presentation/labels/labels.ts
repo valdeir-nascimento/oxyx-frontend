@@ -17,7 +17,7 @@ export function dayWithWeekdayOf(isoDate: string): string {
 }
 
 /**
- * O fuso da granja, o mesmo padrão do backend (`ovyx.production.time-zone`, R-006): os instantes da API
+ * O fuso da granja, o mesmo padrão do backend (`ovyx.farm.time-zone`, R-006 da 003 e R-004 da 005): os instantes da API
  * — quando o relatório foi corrigido — aparecem na hora da granja, e não na do navegador.
  */
 export const FARM_TIME_ZONE = 'America/Sao_Paulo';

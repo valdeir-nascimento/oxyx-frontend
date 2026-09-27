@@ -122,6 +122,8 @@ describe('SectorFormDialog', () => {
     expect(register).toHaveBeenCalledWith({
       name: 'Codornas — Galpão 4',
       description: 'Codornas japonesas em postura, baterias A e B',
+      minimumWeight: '',
+      maximumWeight: '',
     });
   });
 
@@ -199,6 +201,8 @@ describe('SectorFormDialog', () => {
     expect(update).toHaveBeenCalledWith(galpao.id, {
       name: 'Codornas — Galpão 1 (norte)',
       description: 'Codornas japonesas em postura, baterias A a D',
+      minimumWeight: '',
+      maximumWeight: '',
     });
     expect(toasts()).toEqual(['Alterações salvas: Codornas — Galpão 1 (norte).']);
     expect(navigate).toHaveBeenCalledWith(['/setores']);
@@ -229,5 +233,53 @@ describe('SectorFormDialog', () => {
 
     expect(register).not.toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith(['/setores']);
+  });
+
+  // ---------------------------------------------------------------- faixa de peso de referência (005)
+
+  it('registers the reference weight range as typed, each limit with the numeric keyboard', async () => {
+    await render();
+    type('name', 'Codornas — Galpão 4');
+    type('minimumWeight', '155');
+    type('maximumWeight', '175');
+
+    await submit();
+
+    expect(field('minimumWeight').getAttribute('inputmode')).toBe('numeric');
+    expect(field('maximumWeight').getAttribute('inputmode')).toBe('numeric');
+    expect(register).toHaveBeenCalledWith({
+      name: 'Codornas — Galpão 4',
+      description: '',
+      minimumWeight: '155',
+      maximumWeight: '175',
+    });
+  });
+
+  it('opens the edition with the reference weight range of the sector', async () => {
+    find.mockResolvedValue(success({ ...galpao, referenceWeight: { minimum: 155, maximum: 175 } }));
+
+    await render(galpao.id);
+
+    expect(field('minimumWeight').value).toBe('155');
+    expect(field('maximumWeight').value).toBe('175');
+  });
+
+  it('shows the refusal of the range next to its field, with the other refusals at once', async () => {
+    register.mockResolvedValue(
+      failure(
+        Notification.of([
+          { code: 'VALIDATION_FAILED', field: 'name', message: 'Informe o nome do setor.' },
+          { code: 'VALIDATION_FAILED', field: 'minimumWeight', message: 'O peso mínimo deve ser menor que o máximo.' },
+        ]),
+      ),
+    );
+    await render();
+
+    await submit();
+
+    expect(element().querySelector('#name-error')?.textContent).toContain('Informe o nome do setor.');
+    expect(element().querySelector('#minimumWeight-error')?.textContent).toContain(
+      'O peso mínimo deve ser menor que o máximo.',
+    );
   });
 });
