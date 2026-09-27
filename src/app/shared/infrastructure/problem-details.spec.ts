@@ -6,7 +6,7 @@ describe('toNotification', () => {
 
     expect(notification.errors).toHaveLength(1);
     expect(notification.errors[0].code).toBe('REQUEST_FAILED');
-    expect(notification.errors[0].message).toContain('Não foi possível');
+    expect(notification.errors[0].message).toContain('Não houve resposta do servidor');
   });
 
   it('keeps every violation listed by the backend', () => {
@@ -22,6 +22,22 @@ describe('toNotification', () => {
 
     expect(notification.errors).toHaveLength(2);
     expect(notification.messageFor('cpf')).toBe('CPF inválido.');
+  });
+
+  it('does not take the name of a malformed address parameter for a message', () => {
+    // O backend identifica o parâmetro em details, { parameter: 'caretakerId' }. Lido como campo, a
+    // tela mostrava "caretakerId" no resumo; a mensagem em português vem em detail.
+    const notification = toNotification({
+      title: 'Dados inválidos',
+      status: 400,
+      code: 'VALIDATION_FAILED',
+      detail: "Valor inválido para o parâmetro 'caretakerId'.",
+      details: { parameter: 'caretakerId' },
+    });
+
+    expect(notification.errors).toEqual([
+      { code: 'VALIDATION_FAILED', message: "Valor inválido para o parâmetro 'caretakerId'." },
+    ]);
   });
 
   it('builds a single violation from the code when nothing is detailed', () => {

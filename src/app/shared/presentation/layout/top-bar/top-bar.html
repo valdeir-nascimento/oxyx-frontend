@@ -1,0 +1,20 @@
+<header class="topbar">
+  <button
+    type="button"
+    class="icon-btn menu-btn"
+    aria-label="Abrir menu"
+    [attr.aria-expanded]="menuOpen()"
+    [attr.aria-controls]="menuId()"
+    (click)="menuToggle.emit()"
+  >
+    <ovyx-icon name="menu" />
+  </button>
+  <div class="m-title">{{ current() }}</div>
+  <nav class="crumbs" aria-label="Você está em">
+    @for (crumb of parents(); track $index) {
+      <span class="crumb">{{ crumb }}</span>
+      <ovyx-icon name="chevR" [size]="16" />
+    }
+    <span class="cur" aria-current="page">{{ current() }}</span>
+  </nav>
+</header>

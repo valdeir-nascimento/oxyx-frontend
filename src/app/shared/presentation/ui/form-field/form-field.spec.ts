@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormField } from './form-field';
+import { FormField, FormFieldType } from './form-field';
 
 /**
  * O campo é o que as duas telas de senha repetiam linha por linha: rótulo, entrada, ajuda e
@@ -27,7 +27,7 @@ describe('FormField', () => {
   })
   class FormFieldHost {
     readonly control = new FormControl('', { nonNullable: true });
-    readonly type = signal<'text' | 'password'>('text');
+    readonly type = signal<FormFieldType>('text');
     readonly hint = signal<string | undefined>(undefined);
     readonly error = signal<string | undefined>(undefined);
   }
@@ -42,6 +42,42 @@ describe('FormField', () => {
   })
   class FormFieldDefaultsHost {
     readonly control = new FormControl('', { nonNullable: true });
+  }
+
+  @Component({
+    selector: 'ovyx-form-field-multiline-host',
+    imports: [FormField],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    template: `
+      <ovyx-form-field
+        controlId="description"
+        label="Descrição"
+        [multiline]="true"
+        [control]="control"
+        [error]="error()"
+      />
+    `,
+  })
+  class FormFieldMultilineHost {
+    readonly control = new FormControl('', { nonNullable: true });
+    readonly error = signal<string | undefined>(undefined);
+  }
+
+  @Component({
+    selector: 'ovyx-form-field-numeric-host',
+    imports: [FormField],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    template: `<ovyx-form-field controlId="birdCount" label="Aves" inputMode="numeric" [control]="control" />`,
+  })
+  class FormFieldNumericHost {
+    readonly control = new FormControl('', { nonNullable: true });
+  }
+
+  async function renderMultiline(): Promise<ComponentFixture<FormFieldMultilineHost>> {
+    await TestBed.configureTestingModule({ imports: [FormFieldMultilineHost] }).compileComponents();
+    const fixture = TestBed.createComponent(FormFieldMultilineHost);
+    fixture.detectChanges();
+    return fixture;
   }
 
   async function render(): Promise<ComponentFixture<FormFieldHost>> {
@@ -144,6 +180,16 @@ describe('FormField', () => {
     expect(control(fixture).type).toBe('password');
   });
 
+  it.each(['date', 'time'] as const)('renders a %s field for the day and the hour of a collection', async (kind) => {
+    await TestBed.configureTestingModule({ imports: [FormFieldHost] }).compileComponents();
+    const fixture = TestBed.createComponent(FormFieldHost);
+    fixture.componentInstance.type.set(kind);
+    fixture.detectChanges();
+
+    const input = (fixture.nativeElement as HTMLElement).querySelector('input')!;
+    expect(input.type).toBe(kind);
+  });
+
   it('shows an ordinary field as text when nothing else was asked', async () => {
     await TestBed.configureTestingModule({ imports: [FormFieldDefaultsHost] }).compileComponents();
     const fixture = TestBed.createComponent(FormFieldDefaultsHost);
@@ -151,5 +197,47 @@ describe('FormField', () => {
 
     const input = (fixture.nativeElement as HTMLElement).querySelector('input')!;
     expect(input.type).toBe('text');
+  });
+
+  it('takes a long text in a text area, linked to its label and to its refusal', async () => {
+    // A descrição do setor tem até 500 caracteres: numa linha só, a pessoa não vê o que escreveu.
+    const fixture = await renderMultiline();
+    const root = fixture.nativeElement as HTMLElement;
+    fixture.componentInstance.error.set('A descrição deve ter no máximo 500 caracteres.');
+    fixture.detectChanges();
+
+    const area = root.querySelector('textarea')!;
+    expect(root.querySelector('input')).toBeNull();
+    expect(area.id).toBe('description');
+    expect(area.closest('.control')?.classList).toContain('area');
+    expect(root.querySelector('label')?.getAttribute('for')).toBe('description');
+    expect(area.getAttribute('aria-describedby')).toBe('description-error');
+    expect(area.getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it('hands what was typed in the text area to the form control', async () => {
+    const fixture = await renderMultiline();
+    const area = (fixture.nativeElement as HTMLElement).querySelector('textarea')!;
+
+    area.value = 'Codornas japonesas em postura';
+    area.dispatchEvent(new Event('input'));
+
+    expect(fixture.componentInstance.control.value).toBe('Codornas japonesas em postura');
+  });
+
+  it('opens the numeric keyboard for a quantity, and keeps what was typed as text', async () => {
+    // Um campo `number` entregaria número ao formulário e apagaria o "12,5" que o backend precisa
+    // recusar com a mensagem certa (FR-017).
+    await TestBed.configureTestingModule({ imports: [FormFieldNumericHost] }).compileComponents();
+    const fixture = TestBed.createComponent(FormFieldNumericHost);
+    fixture.detectChanges();
+    const input = (fixture.nativeElement as HTMLElement).querySelector('input')!;
+
+    input.value = '12,5';
+    input.dispatchEvent(new Event('input'));
+
+    expect(input.getAttribute('inputmode')).toBe('numeric');
+    expect(input.type).toBe('text');
+    expect(fixture.componentInstance.control.value).toBe('12,5');
   });
 });

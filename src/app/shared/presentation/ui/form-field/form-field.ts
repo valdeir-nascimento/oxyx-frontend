@@ -1,17 +1,25 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { Icon } from '../icon/icon';
+import { IconName } from '../icon/icons';
 
 /** Natureza do que se digita. Decide o teclado do celular e o sigilo do que aparece na tela. */
-export type FormFieldType = 'text' | 'password' | 'email' | 'tel';
+/** Os tipos de campo em uso; data e hora vieram com o relatório diário (feature 003). */
+export type FormFieldType = 'text' | 'password' | 'email' | 'tel' | 'date' | 'time';
 
 /**
- * Campo de formulário: rótulo, entrada, texto de ajuda e mensagem de recusa.
+ * Campo de formulário com o `.field` do design system: rótulo, entrada, texto de ajuda e mensagem de
+ * recusa.
  *
  * É o que as telas de acesso e de troca de senha repetiam linha por linha. O componente não valida
  * nada e não conhece o formulário inteiro: recebe um controle e uma mensagem já em português — a
  * que o backend devolveu — e se encarrega da ligação que ninguém vê e todo mundo precisa. O
  * `aria-describedby` é o que faz o leitor de tela anunciar a recusa junto do campo que a causou, em
  * vez de solta no fim da página; sem ele, a pessoa ouve "E-mail ou celular, editado" e nada mais.
+ *
+ * A senha ganha o `.pw-toggle` do design system, um botão de alternância (`aria-pressed`) que mostra
+ * o que foi digitado. O design system troca a ajuda pela recusa; aqui as duas ficam, porque a ajuda
+ * da senha explica a política justamente quando ela é recusada — a ajuda mantém a cor neutra.
  *
  * ```html
  * <ovyx-form-field
@@ -26,72 +34,11 @@ export type FormFieldType = 'text' | 'password' | 'email' | 'tel';
  */
 @Component({
   selector: 'ovyx-form-field',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, Icon],
+  templateUrl: './form-field.html',
+  styleUrl: './form-field.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="field">
-      <label class="field__label" [for]="controlId()">{{ label() }}</label>
-      <input
-        class="field__control"
-        [id]="controlId()"
-        [type]="type()"
-        [formControl]="control()"
-        [attr.autocomplete]="autocomplete()"
-        [attr.aria-describedby]="describedBy()"
-        [attr.aria-invalid]="error() ? 'true' : null"
-      />
-      @if (error(); as message) {
-        <p class="field__error" [id]="errorId()">{{ message }}</p>
-      }
-      @if (hint(); as text) {
-        <p class="field__hint" [id]="hintId()">{{ text }}</p>
-      }
-    </div>
-  `,
-  styles: `
-    /* Elemento personalizado nasce inline. Nas telas de hoje funciona por acaso, porque o
-     * pai é sempre uma grade; num fluxo normal o componente encolheria no conteúdo. */
-    :host {
-      display: block;
-    }
-
-    .field {
-      display: grid;
-      gap: var(--ovyx-space-1);
-    }
-
-    .field__label {
-      font-size: var(--ovyx-font-size-sm);
-      font-weight: var(--ovyx-font-weight-medium);
-      color: var(--ovyx-color-text);
-    }
-
-    .field__control {
-      min-height: var(--ovyx-control-height-md);
-      padding: 0 var(--ovyx-space-3);
-      background-color: var(--ovyx-color-surface-raised);
-      border: var(--ovyx-border-width-thin) solid var(--ovyx-color-border);
-      border-radius: var(--ovyx-radius-sm);
-      color: var(--ovyx-color-text);
-    }
-
-    /* Recusado não é dito só por cor: o traço engrossa junto com a mudança de tom, e a mensagem
-     * continua a ser o que explica o problema. */
-    .field__control[aria-invalid='true'] {
-      border-width: var(--ovyx-border-width-thick);
-      border-color: var(--ovyx-color-danger-border);
-    }
-
-    .field__error {
-      font-size: var(--ovyx-font-size-sm);
-      color: var(--ovyx-color-danger-text);
-    }
-
-    .field__hint {
-      font-size: var(--ovyx-font-size-sm);
-      color: var(--ovyx-color-text-muted);
-    }
-  `,
+  host: { '[class.span2]': 'wide()' },
 })
 export class FormField {
   /** O controle que guarda o que foi digitado. O campo escreve nele e não o valida. */
@@ -114,6 +61,32 @@ export class FormField {
   /** Mensagem de recusa, já em português; ausente quando o campo não foi recusado. */
   readonly error = input<string>();
 
+  /** Ícone à esquerda da entrada, decorativo, como o envelope do e-mail. */
+  readonly icon = input<IconName>();
+
+  /** Ocupa as duas colunas do corpo do diálogo (`.span2`). */
+  readonly wide = input(false);
+
+  /**
+   * Texto longo, numa área de várias linhas (`.control.area` do design system), como a descrição de
+   * um setor: numa linha só, a pessoa não vê o que escreveu.
+   */
+  readonly multiline = input(false);
+
+  /**
+   * O teclado que o celular abre, como `numeric` para quantidades e `decimal` para o preço, que tem a
+   * vírgula. O campo continua de texto: o que foi digitado vai como está, e quem recusa um valor que não
+   * é número é o backend (FR-017).
+   */
+  readonly inputMode = input<'numeric' | 'decimal' | 'text'>();
+
+  /** Se a senha está à mostra. Volta a ficar oculta a cada vez que a tela abre. */
+  protected readonly revealed = signal(false);
+
+  protected readonly inputType = computed(() =>
+    this.type() === 'password' && this.revealed() ? 'text' : this.type(),
+  );
+
   protected readonly errorId = computed(() => `${this.controlId()}-error`);
   protected readonly hintId = computed(() => `${this.controlId()}-hint`);
 
@@ -128,4 +101,8 @@ export class FormField {
 
     return described === '' ? null : described;
   });
+
+  protected toggleReveal(): void {
+    this.revealed.update((revealed) => !revealed);
+  }
 }

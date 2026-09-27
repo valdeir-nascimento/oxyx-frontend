@@ -1,0 +1,20 @@
+/* O diálogo se posiciona pela raiz da aplicação (.layer); este componente não ocupa caixa. */
+:host {
+  display: contents;
+}
+
+.loading {
+  display: grid;
+  gap: 10px;
+}
+
+.loading .sk {
+  height: 42px;
+}
+
+/* A explicação das classificações, entre os ovos e elas. */
+.grades-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-3);
+}

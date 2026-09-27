@@ -1,0 +1,97 @@
+<ovyx-dialog
+  [title]="title"
+  subtitle="Data e hora da coleta, aves no início do dia e idade do lote."
+  icon="report"
+  (closed)="close()"
+  (submitted)="submit()"
+>
+  <p class="sr" role="status">{{ state() === 'loading' ? 'Carregando…' : '' }}</p>
+
+  @switch (state()) {
+    @case ('loading') {
+      <div class="loading span2" aria-hidden="true">
+        <span class="sk"></span>
+        <span class="sk"></span>
+      </div>
+    }
+    @case ('missing') {
+      <ovyx-alert class="span2" variant="danger">
+        <p>{{ missing() }}</p>
+      </ovyx-alert>
+    }
+    @case ('failed') {
+      <ovyx-error-summary
+        class="span2"
+        heading="Não foi possível carregar o relatório:"
+        [errors]="notification().errors"
+        [fields]="[]"
+      />
+    }
+    @case ('ready') {
+      @if (notification().hasErrors) {
+        <ovyx-error-summary class="span2" [errors]="notification().errors" [fields]="fields" />
+      }
+      @if (existing(); as report) {
+        <p class="span2 existing">
+          <a [routerLink]="report.route">Abrir o relatório de {{ report.day }}</a>
+        </p>
+      }
+
+      <ovyx-form-field
+        controlId="collectionDate"
+        label="Data da coleta"
+        type="date"
+        [control]="form.controls.collectionDate"
+        [error]="messageFor('collectionDate')"
+      />
+      <ovyx-form-field
+        controlId="collectionTime"
+        label="Hora da coleta"
+        type="time"
+        [control]="form.controls.collectionTime"
+        [error]="messageFor('collectionTime')"
+      />
+      <ovyx-form-field
+        controlId="openingBirdCount"
+        label="Aves no início do dia"
+        [hint]="
+          editing
+            ? 'De 1 a 1.000.000.'
+            : 'Sugeridas pelo saldo do relatório anterior ou, no primeiro, pelas aves das gaiolas.'
+        "
+        autocomplete="off"
+        inputMode="numeric"
+        [control]="form.controls.openingBirdCount"
+        [error]="messageFor('openingBirdCount')"
+      />
+      <ovyx-form-field
+        controlId="flockAge"
+        label="Idade do lote"
+        hint="Em semanas, de 1 a 150."
+        autocomplete="off"
+        inputMode="numeric"
+        [control]="form.controls.flockAge"
+        [error]="messageFor('flockAge')"
+      />
+      <ovyx-form-field
+        controlId="note"
+        label="Observação"
+        hint="Algo fora do comum na coleta? Até 500 caracteres."
+        [multiline]="true"
+        [wide]="true"
+        [control]="form.controls.note"
+        [error]="messageFor('note')"
+      />
+    }
+  }
+
+  <!-- Um elemento por condição: um bloco com mais de uma raiz iria para o corpo, e não para as ações. -->
+  <ovyx-button dialog-actions variant="secondary" [disabled]="submitting()" (pressed)="close()">
+    {{ state() === 'ready' ? 'Cancelar' : 'Voltar' }}
+  </ovyx-button>
+  @if (state() === 'ready') {
+    <ovyx-button dialog-actions type="submit" icon="check" [busy]="submitting()">
+      {{ editing ? 'Salvar alterações' : 'Abrir relatório' }}
+    </ovyx-button>
+  }
+</ovyx-dialog>

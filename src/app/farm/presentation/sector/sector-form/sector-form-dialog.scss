@@ -1,0 +1,15 @@
+/* O diálogo se posiciona pela raiz da aplicação (.layer); este componente não ocupa caixa. */
+:host {
+  display: contents;
+}
+
+/* O esqueleto da carga, com as barras do design system. */
+.loading {
+  display: grid;
+  gap: 10px;
+  padding: 4px 0 10px;
+}
+
+.loading .sk {
+  height: 42px;
+}

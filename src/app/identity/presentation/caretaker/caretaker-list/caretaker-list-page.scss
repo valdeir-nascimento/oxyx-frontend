@@ -1,0 +1,19 @@
+/* A página não ocupa caixa: título, avisos e cartão são itens da coluna do .content-inner do design
+ * system, que dá o espaçamento. */
+:host {
+  display: contents;
+}
+
+/* O nome e o e-mail cortam em qualquer ponto, para um e-mail longo não alargar a linha no celular. */
+.identity {
+  min-width: 0;
+}
+
+.identity small {
+  overflow-wrap: anywhere;
+}
+
+/* O outlet não desenha nada; quem aparece é o diálogo que ele carrega, ao lado dele. */
+router-outlet {
+  display: none;
+}

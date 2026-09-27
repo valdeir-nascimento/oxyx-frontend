@@ -1,0 +1,19 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+/* Fora da casca, o cartão fica no centro da janela, com a calha do design system no celular. A tela
+ * rola sozinha quando o cartão não cabe (celular deitado): a raiz da aplicação não rola. A margem
+ * automática centraliza sem cortar o topo quando falta altura. */
+.access-denied {
+  display: grid;
+  height: 100%;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.card {
+  width: min(480px, 100%);
+  margin: auto;
+}

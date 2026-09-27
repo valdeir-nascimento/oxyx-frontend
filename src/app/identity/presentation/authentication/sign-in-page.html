@@ -1,0 +1,47 @@
+<ovyx-auth-layout>
+  <form class="login-form" novalidate (submit)="submit($event)">
+    <div>
+      <div class="eyebrow">Acesso ao sistema</div>
+      <h1>Entrar</h1>
+      <p class="muted">Use o e-mail ou o celular cadastrado pelo administrador.</p>
+    </div>
+
+    @if (sessionExpired) {
+      <ovyx-alert variant="warning">
+        <p>Sua sessão expirou. Entre novamente para continuar.</p>
+      </ovyx-alert>
+    }
+
+    @if (notification().hasErrors) {
+      <ovyx-error-summary [errors]="notification().errors" [fields]="fields" />
+    }
+
+    <ovyx-form-field
+      controlId="identifier"
+      label="E-mail ou celular com DDD"
+      icon="mail"
+      autocomplete="username"
+      [control]="form.controls.identifier"
+      [error]="messageFor('identifier')"
+    />
+
+    <ovyx-form-field
+      controlId="password"
+      label="Senha"
+      type="password"
+      icon="lock"
+      autocomplete="current-password"
+      [control]="form.controls.password"
+      [error]="messageFor('password')"
+    />
+
+    <ovyx-button type="submit" size="lg" trailingIcon="arrowR" [block]="true" [busy]="submitting()">
+      Entrar
+    </ovyx-button>
+
+    <div class="login-foot">
+      <span>Ovyx</span>
+      <span>Acesso restrito a responsáveis cadastrados.</span>
+    </div>
+  </form>
+</ovyx-auth-layout>

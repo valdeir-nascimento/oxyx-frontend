@@ -30,7 +30,12 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.scss"]
+            "styles": [
+              "src/styles/design-system/tokens.css",
+              "src/styles/design-system/components.css",
+              "src/styles/design-system/extensions.css",
+              "src/styles.scss"
+            ]
           },
           "configurations": {
             "production": {

@@ -1,0 +1,36 @@
+<div class="side-brand"><ovyx-brand /></div>
+
+<div class="side-user">
+  <ovyx-avatar [name]="fullName()" />
+  <div class="who">
+    <b>{{ fullName() }}</b>
+    <span>{{ roleLabel() }}</span>
+  </div>
+</div>
+
+<nav class="side-links" aria-label="Navegação principal">
+  @for (group of groups(); track group.name; let first = $first) {
+    @if (!first) {
+      <div class="nav-sep"></div>
+    }
+    <div class="nav-group">{{ group.name }}</div>
+    @for (item of group.items; track item.route) {
+      <a
+        class="nav-item"
+        [routerLink]="item.route"
+        routerLinkActive
+        ariaCurrentWhenActive="page"
+        [routerLinkActiveOptions]="{ exact: item.route === '/' }"
+        [attr.title]="item.label"
+      >
+        <ovyx-icon [name]="item.icon" />
+        <span>{{ item.label }}</span>
+      </a>
+    }
+  }
+</nav>
+
+<button type="button" class="nav-item logout" title="Sair" (click)="signOut.emit()">
+  <ovyx-icon name="logout" />
+  <span>Sair</span>
+</button>

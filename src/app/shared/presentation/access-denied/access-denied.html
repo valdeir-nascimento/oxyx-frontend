@@ -1,0 +1,15 @@
+<main class="access-denied">
+  <section class="card">
+    <ovyx-empty-state
+      icon="lock"
+      title="Acesso negado"
+      message="Você não tem permissão para executar esta operação."
+      [level]="1"
+    >
+      <a class="btn btn-primary btn-sm" routerLink="/">
+        <ovyx-icon name="chevL" [size]="18" />
+        <span>Voltar ao início</span>
+      </a>
+    </ovyx-empty-state>
+  </section>
+</main>

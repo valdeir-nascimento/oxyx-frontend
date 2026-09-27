@@ -1,0 +1,7 @@
+/* A navegação ocupa o espaço livre e empurra "Sair" para o pé do menu, onde o design system a põe. */
+.side-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}

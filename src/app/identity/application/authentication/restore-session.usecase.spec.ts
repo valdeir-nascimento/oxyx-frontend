@@ -18,8 +18,10 @@ describe('RestoreSessionUseCase', () => {
     mustChangePassword: false,
   };
 
+  let gateway: AuthenticationGateway;
+
   function useCaseWith(result: Result<AuthenticatedCaretaker>): RestoreSessionUseCase {
-    const gateway: AuthenticationGateway = {
+    gateway = {
       signIn: vi.fn(),
       signOut: vi.fn(),
       currentCaretaker: vi.fn().mockResolvedValue(result),
@@ -37,6 +39,25 @@ describe('RestoreSessionUseCase', () => {
 
     expect(result.success).toBe(true);
     expect(TestBed.inject(SessionStore).caretaker()).toEqual(maria);
+  });
+
+  it('asks the backend once for everyone who asks at the same time', async () => {
+    // O interceptador reconsulta a cada 403, e várias recusas ao mesmo tempo repetiam a pergunta.
+    const useCase = useCaseWith(success(maria));
+
+    const answers = await Promise.all([useCase.execute(), useCase.execute()]);
+
+    expect(gateway.currentCaretaker).toHaveBeenCalledOnce();
+    expect(answers).toEqual([success(maria), success(maria)]);
+  });
+
+  it('asks again once the previous question is answered', async () => {
+    const useCase = useCaseWith(success(maria));
+    await useCase.execute();
+
+    await useCase.execute();
+
+    expect(gateway.currentCaretaker).toHaveBeenCalledTimes(2);
   });
 
   it('leaves the session empty when the backend no longer recognizes it', async () => {

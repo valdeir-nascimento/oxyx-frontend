@@ -1,0 +1,13 @@
+<nav class="bnav" aria-label="Navegação principal">
+  @for (item of items(); track item.route) {
+    <a
+      [routerLink]="item.route"
+      routerLinkActive
+      ariaCurrentWhenActive="page"
+      [routerLinkActiveOptions]="{ exact: item.route === '/' }"
+    >
+      <span class="bn-ico"><ovyx-icon [name]="item.icon" /></span>
+      {{ item.label }}
+    </a>
+  }
+</nav>

@@ -1,0 +1,9 @@
+:host {
+  display: contents;
+}
+
+/* O <router-outlet> fica no lugar do primeiro item do .content-inner e ganharia o espaçamento da
+ * coluna antes da página; ele não desenha nada. */
+.content-inner > router-outlet {
+  display: none;
+}

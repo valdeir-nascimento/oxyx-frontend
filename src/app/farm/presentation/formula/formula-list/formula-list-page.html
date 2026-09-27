@@ -1,0 +1,144 @@
+<ovyx-page-header
+  eyebrow="Produção"
+  title="Fórmulas de ração"
+  subtitle="Preço por quilo e consumo esperado por ave ao dia — a base do custo da ração e do custo por ovo."
+>
+  @if (canChange()) {
+    <a class="btn btn-primary" routerLink="/formulas/nova">
+      <ovyx-icon name="plus" [size]="18" />
+      <span>Nova fórmula</span>
+    </a>
+  }
+</ovyx-page-header>
+
+@if (refusal().hasErrors) {
+  <ovyx-error-summary
+    heading="Não foi possível concluir a operação:"
+    [errors]="refusal().errors"
+    [fields]="[]"
+  />
+}
+
+<div class="toolbar">
+  <ovyx-segmented-control
+    label="Situação"
+    [options]="statusOptions"
+    [value]="status()"
+    (valueChange)="filterByStatus($event)"
+  />
+</div>
+
+<p class="sr" role="status" data-announcement>{{ announcement() }}</p>
+
+@if (!loading() && formulas().length === 0 && !refusal().hasErrors) {
+  <section class="card" data-empty tabindex="-1" [attr.aria-label]="emptyTitle()">
+    <ovyx-empty-state icon="flask" [title]="emptyTitle()" [message]="emptyMessage()">
+      @if (invitesToRegister()) {
+        <a class="btn btn-primary btn-sm" routerLink="/formulas/nova">
+          <ovyx-icon name="plus" [size]="16" />
+          <span>Nova fórmula</span>
+        </a>
+      }
+    </ovyx-empty-state>
+  </section>
+} @else {
+  <section class="card">
+    <ovyx-data-table
+      caption="Fórmulas de ração"
+      [emptyTitle]="emptyTitle()"
+      [loading]="loading()"
+      [empty]="formulas().length === 0"
+    >
+      <thead>
+        <tr>
+          <th scope="col">Fórmula</th>
+          <th scope="col" class="r">Preço</th>
+          <th scope="col" class="r">Consumo esperado</th>
+          <th scope="col" class="r">Custo por ave/dia</th>
+          <th scope="col">Situação</th>
+          @if (canChange()) {
+            <th scope="col" class="r"><span class="sr">Ações</span></th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (formula of formulas(); track formula.id) {
+          <tr [attr.data-formula]="formula.id">
+            <td class="main" data-label="Fórmula">
+              <div class="cell-id">
+                <span class="ic" aria-hidden="true"><ovyx-icon name="flask" [size]="18" /></span>
+                <div>
+                  <b>{{ formula.name }}</b>
+                  @if (formula.description; as description) {
+                    <small>{{ description }}</small>
+                  }
+                </div>
+              </div>
+            </td>
+            <td class="r strong tnum" data-label="Preço">
+              {{ moneyOf(formula.pricePerKg) }}<span class="muted">/kg</span>
+            </td>
+            <td class="r tnum" data-label="Consumo esperado">
+              {{ countOf(formula.expectedIntake) }} g
+            </td>
+            <td class="r tnum" data-label="Custo por ave/dia">
+              {{ moneyOf(formula.costPerBirdDay, 3) }}
+            </td>
+            <td data-label="Situação">
+              <ovyx-status-badge
+                [label]="statusLabelOf(formula.status)"
+                [tone]="statusToneOf(formula.status)"
+              />
+            </td>
+            @if (canChange()) {
+              <td class="act">
+                <div class="row-actions">
+                  <a
+                    class="icon-btn sm"
+                    [routerLink]="['/formulas', formula.id]"
+                    [attr.aria-label]="'Editar fórmula ' + formula.name"
+                    [attr.title]="'Editar fórmula ' + formula.name"
+                  >
+                    <ovyx-icon name="edit" [size]="18" />
+                  </a>
+                  @if (formula.status === 'ACTIVE') {
+                    <ovyx-icon-button
+                      icon="lock"
+                      [small]="true"
+                      [danger]="true"
+                      [label]="'Inativar fórmula ' + formula.name"
+                      (pressed)="confirming.set(formula)"
+                    />
+                  } @else {
+                    <ovyx-icon-button
+                      icon="check"
+                      [small]="true"
+                      [label]="'Reativar fórmula ' + formula.name"
+                      (pressed)="reactivate(formula)"
+                    />
+                  }
+                </div>
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </ovyx-data-table>
+  </section>
+}
+
+@if (confirming(); as formula) {
+  <ovyx-confirm-dialog
+    icon="lock"
+    confirmLabel="Inativar fórmula"
+    [title]="'Inativar fórmula ' + formula.name + '?'"
+    [busy]="deactivating()"
+    (confirmed)="deactivate(formula)"
+    (cancelled)="confirming.set(null)"
+  >
+    {{ deactivationConsequence }}
+  </ovyx-confirm-dialog>
+}
+
+<!-- O cadastro e a edição abrem aqui, em diálogo sobre a lista. -->
+<router-outlet />

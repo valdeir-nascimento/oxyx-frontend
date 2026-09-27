@@ -17,6 +17,7 @@ describe('Button', () => {
         [type]="type()"
         [disabled]="disabled()"
         [busy]="busy()"
+        [accessibleName]="accessibleName()"
         (pressed)="presses.set(presses() + 1)"
       >
         Inativar
@@ -29,6 +30,7 @@ describe('Button', () => {
     readonly disabled = signal(false);
     readonly busy = signal(false);
     readonly presses = signal(0);
+    readonly accessibleName = signal<string | undefined>(undefined);
   }
 
   @Component({
@@ -114,6 +116,20 @@ describe('Button', () => {
     fixture.detectChanges();
 
     expect(nativeButton(fixture).dataset['variant']).toBe('danger');
+  });
+
+  it('takes a fuller name when the label repeats on every row', async () => {
+    // "Inativar" em cada linha da lista não diz a quem; o leitor de tela precisa ouvir "Inativar
+    // Maria Silva".
+    const fixture = await render();
+    fixture.componentInstance.accessibleName.set('Inativar Maria Silva');
+    fixture.detectChanges();
+
+    expect(nativeButton(fixture).getAttribute('aria-label')).toBe('Inativar Maria Silva');
+  });
+
+  it('has no separate name when the visible label says it all', async () => {
+    expect(nativeButton(await render()).hasAttribute('aria-label')).toBe(false);
   });
 
   it('does not submit the form around it unless that was asked', async () => {

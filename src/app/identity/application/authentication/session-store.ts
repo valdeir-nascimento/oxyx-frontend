@@ -1,5 +1,4 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { SessionInvalidation } from '../../../shared/application/session-invalidation';
 import { AuthenticatedCaretaker } from '../../domain/authenticated-caretaker';
 
 /**
@@ -8,13 +7,12 @@ import { AuthenticatedCaretaker } from '../../domain/authenticated-caretaker';
  * Guarda a **identidade**, não a sessão: esta vive no cookie do navegador, e quem a cria e a
  * invalida é o backend (FR-004).
  *
- * Declara `SessionInvalidation` de propósito: é a porta que o interceptador usa para esquecer quem
- * estava na sessão no 401, e o `useExisting` de `app.config.ts` não é verificado pelo compilador.
- * Sem este `implements`, renomear `forget()` passaria pela build e quebraria a fiação em produção. O que existe aqui é o que a casca desenha e o que o guard de rota
- * consulta — por isso nada de senha, nada de token e nada gravado em `localStorage`.
+ * O que existe aqui é o que a casca desenha e o que o guard de rota consulta — por isso nada de
+ * senha, nada de token e nada gravado em `localStorage`. O interceptador de sessão chama
+ * `forget()` quando o backend recusa a sessão (FR-003).
  */
 @Injectable({ providedIn: 'root' })
-export class SessionStore implements SessionInvalidation {
+export class SessionStore {
   private readonly current = signal<AuthenticatedCaretaker | null>(null);
 
   readonly caretaker = this.current.asReadonly();

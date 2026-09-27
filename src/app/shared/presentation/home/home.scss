@@ -1,0 +1,5 @@
+/* A página não ocupa caixa: título, avisos e cartões são itens da coluna do .content-inner do design
+ * system, que dá o espaçamento e a entrada animada. */
+:host {
+  display: contents;
+}

@@ -1,0 +1,102 @@
+<ovyx-dialog
+  [title]="editing ? 'Editar responsável' : 'Novo responsável'"
+  [subtitle]="subtitle()"
+  [icon]="editing ? 'edit' : 'user'"
+  (closed)="close()"
+  (submitted)="submit()"
+>
+  <p class="sr" role="status">{{ state() === 'loading' ? 'Carregando…' : '' }}</p>
+
+  @switch (state()) {
+    @case ('loading') {
+      <div class="loading span2" aria-hidden="true">
+        <span class="sk"></span>
+        <span class="sk"></span>
+        <span class="sk"></span>
+      </div>
+    }
+    @case ('missing') {
+      <ovyx-alert class="span2" variant="danger">
+        <p>Responsável não encontrado.</p>
+      </ovyx-alert>
+    }
+    @case ('failed') {
+      <ovyx-error-summary
+        class="span2"
+        heading="Não foi possível carregar o responsável:"
+        [errors]="notification().errors"
+        [fields]="[]"
+      />
+    }
+    @case ('ready') {
+      @if (notification().hasErrors) {
+        <ovyx-error-summary class="span2" [errors]="notification().errors" [fields]="fields" />
+      }
+
+      <ovyx-form-field
+        controlId="fullName"
+        label="Nome completo"
+        autocomplete="off"
+        [wide]="true"
+        [control]="form.controls.fullName"
+        [error]="messageFor('fullName')"
+      />
+      <ovyx-form-field
+        controlId="email"
+        label="E-mail"
+        type="email"
+        icon="mail"
+        autocomplete="off"
+        [wide]="true"
+        [control]="form.controls.email"
+        [error]="messageFor('email')"
+      />
+      <ovyx-form-field
+        controlId="cpf"
+        label="CPF"
+        hint="Só os dígitos, ou com pontos e traço."
+        autocomplete="off"
+        [control]="form.controls.cpf"
+        [error]="messageFor('cpf')"
+      />
+      <ovyx-form-field
+        controlId="mobilePhone"
+        label="Celular com DDD"
+        type="tel"
+        icon="phone"
+        autocomplete="off"
+        [control]="form.controls.mobilePhone"
+        [error]="messageFor('mobilePhone')"
+      />
+      @if (!editing) {
+        <ovyx-form-field
+          controlId="password"
+          label="Senha provisória"
+          type="password"
+          icon="lock"
+          autocomplete="new-password"
+          hint="De 12 a 128 caracteres, com letra e dígito, diferente do e-mail e do CPF."
+          [control]="form.controls.password"
+          [error]="messageFor('password')"
+        />
+      }
+      <ovyx-select-field
+        controlId="role"
+        label="Perfil"
+        [control]="form.controls.role"
+        [options]="roleOptions"
+        [error]="messageFor('role')"
+      />
+    }
+  }
+
+  <!-- Um elemento por condição: um bloco com mais de uma raiz iria para o corpo, e não para as ações. -->
+  <ovyx-button dialog-actions variant="secondary" [disabled]="submitting()" (pressed)="close()">
+    {{ state() === 'ready' ? 'Cancelar' : 'Voltar à lista' }}
+  </ovyx-button>
+  @if (state() === 'ready') {
+    <ovyx-button dialog-actions type="submit" icon="check" [busy]="submitting()">
+      {{ editing ? 'Salvar alterações' : 'Cadastrar' }}
+    </ovyx-button>
+  }
+</ovyx-dialog>

@@ -1,0 +1,88 @@
+/* Cópia fiel de design-system/css/tokens.css (Avicultura Design System 2.0).
+ * Não editar aqui: o que o Ovyx acrescenta fica em extensions.css. */
+/*!
+ * Avicultura Design System 2.0 — tokens
+ * Tema claro em :root, escuro automático (prefers-color-scheme) e forçado com
+ * <html data-theme="dark"> ou data-theme="light".
+ */
+/* ============ TOKENS ============ */
+:root{
+  --font-display:"Bricolage Grotesque","Onest",system-ui,sans-serif;
+  --font-body:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
+
+  /* Rampas fixas */
+  --capim-50:#EAF6F1;--capim-100:#CDEBDF;--capim-200:#9DD7C2;--capim-300:#63BD9F;--capim-400:#2FA07E;--capim-500:#148466;--capim-600:#0C6B53;--capim-700:#0B5544;--capim-800:#0B4337;--capim-900:#0A342C;
+  --gema-50:#FFF7E0;--gema-100:#FEEBB3;--gema-200:#FDDB7A;--gema-300:#FBCB4A;--gema-400:#F7B51A;--gema-500:#E89E00;--gema-600:#B97A00;--gema-700:#8A5B00;
+  --palha-0:#FFFFFF;--palha-25:#FAFBF9;--palha-50:#F3F5F2;--palha-100:#E8ECE7;--palha-200:#D8DED7;--palha-300:#BCC5BD;--palha-400:#8D988F;--palha-500:#66716A;--palha-600:#4B554F;--palha-700:#343C37;--palha-800:#212824;--palha-900:#141A17;--palha-950:#0C110E;
+  --pinta-300:#C9A27E;--pinta-500:#8B5E3C;--pinta-700:#5A3B24;
+
+  /* Semânticos — claro */
+  --bg:#F3F5F2;--surface:#FFFFFF;--surface-2:#F8FAF7;--sunken:#ECEFEA;
+  --line:#E1E6E0;--line-strong:#C9D1CA;
+  --ink:#141A17;--ink-2:#48524C;--ink-3:#66716A;
+  --primary:#0C6B53;--primary-hover:#0B5544;--primary-soft:#E3F3EC;--primary-ink:#0B5544;--on-primary:#FFFFFF;
+  --accent:#F7B51A;--accent-soft:#FFF3D1;--accent-ink:#7A5200;--on-accent:#2A1C00;
+  --success:#1E8E4E;--success-soft:#E4F4EA;--success-ink:#17703D;
+  --warning:#C2570C;--warning-soft:#FDEDE2;--warning-ink:#9A430A;
+  --danger:#C8363B;--danger-soft:#FBE8E8;--danger-ink:#A32A2F;--on-danger:#FFFFFF;
+  --info:#2B6CB0;--info-soft:#E7EFF9;--info-ink:#22578F;
+  --nav-bg:#0F2B24;--nav-ink:#D5E6DE;--nav-ink-2:#8FB2A4;--nav-hover:rgba(255,255,255,.06);--nav-active:rgba(255,255,255,.11);--nav-line:rgba(255,255,255,.09);
+  --toast-bg:#141A17;--toast-ink:#EEF3F0;
+  --chart-1:#148466;--chart-2:#E89E00;--chart-3:#3E7CC4;--chart-4:#A8552A;
+  --chart-wash:rgba(20,132,102,.10);--chart-grid:#E6EBE5;--chart-band:rgba(232,158,0,.12);
+  --shadow-1:0 1px 2px rgba(16,28,22,.06),0 1px 1px rgba(16,28,22,.04);
+  --shadow-2:0 12px 32px -12px rgba(16,28,22,.25);
+  --shadow-3:0 30px 80px -24px rgba(10,24,18,.40);
+  --focus:0 0 0 3px rgba(20,132,102,.35);
+  --scrim:rgba(10,20,16,.45);
+  --frame:#1B2320;
+  --r-xs:6px;--r-sm:8px;--r-md:12px;--r-lg:16px;--r-xl:22px;--r-pill:999px;
+  --t-fast:.12s;--t-base:.22s;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0D1311;--surface:#141C19;--surface-2:#18211D;--sunken:#0A0F0D;
+    --line:#25302B;--line-strong:#34423B;
+    --ink:#E6EEE9;--ink-2:#B2BFB8;--ink-3:#8C9A92;
+    --primary:#3CC19A;--primary-hover:#5CD3AE;--primary-soft:rgba(60,193,154,.14);--primary-ink:#7FE0C2;--on-primary:#03241B;
+    --accent:#FFC23D;--accent-soft:rgba(255,194,61,.14);--accent-ink:#FFD479;--on-accent:#2A1C00;
+    --success:#4CC784;--success-soft:rgba(76,199,132,.14);--success-ink:#7ED9A5;
+    --warning:#F29155;--warning-soft:rgba(242,145,85,.15);--warning-ink:#F7B288;
+    --danger:#F06A6E;--danger-soft:rgba(240,106,110,.15);--danger-ink:#F59A9D;--on-danger:#2B0507;
+    --info:#6FA8EA;--info-soft:rgba(111,168,234,.15);--info-ink:#9CC3F0;
+    --nav-bg:#09100D;--nav-ink:#D5E6DE;--nav-ink-2:#7E9C90;--nav-hover:rgba(255,255,255,.05);--nav-active:rgba(255,255,255,.09);--nav-line:rgba(255,255,255,.07);
+    --toast-bg:#E6EEE9;--toast-ink:#101614;
+    --chart-1:#1F9E7A;--chart-2:#BC821A;--chart-3:#4F88CF;--chart-4:#C8683A;
+    --chart-wash:rgba(31,158,122,.16);--chart-grid:#222C28;--chart-band:rgba(188,130,26,.16);
+    --shadow-1:0 1px 2px rgba(0,0,0,.4);
+    --shadow-2:0 14px 36px -12px rgba(0,0,0,.6);
+    --shadow-3:0 30px 80px -20px rgba(0,0,0,.75);
+    --focus:0 0 0 3px rgba(60,193,154,.40);
+    --scrim:rgba(0,0,0,.6);
+    --frame:#2A3531;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0D1311;--surface:#141C19;--surface-2:#18211D;--sunken:#0A0F0D;
+  --line:#25302B;--line-strong:#34423B;
+  --ink:#E6EEE9;--ink-2:#B2BFB8;--ink-3:#8C9A92;
+  --primary:#3CC19A;--primary-hover:#5CD3AE;--primary-soft:rgba(60,193,154,.14);--primary-ink:#7FE0C2;--on-primary:#03241B;
+  --accent:#FFC23D;--accent-soft:rgba(255,194,61,.14);--accent-ink:#FFD479;--on-accent:#2A1C00;
+  --success:#4CC784;--success-soft:rgba(76,199,132,.14);--success-ink:#7ED9A5;
+  --warning:#F29155;--warning-soft:rgba(242,145,85,.15);--warning-ink:#F7B288;
+  --danger:#F06A6E;--danger-soft:rgba(240,106,110,.15);--danger-ink:#F59A9D;--on-danger:#2B0507;
+  --info:#6FA8EA;--info-soft:rgba(111,168,234,.15);--info-ink:#9CC3F0;
+  --nav-bg:#09100D;--nav-ink:#D5E6DE;--nav-ink-2:#7E9C90;--nav-hover:rgba(255,255,255,.05);--nav-active:rgba(255,255,255,.09);--nav-line:rgba(255,255,255,.07);
+  --toast-bg:#E6EEE9;--toast-ink:#101614;
+  --chart-1:#1F9E7A;--chart-2:#BC821A;--chart-3:#4F88CF;--chart-4:#C8683A;
+  --chart-wash:rgba(31,158,122,.16);--chart-grid:#222C28;--chart-band:rgba(188,130,26,.16);
+  --shadow-1:0 1px 2px rgba(0,0,0,.4);
+  --shadow-2:0 14px 36px -12px rgba(0,0,0,.6);
+  --shadow-3:0 30px 80px -20px rgba(0,0,0,.75);
+  --focus:0 0 0 3px rgba(60,193,154,.40);
+  --scrim:rgba(0,0,0,.6);
+  --frame:#2A3531;
+}

@@ -1,0 +1,19 @@
+/* O diálogo se posiciona pela raiz da aplicação (.layer); este componente não ocupa caixa. */
+:host {
+  display: contents;
+}
+
+/* O caminho para o relatório que já existe, logo abaixo da recusa. */
+.existing {
+  margin: 0;
+  font-weight: 600;
+}
+
+.loading {
+  display: grid;
+  gap: 10px;
+}
+
+.loading .sk {
+  height: 42px;
+}

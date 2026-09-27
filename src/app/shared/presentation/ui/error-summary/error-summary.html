@@ -1,0 +1,23 @@
+<div
+  #region
+  class="alert danger error-summary"
+  role="group"
+  tabindex="-1"
+  [attr.aria-labelledby]="titleId"
+>
+  <ovyx-icon name="alert" [size]="18" />
+  <div class="grow">
+    <b [id]="titleId">{{ title() }}</b>
+    <ul>
+      @for (error of shown(); track $index) {
+        <li>
+          @if (linkable(error); as field) {
+            <a [href]="'#' + field" (click)="goTo($event, field)">{{ error.message }}</a>
+          } @else {
+            {{ error.message }}
+          }
+        </li>
+      }
+    </ul>
+  </div>
+</div>

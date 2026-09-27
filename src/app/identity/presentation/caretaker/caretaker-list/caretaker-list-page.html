@@ -1,0 +1,123 @@
+<ovyx-page-header eyebrow="Administração" title="Responsáveis" subtitle="Quem pode entrar no sistema e com qual perfil.">
+  <a class="btn btn-primary" routerLink="/responsaveis/novo">
+    <ovyx-icon name="plus" [size]="18" />
+    <span>Novo responsável</span>
+  </a>
+</ovyx-page-header>
+
+@if (refusal().hasErrors) {
+  <ovyx-error-summary heading="Não foi possível concluir a operação:" [errors]="refusal().errors" [fields]="[]" />
+}
+
+<section class="card">
+  <form class="tbl-tools" role="search" aria-label="Pesquisar responsáveis" (submit)="search($event)">
+    <ovyx-search-field
+      controlId="name"
+      label="Buscar por nome"
+      placeholder="Buscar por nome"
+      [control]="filters.controls.name"
+    />
+    <ovyx-button type="submit" variant="secondary">Buscar</ovyx-button>
+    <span class="grow"></span>
+    <ovyx-segmented-control
+      label="Situação"
+      [options]="statusOptions"
+      [value]="status()"
+      (valueChange)="filterByStatus($event)"
+    />
+  </form>
+
+  <ovyx-data-table
+    caption="Responsáveis cadastrados"
+    emptyTitle="Nenhum responsável encontrado"
+    emptyMessage="Busque por outro trecho do nome ou escolha outra situação."
+    [loading]="loading()"
+    [empty]="page().content.length === 0"
+    [summary]="found()"
+  >
+    <thead>
+      <tr>
+        <th scope="col">Nome</th>
+        <th scope="col">Celular</th>
+        <th scope="col">Perfil</th>
+        <th scope="col">Situação</th>
+        <th scope="col" class="r"><span class="sr">Ações</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (caretaker of page().content; track caretaker.id; let index = $index) {
+        <tr [attr.data-caretaker]="caretaker.id">
+          <td class="main" data-label="Nome">
+            <div class="cell-id">
+              <ovyx-avatar [name]="caretaker.fullName" [small]="true" [tone]="toneOf(index)" />
+              <div class="identity">
+                <b>{{ caretaker.fullName }}</b>
+                <small>{{ caretaker.email }}</small>
+              </div>
+            </div>
+          </td>
+          <td class="tnum" data-label="Celular">{{ caretaker.mobilePhone }}</td>
+          <td data-label="Perfil">
+            <ovyx-status-badge
+              [label]="roleLabelOf(caretaker.role)"
+              [tone]="caretaker.role === 'ADMINISTRATOR' ? 'primary' : 'neutral'"
+            />
+          </td>
+          <td data-label="Situação">
+            <ovyx-status-badge
+              [label]="statusLabelOf(caretaker.status)"
+              [tone]="caretaker.status === 'ACTIVE' ? 'success' : 'neutral'"
+            />
+          </td>
+          <td class="act">
+            <div class="row-actions">
+              <a
+                class="icon-btn sm"
+                [routerLink]="['/responsaveis', caretaker.id]"
+                [attr.aria-label]="'Editar ' + caretaker.fullName"
+                [attr.title]="'Editar ' + caretaker.fullName"
+              >
+                <ovyx-icon name="edit" [size]="18" />
+              </a>
+              @if (caretaker.status === 'ACTIVE') {
+                <ovyx-icon-button
+                  icon="lock"
+                  [small]="true"
+                  [danger]="true"
+                  [label]="'Inativar ' + caretaker.fullName"
+                  (pressed)="confirming.set(caretaker)"
+                />
+              }
+            </div>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </ovyx-data-table>
+
+  @if (page().totalElements > 0) {
+    <ovyx-pager
+      [page]="page().page"
+      [size]="page().size"
+      [totalPages]="page().totalPages"
+      [totalElements]="page().totalElements"
+      (pageChange)="goTo($event)"
+    />
+  }
+</section>
+
+@if (confirming(); as caretaker) {
+  <ovyx-confirm-dialog
+    icon="lock"
+    confirmLabel="Inativar"
+    [title]="'Inativar ' + caretaker.fullName + '?'"
+    [busy]="deactivating()"
+    (confirmed)="deactivate(caretaker)"
+    (cancelled)="confirming.set(null)"
+  >
+    O responsável deixa de conseguir entrar no sistema. O histórico é preservado.
+  </ovyx-confirm-dialog>
+}
+
+<!-- O cadastro e a edição abrem aqui, em diálogo sobre a lista. -->
+<router-outlet />

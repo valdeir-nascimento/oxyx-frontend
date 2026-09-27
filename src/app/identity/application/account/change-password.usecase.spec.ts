@@ -7,8 +7,8 @@ import { ChangeOwnPasswordUseCase } from './change-password.usecase';
 
 /**
  * A política de senha vive no backend (FR-022) — o cliente não a repete, senão as duas pontas
- * divergem. O que este caso de uso verifica sozinho é o preenchimento, e ele acumula os dois
- * campos, como o FR-017 exige.
+ * divergem. Nem o preenchimento o cliente confere: barrar um campo vazio antes da rede escondia a
+ * recusa do outro campo, que só o backend conhece, e quebrava o FR-017 (QA da US4).
  */
 describe('ChangeOwnPasswordUseCase', () => {
   const maria = {
@@ -41,18 +41,26 @@ describe('ChangeOwnPasswordUseCase', () => {
     });
   });
 
-  it('reports both missing fields at once, without calling the backend', async () => {
-    const gateway = gatewayThatReturns(success(undefined));
+  it('leaves a missing current password to the backend, which reports it with the policy at once (FR-017)', async () => {
+    // Com a senha atual vazia, o cliente parava ali e mostrava só "Informe a senha atual."; o que
+    // faltava na nova só aparecia no envio seguinte.
+    const refusal = failure<void>(
+      Notification.of([
+        { code: 'VALIDATION_FAILED', field: 'currentPassword', message: 'Informe a senha atual.' },
+        { code: 'VALIDATION_FAILED', field: 'newPassword', message: 'A senha deve ter ao menos 12 caracteres.' },
+      ]),
+    );
+    const gateway = gatewayThatReturns(refusal);
 
-    const result = await useCaseWith(gateway).execute('', '   ');
+    const result = await useCaseWith(gateway).execute('', 'abc');
 
+    expect(gateway.changeOwnPassword).toHaveBeenCalledWith({ currentPassword: '', newPassword: 'abc' });
     expect(result.success === false && result.notification.messageFor('currentPassword')).toBe(
       'Informe a senha atual.',
     );
-    expect(result.success === false && result.notification.messageFor('newPassword')).toBe(
-      'Informe a senha.',
+    expect(result.success === false && result.notification.messageFor('newPassword')).toContain(
+      'ao menos 12 caracteres',
     );
-    expect(gateway.changeOwnPassword).not.toHaveBeenCalled();
   });
 
   it('keeps the policy violations exactly as the backend returned them', async () => {

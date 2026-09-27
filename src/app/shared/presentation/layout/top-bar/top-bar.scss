@@ -1,0 +1,9 @@
+:host {
+  display: contents;
+}
+
+/* Os itens anteriores do caminho são texto, e não botões como no protótipo: nesta fatia, nenhuma
+ * área intermediária tem página própria. O espaçamento é o do botão do design system. */
+.crumb {
+  padding: 3px 6px;
+}
