@@ -5,6 +5,7 @@ import { Result, success } from '../../shared/application/result';
 import { resultOf } from '../../shared/infrastructure/http-result';
 import { jsonNumberOf } from '../../shared/infrastructure/typed-number';
 import { DailyReportGateway } from '../application/daily-report/daily-report-gateway';
+import { DashboardGateway } from '../application/dashboard/dashboard-gateway';
 import {
   DailyReport,
   DailyReportInput,
@@ -18,6 +19,7 @@ import {
   ProductionInput,
   ReportCage,
 } from '../domain/daily-report';
+import { DashboardOverview, DashboardPeriod, SectorDashboard } from '../domain/dashboard';
 
 /**
  * Endereço dos relatórios de um setor, e de um deles, com os identificadores codificados: eles vêm do
@@ -67,7 +69,7 @@ function reportBodyOf(input: DailyReportInput): Record<string, unknown> {
  * recusa vira `Result`, nunca exceção, por `resultOf`.
  */
 @Injectable({ providedIn: 'root' })
-export class ProductionHttpAdapter implements DailyReportGateway {
+export class ProductionHttpAdapter implements DailyReportGateway, DashboardGateway {
   private readonly http = inject(HttpClient);
 
   async listDailyReports(sectorId: string, search: DailyReportSearch): Promise<Result<DailyReportPage>> {
@@ -165,6 +167,21 @@ export class ProductionHttpAdapter implements DailyReportGateway {
     const body = { formulaId: input.formulaId, consumption: jsonNumberOf(input.consumption) };
     return resultOf(() =>
       firstValueFrom(this.http.put<ReportCage>(`${cageUrl(sectorId, reportId, cageId)}/feed`, body)),
+    );
+  }
+
+  // ---------------------------------------------------------------- painel (006)
+
+  async getDashboardOverview(): Promise<Result<DashboardOverview>> {
+    return resultOf(() => firstValueFrom(this.http.get<DashboardOverview>('/api/v1/dashboard')));
+  }
+
+  async getSectorDashboard(sectorId: string, period: DashboardPeriod): Promise<Result<SectorDashboard>> {
+    const params = new HttpParams().set('period', period);
+    return resultOf(() =>
+      firstValueFrom(
+        this.http.get<SectorDashboard>(`/api/v1/sectors/${encodeURIComponent(sectorId)}/dashboard`, { params }),
+      ),
     );
   }
 }

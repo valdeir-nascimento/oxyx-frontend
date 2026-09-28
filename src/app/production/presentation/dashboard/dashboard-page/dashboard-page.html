@@ -1,0 +1,237 @@
+<ovyx-page-header eyebrow="Painel" [title]="greeting()" [subtitle]="subtitle()">
+  @if (todayMissing() && sectorId(); as sector) {
+    <a class="btn btn-primary" [routerLink]="['/setores', sector, 'relatorios', 'novo']"
+      >Abrir relatório de hoje</a
+    >
+  }
+</ovyx-page-header>
+
+@if (refusal().hasErrors) {
+  <ovyx-error-summary
+    heading="Não foi possível carregar o painel:"
+    [errors]="refusal().errors"
+    [fields]="[]"
+  />
+}
+
+@if (tabs().length > 0) {
+  <div class="toolbar">
+    <ovyx-tab-nav label="Setor" [tabs]="tabs()" />
+    <ovyx-segmented-control
+      label="Período"
+      [options]="periods"
+      [value]="periodRoute()"
+      (valueChange)="choosePeriod($event)"
+    />
+  </div>
+}
+
+@if (kpis().length > 0) {
+  <section class="kpis" aria-label="Indicadores do período">
+    @for (kpi of kpis(); track kpi.label) {
+      <ovyx-kpi
+        [label]="kpi.label"
+        [icon]="kpi.icon"
+        [highlight]="kpi.highlight"
+        [value]="kpi.value"
+        [unit]="kpi.unit"
+        [change]="kpi.change"
+        [tone]="kpi.tone"
+        [direction]="kpi.direction"
+        [comparison]="comparison()"
+        [trend]="kpi.trend"
+        [trendLabel]="kpi.trendLabel"
+        [note]="kpi.note"
+      />
+    }
+  </section>
+}
+
+@if (dashboard(); as data) {
+  <div class="grid-2">
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2>Produtividade diária</h2>
+          <div class="sub">Ovos coletados ÷ aves no início do dia · últimos 7 dias</div>
+        </div>
+        @if (targetBadge(); as badge) {
+          <ovyx-status-badge [label]="badge.label" [tone]="badge.tone" />
+        }
+      </div>
+      <div class="card-body">
+        @if (productivityPoints().length > 0) {
+          <ovyx-line-chart
+            [label]="productivityLabel()"
+            [points]="productivityPoints()"
+            [reference]="target()"
+            [format]="formatRate"
+          />
+        } @else {
+          <p class="muted">Nenhum relatório nos últimos 7 dias.</p>
+        }
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2>Classificação dos ovos</h2>
+          <div class="sub">{{ gradingSubtitle() }}</div>
+        </div>
+      </div>
+      <div class="card-body">
+        @if (grading(); as view) {
+          <ovyx-distribution
+            label="Classes de ovos fora do padrão"
+            [mainPercent]="view.mainPercent"
+            [mainText]="view.mainText"
+            [mainNote]="view.mainNote"
+            [parts]="view.parts"
+          />
+        } @else {
+          <p class="muted">Nenhum ovo no período.</p>
+        }
+      </div>
+    </section>
+  </div>
+
+  <div class="grid-2 even">
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2>Custo por ovo</h2>
+          <div class="sub">
+            Custo da ração ÷ ovos coletados · últimos 7 dias, só com a ração completa
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        @if (costPoints().length > 0) {
+          <ovyx-line-chart
+            [label]="'Custo por ovo de ' + data.sector.name + ' nos últimos 7 dias'"
+            [points]="costPoints()"
+            [format]="formatCostPerEgg"
+          />
+        } @else {
+          <p class="muted">Nenhum dia com a ração completa nos últimos 7 dias.</p>
+        }
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2>Alertas e pendências</h2>
+          <div class="sub">{{ data.sector.name }}</div>
+        </div>
+        <ovyx-status-badge
+          [label]="openAlertsLabel()"
+          [tone]="alertItems().length > 0 ? 'warning' : 'neutral'"
+        />
+      </div>
+      <div class="list">
+        @for (alert of alertItems(); track $index) {
+          <div class="list-item">
+            <span
+              class="st-ico"
+              [class.warning]="alert.toneClass === 'warning'"
+              [class.info]="alert.toneClass === 'info'"
+              ><ovyx-icon [name]="alert.icon" [size]="18"
+            /></span>
+            <div class="grow">
+              <b>{{ alert.title }}</b>
+              <p>{{ alert.detail }}</p>
+            </div>
+            <a
+              class="icon-btn sm"
+              [routerLink]="alert.route"
+              [attr.aria-label]="'Abrir: ' + alert.title"
+              [attr.title]="'Abrir: ' + alert.title"
+            >
+              <ovyx-icon name="arrowR" [size]="18" />
+            </a>
+          </div>
+        } @empty {
+          @if (allClear()) {
+            <div class="list-item">
+              <span class="st-ico success"><ovyx-icon name="check" [size]="18" /></span>
+              <div class="grow">
+                <b>Relatório de hoje completo</b>
+                <p>Nenhum alerta aberto.</p>
+              </div>
+            </div>
+          } @else {
+            <div class="list-item">
+              <div class="grow"><p>Nenhum alerta aberto.</p></div>
+            </div>
+          }
+        }
+      </div>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h2>Últimos relatórios</h2>
+        <div class="sub">{{ data.sector.name }}</div>
+      </div>
+      <a class="btn btn-ghost btn-sm" [routerLink]="['/setores', data.sector.id, 'relatorios']">
+        <span>Ver todos</span>
+        <ovyx-icon name="arrowR" [size]="16" />
+      </a>
+    </div>
+    <ovyx-data-table
+      [caption]="'Últimos relatórios de ' + data.sector.name"
+      emptyTitle="Nenhum relatório ainda"
+      [empty]="latestReports().length === 0"
+    >
+      <thead>
+        <tr>
+          <th scope="col">Data</th>
+          <th scope="col">Responsável</th>
+          <th scope="col" class="r">Produção</th>
+          <th scope="col" class="r">Removidos</th>
+          <th scope="col">Lançamentos</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (report of latestReports(); track report.id) {
+          <tr>
+            <td class="main" data-label="Data">
+              <a
+                class="cell-id"
+                [routerLink]="['/setores', data.sector.id, 'relatorios', report.id]"
+              >
+                <span class="ic" aria-hidden="true"><ovyx-icon name="calendar" [size]="18" /></span>
+                <span>
+                  <b>{{ dayWithWeekdayOf(report.collectionDate) }}</b>
+                  <small>{{ report.collectionTime }}</small>
+                </span>
+              </a>
+            </td>
+            <td data-label="Responsável">{{ report.openedBy.name }}</td>
+            <td class="r strong tnum" data-label="Produção">{{ countOf(report.collectedEggs) }}</td>
+            <td class="r tnum" data-label="Removidos">{{ countOf(report.removedBirds) }}</td>
+            <td data-label="Lançamentos">
+              <ovyx-status-badge [label]="report.situation.label" [tone]="report.situation.tone" />
+            </td>
+          </tr>
+        }
+      </tbody>
+    </ovyx-data-table>
+  </section>
+}
+
+@if (empty()) {
+  <section class="card">
+    <ovyx-empty-state
+      icon="egg"
+      title="Nenhum setor com lançamentos"
+      message="Cadastre um setor e lance o primeiro relatório para ver produção e custo aqui."
+    >
+      <a class="btn btn-primary btn-sm" routerLink="/setores">Ir para setores</a>
+    </ovyx-empty-state>
+  </section>
+}

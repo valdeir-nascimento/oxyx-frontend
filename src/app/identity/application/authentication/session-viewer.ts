@@ -17,4 +17,7 @@ export class SessionViewer implements Viewer {
     const caretaker = this.session.caretaker();
     return caretaker !== null && isAdministrator(caretaker.role);
   });
+
+  /** A primeira palavra do nome completo, sem os espaços das pontas. */
+  readonly firstName = computed(() => this.session.caretaker()?.fullName.trim().split(/\s+/)[0] ?? '');
 }

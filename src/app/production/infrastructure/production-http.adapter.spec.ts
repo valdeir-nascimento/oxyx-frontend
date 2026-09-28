@@ -329,4 +329,45 @@ describe('ProductionHttpAdapter', () => {
       expect(result.success && result.value.id).toBe(report.id);
     });
   });
+
+  describe('dashboard (006, US1)', () => {
+    it('asks for the overview of the dashboard', async () => {
+      const pending = adapter.getDashboardOverview();
+
+      const request = backend.expectOne('/api/v1/dashboard');
+      expect(request.request.method).toBe('GET');
+      request.flush({ today: '2026-09-24', partOfDay: 'MORNING', activeSectors: 3, completeToday: 2, sectors: [] });
+
+      const result = await pending;
+      expect(result.success && result.value.completeToday).toBe(2);
+    });
+
+    it('asks for the dashboard of the sector, with the period in the query and the identifier encoded', async () => {
+      const pending = adapter.getSectorDashboard('galpão/1', 'LAST_7_DAYS');
+
+      const request = backend.expectOne(
+        (candidate) => candidate.url === '/api/v1/sectors/galp%C3%A3o%2F1/dashboard',
+      );
+      expect(request.request.method).toBe('GET');
+      expect(request.request.params.get('period')).toBe('LAST_7_DAYS');
+      request.flush({ period: 'LAST_7_DAYS', trend: [] });
+
+      const result = await pending;
+      expect(result.success && result.value.period).toBe('LAST_7_DAYS');
+    });
+
+    it('turns the refusal of an unknown sector into the notification', async () => {
+      const pending = adapter.getSectorDashboard(sectorId, 'TODAY');
+
+      backend
+        .expectOne((candidate) => candidate.url === `/api/v1/sectors/${sectorId}/dashboard`)
+        .flush(
+          { code: 'SECTOR_NOT_FOUND', title: 'Não encontrado', status: 404, detail: 'Setor não encontrado.' },
+          { status: 404, statusText: 'Not Found' },
+        );
+
+      const result = await pending;
+      expect(!result.success && result.notification.errors[0].code).toBe('SECTOR_NOT_FOUND');
+    });
+  });
 });

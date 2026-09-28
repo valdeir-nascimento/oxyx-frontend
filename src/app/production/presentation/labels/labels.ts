@@ -74,8 +74,21 @@ export function gramsOf(value: number, decimals = 0): string {
 
 /** O desvio do consumo sobre o esperado, com o sinal e uma casa: "+3,1%", "−10,7%" (R-007 da 004). */
 export function deviationOf(value: number): string {
-  const sign = value > 0 ? '+' : value < 0 ? '−' : '';
-  return `${sign}${decimalOf(Math.abs(value), 1)}%`;
+  return signedPercentOf(value);
+}
+
+/** Uma variação em porcentagem, com o sinal e uma casa: "+2,4%", "−1,1%", "0,0%" (painel, 006). */
+export function signedPercentOf(value: number): string {
+  return `${signOf(value)}${decimalOf(Math.abs(value), 1)}%`;
+}
+
+/** Uma variação em pontos percentuais, com o sinal e duas casas: "+2,00 p.p." (painel, 006). */
+export function signedPointsOf(value: number): string {
+  return `${signOf(value)}${decimalOf(Math.abs(value), 2)} p.p.`;
+}
+
+function signOf(value: number): string {
+  return value > 0 ? '+' : value < 0 ? '−' : '';
 }
 
 /** Gramas escritas em quilos, com uma casa: 2.744 g são "2,7 kg". É só a unidade: o total vem do backend. */

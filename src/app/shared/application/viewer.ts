@@ -13,6 +13,8 @@ import { InjectionToken, Signal, signal } from '@angular/core';
 export interface Viewer {
   /** Se quem vê pode cadastrar, editar, inativar e reativar (FR-018). */
   readonly isAdministrator: Signal<boolean>;
+  /** O primeiro nome de quem vê, para a saudação do painel (R-008 da 006); vazio sem sessão. */
+  readonly firstName: Signal<string>;
 }
 
 /**
@@ -21,5 +23,8 @@ export interface Viewer {
  */
 export const VIEWER = new InjectionToken<Viewer>('Viewer', {
   providedIn: 'root',
-  factory: () => ({ isAdministrator: signal(false).asReadonly() }),
+  factory: () => ({
+    isAdministrator: signal(false).asReadonly(),
+    firstName: signal('').asReadonly(),
+  }),
 });

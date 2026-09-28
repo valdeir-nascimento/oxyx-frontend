@@ -11,4 +11,10 @@ describe('VIEWER', () => {
 
     expect(viewer.isAdministrator()).toBe(false);
   });
+
+  it('knows no name of the viewer when nobody tells it', () => {
+    const viewer = TestBed.inject(VIEWER);
+
+    expect(viewer.firstName()).toBe('');
+  });
 });
