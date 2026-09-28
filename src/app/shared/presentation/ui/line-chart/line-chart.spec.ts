@@ -77,6 +77,42 @@ describe('LineChart', () => {
     expect(element().textContent).toContain('Faixa ideal 155–175 g');
   });
 
+  // ---------------------------------------------------------------- referência (006)
+
+  it('draws the reference line with its caption, inside the drawing, as the target of the prototype', () => {
+    render();
+    fixture.componentRef.setInput('reference', { value: 180, label: 'Meta 180 g' });
+    fixture.detectChanges();
+
+    const line = element().querySelector('[data-reference]')!;
+    const y = Number(line.getAttribute('y1'));
+    expect(y).toBeGreaterThan(0);
+    expect(y).toBeLessThan(220);
+    expect(element().textContent).toContain('Meta 180 g');
+  });
+
+  it('hides the value of the last point when the reference would overlap it', () => {
+    render();
+    fixture.componentRef.setInput('reference', { value: 161.4, label: 'Meta 161 g' });
+    fixture.detectChanges();
+
+    expect(element().querySelector('[data-last]')).toBeNull();
+  });
+
+  it('keeps the value of the last point when the reference is far from it', () => {
+    render();
+    fixture.componentRef.setInput('reference', { value: 120, label: 'Meta 120 g' });
+    fixture.detectChanges();
+
+    expect(element().querySelector('[data-last]')?.textContent).toContain('161,4 g');
+  });
+
+  it('draws no reference line when there is none', () => {
+    render();
+
+    expect(element().querySelector('[data-reference]')).toBeNull();
+  });
+
   it('draws no band when there is none', () => {
     render();
 

@@ -8,6 +8,8 @@ export interface TabLink {
   readonly label: string;
   /** Os comandos da rota, como os do `routerLink`. */
   readonly link: readonly unknown[];
+  /** Os parâmetros de consulta da aba, como o setor do painel (006); a aba atual é a da consulta atual. */
+  readonly queryParams?: Readonly<Record<string, string>>;
   readonly icon?: IconName;
   readonly count?: string;
   /** A contagem em destaque de aviso, como o "pendente" do protótipo. */

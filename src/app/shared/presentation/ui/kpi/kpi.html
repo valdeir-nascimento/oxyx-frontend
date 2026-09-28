@@ -1,0 +1,55 @@
+<div class="kpi">
+  <div class="kpi-top">
+    <span class="kpi-ico" [class.gema]="highlight()"
+      ><ovyx-icon [name]="icon()" [size]="18"
+    /></span>
+    {{ label() }}
+  </div>
+  <div class="kpi-val tnum">
+    @if (value(); as written) {
+      {{ written }}
+      @if (unit(); as unitText) {
+        <small>{{ unitText }}</small>
+      }
+    } @else {
+      —
+    }
+  </div>
+  <div class="kpi-foot">
+    <span>
+      @if (change(); as written) {
+        <span
+          class="delta"
+          [class.good]="tone() === 'good'"
+          [class.bad]="tone() === 'bad'"
+          [class.flat]="tone() === 'flat'"
+          [attr.data-direction]="tone() !== 'flat' ? (direction() ?? null) : null"
+        >
+          @if (tone() !== 'flat' && direction(); as arrow) {
+            <ovyx-icon [name]="arrow" [size]="16" />
+          }
+          {{ written }}
+        </span>
+      } @else {
+        <span class="delta flat">sem comparação</span>
+      }
+      <span class="delta flat comparison">{{ comparison() }}</span>
+    </span>
+    @if (path(); as line) {
+      <svg
+        class="spark"
+        [attr.viewBox]="'0 0 ' + width + ' ' + height"
+        role="img"
+        [attr.aria-label]="trendLabel()"
+      >
+        <path [attr.d]="line" class="line" />
+        @if (last(); as point) {
+          <circle [attr.cx]="point.x" [attr.cy]="point.y" r="3.5" class="dot" />
+        }
+      </svg>
+    }
+  </div>
+  @if (note(); as noteText) {
+    <p class="kpi-note">{{ noteText }}</p>
+  }
+</div>

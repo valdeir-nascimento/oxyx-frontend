@@ -1,0 +1,28 @@
+/* O .hero-q, o .ring, as .bars e a .bar-row são do design system; aqui, só as cores do anel. */
+:host {
+  display: block;
+}
+
+.ring-track {
+  fill: none;
+  stroke: var(--primary-soft);
+  stroke-width: 8;
+}
+
+.ring-value {
+  fill: none;
+  stroke: var(--chart-1);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.note {
+  font-size: 13px;
+}
+
+/* No celular, o rótulo encolhe para a barra caber. */
+@media (max-width: 480px) {
+  .bar-row {
+    grid-template-columns: 84px minmax(0, 1fr) 72px;
+  }
+}

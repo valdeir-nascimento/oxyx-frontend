@@ -73,4 +73,29 @@ describe('TabNav', () => {
     expect(production.querySelector('.cnt')?.textContent?.trim()).toBe('pendente');
     expect(mortality.querySelector('.cnt')).toBeNull();
   });
+
+  // ---------------------------------------------------------------- parâmetros de consulta (006)
+
+  it('keeps the query of each tab, and marks as current only the one of the current query', async () => {
+    TestBed.configureTestingModule({
+      imports: [TabNav],
+      providers: [provideRouter([{ path: 'painel', component: Blank }])],
+    });
+    await TestBed.inject(Router).navigateByUrl('/painel?setor=b&periodo=hoje');
+    fixture = TestBed.createComponent(TabNav);
+    fixture.componentRef.setInput('label', 'Setor');
+    fixture.componentRef.setInput('tabs', [
+      { label: 'Galpão A', link: ['/painel'], queryParams: { setor: 'a', periodo: 'hoje' } },
+      { label: 'Galpão B', link: ['/painel'], queryParams: { setor: 'b', periodo: 'hoje' } },
+    ]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(links().map((link) => link.getAttribute('href'))).toEqual([
+      '/painel?setor=a&periodo=hoje',
+      '/painel?setor=b&periodo=hoje',
+    ]);
+    expect(links().map((link) => link.getAttribute('aria-current'))).toEqual([null, 'page']);
+  });
 });

@@ -33,6 +33,20 @@
         </text>
       }
 
+      @if (referenceLine(); as line) {
+        <line
+          data-reference
+          [attr.x1]="margin.left"
+          [attr.x2]="width() - margin.right + 8"
+          [attr.y1]="line.y"
+          [attr.y2]="line.y"
+          class="reference"
+        />
+        <text [attr.x]="width() - margin.right + 10" [attr.y]="line.y + 4" class="caption">
+          {{ line.label }}
+        </text>
+      }
+
       @for (tick of ticks(); track tick.value) {
         <line
           [attr.x1]="margin.left"
@@ -69,9 +83,11 @@
       <path [attr.d]="area()" class="wash" />
       <path data-line [attr.d]="line()" class="line" />
       <circle [attr.cx]="last().x" [attr.cy]="last().y" r="4.5" class="dot" />
-      <text data-last [attr.x]="last().x + 10" [attr.y]="last().y + 4" class="value">
-        {{ last().text }}
-      </text>
+      @if (lastValueShown()) {
+        <text data-last [attr.x]="last().x + 10" [attr.y]="last().y + 4" class="value">
+          {{ last().text }}
+        </text>
+      }
 
       @if (chosen(); as point) {
         <line

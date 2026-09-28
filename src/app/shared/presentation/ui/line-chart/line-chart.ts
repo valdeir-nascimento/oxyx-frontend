@@ -26,6 +26,15 @@ export interface ChartBand {
   readonly label: string;
 }
 
+/** A linha de referência, como a meta de produtividade do painel (006), com o rótulo à direita. */
+export interface ChartReference {
+  readonly value: number;
+  readonly label: string;
+}
+
+/** A distância mínima, em pixels, entre o valor do último ponto e o rótulo da referência. */
+const REFERENCE_CLEARANCE = 14;
+
 /**
  * O tamanho do desenho, como o do protótipo: a largura é a do cartão, medida, e a altura é fixa. Desenhar na
  * largura real mantém o texto em 11 px no celular; com uma largura fixa, o SVG encolhia com o texto junto.
@@ -71,6 +80,8 @@ export class LineChart {
 
   readonly band = input<ChartBand>();
 
+  readonly reference = input<ChartReference>();
+
   /** Como escrever um valor, nas linhas de grade e no último ponto. */
   readonly format = input<(value: number) => string>((value) => String(value));
 
@@ -94,8 +105,10 @@ export class LineChart {
   private readonly domain = computed(() => {
     const values = this.points().map((point) => point.value);
     const band = this.band();
-    let low = Math.min(...values, ...(band ? [band.from] : []));
-    let high = Math.max(...values, ...(band ? [band.to] : []));
+    const reference = this.reference();
+    const limits = [...(band ? [band.from, band.to] : []), ...(reference ? [reference.value] : [])];
+    let low = Math.min(...values, ...limits);
+    let high = Math.max(...values, ...limits);
     if (low === high) {
       low -= 1;
       high += 1;
@@ -178,6 +191,17 @@ export class LineChart {
     const plotted = this.plotted();
     const point = plotted[plotted.length - 1];
     return { ...point, text: this.format()(point.value) };
+  });
+
+  /** A linha de referência, com o rótulo; o valor do último ponto sai quando os dois se encostam. */
+  protected readonly referenceLine = computed(() => {
+    const reference = this.reference();
+    return reference ? { y: this.y(reference.value), label: reference.label } : null;
+  });
+
+  protected readonly lastValueShown = computed(() => {
+    const line = this.referenceLine();
+    return !line || Math.abs(line.y - this.last().y) > REFERENCE_CLEARANCE;
   });
 
   protected readonly bandArea = computed(() => {
