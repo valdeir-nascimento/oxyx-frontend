@@ -49,3 +49,23 @@ export function moneyOf(value: number, decimals = 2): string {
 export function countOf(value: number): string {
   return value.toLocaleString('pt-BR');
 }
+
+/** O dia no formato brasileiro, a partir do ISO: "2026-09-24" vira "24/09/2026". */
+export function dayOf(isoDate: string): string {
+  const [year, month, day] = isoDate.split('-');
+  return `${day}/${month}/${year}`;
+}
+
+/** Um peso em gramas, com a casa decimal só quando houver: "158 g", "158,4 g" (R-007 da 005). */
+export function weightOf(grams: number): string {
+  return `${grams.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} g`;
+}
+
+/**
+ * Uma variação de peso, com o sinal sempre escrito: "+3 g", "−1,5 g", com o sinal de menos tipográfico, e
+ * "0 g" sem sinal. É exibição: a variação vem pronta do backend (R-008 da 005).
+ */
+export function changeOf(grams: number): string {
+  const sign = grams > 0 ? '+' : grams < 0 ? '−' : '';
+  return `${sign}${weightOf(Math.abs(grams))}`;
+}

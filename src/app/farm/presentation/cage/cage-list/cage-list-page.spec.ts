@@ -542,4 +542,46 @@ describe('CageListPage', () => {
 
     expect(document.activeElement).toBe(element().querySelector('.tbl-wrap'));
   });
+
+  // ---------------------------------------------------------------- pesagem (005)
+
+  it.each([true, false])('leads every caretaker to the weight of each cage (005, US1), administrator: %s', async (administrator) => {
+    await render(administrator);
+
+    expect(named('Peso médio da gaiola A-01')?.getAttribute('href')).toBe(
+      `/setores/${galpao.id}/gaiolas/id-A-01/peso`,
+    );
+  });
+
+  it('shows the reference weight range of the sector in the header (005, US2)', async () => {
+    find.mockResolvedValue(success({ ...galpao, referenceWeight: { minimum: 155, maximum: 175 } }));
+
+    await render();
+
+    expect(element().querySelector('.page-head')?.textContent).toContain('peso de referência 155–175 g');
+  });
+
+  it('leaves the reference weight out of the header of a sector without range (005, US2)', async () => {
+    await render();
+
+    expect(element().querySelector('.page-head')?.textContent).not.toContain('peso de referência');
+  });
+
+  it('shows the average weight of the last weighing of each cage, or a dash (005, US3)', async () => {
+    search.mockResolvedValue(
+      success(
+        pageOf([
+          { ...cage('A-01', 'A', 1), lastWeighing: { weighedOn: '2026-09-24', averageWeight: 161.4 } },
+          cage('B-07', 'B', 7),
+        ]),
+      ),
+    );
+
+    await render();
+
+    const weights = Array.from(element().querySelectorAll('tbody td[data-label="Peso médio"]')).map((cell) =>
+      cell.textContent?.trim(),
+    );
+    expect(weights).toEqual(['161,4 g', '—']);
+  });
 });

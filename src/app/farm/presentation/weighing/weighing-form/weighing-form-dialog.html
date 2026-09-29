@@ -1,0 +1,64 @@
+<ovyx-dialog
+  [title]="editing ? 'Corrigir pesagem' : 'Registrar pesagem'"
+  subtitle="O peso médio de uma amostra de aves da gaiola, em gramas."
+  icon="scale"
+  (closed)="close()"
+  (submitted)="submit()"
+>
+  <p class="sr" role="status">{{ state() === 'loading' ? 'Carregando…' : '' }}</p>
+
+  @switch (state()) {
+    @case ('loading') {
+      <div class="loading span2" aria-hidden="true">
+        <span class="sk"></span>
+        <span class="sk"></span>
+      </div>
+    }
+    @case ('missing') {
+      <ovyx-alert class="span2" variant="danger">
+        <p>Pesagem não encontrada.</p>
+      </ovyx-alert>
+    }
+    @case ('failed') {
+      <ovyx-error-summary
+        class="span2"
+        heading="Não foi possível carregar a pesagem:"
+        [errors]="notification().errors"
+        [fields]="[]"
+      />
+    }
+    @case ('ready') {
+      @if (notification().hasErrors) {
+        <ovyx-error-summary class="span2" [errors]="notification().errors" [fields]="fields" />
+      }
+
+      <ovyx-form-field
+        controlId="weighedOn"
+        label="Data"
+        type="date"
+        hint="O dia em que a amostra foi pesada; não pode ser futuro."
+        [control]="form.controls.weighedOn"
+        [error]="messageFor('weighedOn')"
+      />
+      <ovyx-form-field
+        controlId="averageWeight"
+        label="Peso médio (g)"
+        hint="Ex.: 158,4. De 1 a 10.000 gramas, com até uma casa decimal."
+        autocomplete="off"
+        inputMode="decimal"
+        [control]="form.controls.averageWeight"
+        [error]="messageFor('averageWeight')"
+      />
+    }
+  }
+
+  <!-- Um elemento por condição: um bloco com mais de uma raiz iria para o corpo, e não para as ações. -->
+  <ovyx-button dialog-actions variant="secondary" [disabled]="submitting()" (pressed)="close()">
+    {{ state() === 'ready' ? 'Cancelar' : 'Voltar à tela' }}
+  </ovyx-button>
+  @if (state() === 'ready') {
+    <ovyx-button dialog-actions type="submit" icon="check" [busy]="submitting()">
+      {{ editing ? 'Salvar correção' : 'Registrar' }}
+    </ovyx-button>
+  }
+</ovyx-dialog>

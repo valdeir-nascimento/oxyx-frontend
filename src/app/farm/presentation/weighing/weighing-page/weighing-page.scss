@@ -1,0 +1,18 @@
+/* A página não ocupa caixa: título, avisos e cartões são itens da coluna do .content-inner do design
+ * system, que dá o espaçamento. */
+:host {
+  display: contents;
+}
+
+/* O outlet não desenha nada; quem aparece é o diálogo que ele carrega, ao lado dele. */
+router-outlet {
+  display: none;
+}
+
+/* O título do cartão do gráfico é um h2, para não pular nível depois do h1 da página; a aparência é a do
+ * h3 do design system. */
+.card-head h2 {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+}

@@ -12,6 +12,7 @@ import { CARETAKER_GATEWAY } from './identity/application/caretaker/caretaker-ga
 import { CAGE_GATEWAY } from './farm/application/cage/cage-gateway';
 import { FEED_FORMULA_GATEWAY } from './farm/application/formula/feed-formula-gateway';
 import { SECTOR_GATEWAY } from './farm/application/sector/sector-gateway';
+import { WEIGHING_GATEWAY } from './farm/application/weighing/weighing-gateway';
 import { Sector } from './farm/domain/sector';
 import { DAILY_REPORT_GATEWAY } from './production/application/daily-report/daily-report-gateway';
 import { SessionStore } from './identity/application/authentication/session-store';
@@ -118,6 +119,31 @@ describe('routes', () => {
             ),
             registerCage: vi.fn(),
             updateCage: vi.fn(),
+          },
+        },
+        {
+          provide: WEIGHING_GATEWAY,
+          useValue: {
+            getWeighingOverview: vi.fn().mockResolvedValue(
+              success({
+                cage: { id: CAGE_ID, code: 'B-07', battery: 'B', number: 7, birdCount: 50, status: 'ACTIVE' },
+                sector: { id: codornas.id, name: codornas.name, status: 'ACTIVE' },
+                chart: [],
+                history: [],
+              }),
+            ),
+            recordWeighing: vi.fn(),
+            findWeighing: vi.fn().mockResolvedValue(
+              success({
+                id: '7b9d1f3a-5c7e-4a9b-8d1f-3a5c7e9b1d77',
+                weighedOn: '2026-09-24',
+                averageWeight: 161,
+                recordedBy: { id: maria.id, name: maria.fullName },
+                recordedAt: '2026-09-24T10:12:40Z',
+              }),
+            ),
+            correctWeighing: vi.fn(),
+            voidWeighing: vi.fn(),
           },
         },
         {
@@ -550,5 +576,57 @@ describe('routes', () => {
     expect(TestBed.inject(Router).url).toBe('/acesso?sessao=expirada');
     expect(store.caretaker()).toBeNull();
     backend.verify();
+  });
+
+  // ---------------------------------------------------------------- pesagem (005)
+
+  it('opens the weight of a cage to a common user, even with the cage dialog route beside it (005, US1)', async () => {
+    configure(success(maria));
+    const page = `/setores/${codornas.id}/gaiolas/${CAGE_ID}/peso`;
+
+    expect(await goTo(page)).toBe(page);
+    expect(TestBed.inject(Title).getTitle()).toBe('Peso médio — Ovyx');
+  });
+
+  it('opens the dialog of a new weighing to a common user (005, US1)', async () => {
+    configure(success(maria));
+    const dialog = `/setores/${codornas.id}/gaiolas/${CAGE_ID}/peso/nova`;
+
+    expect(await goTo(dialog)).toBe(dialog);
+    expect(TestBed.inject(Title).getTitle()).toBe('Registrar pesagem — Ovyx');
+  });
+
+  it('sends the dialog of a new weighing of an inactive cage back to the weight of the cage (005, FR-008)', async () => {
+    configure(success(maria));
+    const gateway = TestBed.inject(WEIGHING_GATEWAY);
+    const found = await gateway.getWeighingOverview(codornas.id, CAGE_ID);
+    const overview = found.success ? found.value : undefined;
+    vi.mocked(gateway.getWeighingOverview).mockResolvedValue(
+      success({ ...overview!, cage: { ...overview!.cage, status: 'INACTIVE' } }),
+    );
+    const page = `/setores/${codornas.id}/gaiolas/${CAGE_ID}/peso`;
+
+    expect(await goTo(`${page}/nova`)).toBe(page);
+  });
+
+  it('opens the correction of a weighing to a common user (005, US4)', async () => {
+    configure(success(maria));
+    const dialog = `/setores/${codornas.id}/gaiolas/${CAGE_ID}/peso/7b9d1f3a-5c7e-4a9b-8d1f-3a5c7e9b1d77`;
+
+    expect(await goTo(dialog)).toBe(dialog);
+    expect(TestBed.inject(Title).getTitle()).toBe('Corrigir pesagem — Ovyx');
+  });
+
+  it('sends the correction of a weighing of an inactive sector back to the weight of the cage (005, FR-008)', async () => {
+    configure(success(maria));
+    const gateway = TestBed.inject(WEIGHING_GATEWAY);
+    const found = await gateway.getWeighingOverview(codornas.id, CAGE_ID);
+    const overview = found.success ? found.value : undefined;
+    vi.mocked(gateway.getWeighingOverview).mockResolvedValue(
+      success({ ...overview!, sector: { ...overview!.sector, status: 'INACTIVE' } }),
+    );
+    const page = `/setores/${codornas.id}/gaiolas/${CAGE_ID}/peso`;
+
+    expect(await goTo(`${page}/7b9d1f3a-5c7e-4a9b-8d1f-3a5c7e9b1d77`)).toBe(page);
   });
 });

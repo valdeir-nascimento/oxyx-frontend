@@ -24,7 +24,7 @@ import { SectorChanges } from '../sector-changes';
 
 const NOT_FOUND = 'SECTOR_NOT_FOUND';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const FIELDS = ['name', 'description'];
+const FIELDS = ['name', 'description', 'minimumWeight', 'maximumWeight'];
 const LIST = '/setores';
 
 /**
@@ -61,7 +61,12 @@ export class SectorFormDialog {
   protected readonly editing = this.id !== null;
   protected readonly fields = FIELDS;
 
-  protected readonly form = inject(FormBuilder).nonNullable.group({ name: '', description: '' });
+  protected readonly form = inject(FormBuilder).nonNullable.group({
+    name: '',
+    description: '',
+    minimumWeight: '',
+    maximumWeight: '',
+  });
 
   protected readonly notification = signal(Notification.empty());
   protected readonly submitting = signal(false);
@@ -136,8 +141,13 @@ export class SectorFormDialog {
       return;
     }
 
-    const { name, description } = result.value;
-    this.form.patchValue({ name, description: description ?? '' });
+    const { name, description, referenceWeight } = result.value;
+    this.form.patchValue({
+      name,
+      description: description ?? '',
+      minimumWeight: referenceWeight ? String(referenceWeight.minimum) : '',
+      maximumWeight: referenceWeight ? String(referenceWeight.maximum) : '',
+    });
     this.loadedName.set(name);
     this.state.set('ready');
     this.focusFirstFieldAfterRender();

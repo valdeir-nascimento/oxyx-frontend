@@ -50,6 +50,25 @@
         [control]="form.controls.description"
         [error]="messageFor('description')"
       />
+      <!-- A faixa de peso de referência das aves (feature 005): os dois limites juntos, ou nenhum. -->
+      <ovyx-form-field
+        controlId="minimumWeight"
+        label="Peso mínimo (g, opcional)"
+        hint="Ex.: 155. Inteiro de 1 a 10.000 gramas."
+        autocomplete="off"
+        inputMode="numeric"
+        [control]="form.controls.minimumWeight"
+        [error]="messageFor('minimumWeight')"
+      />
+      <ovyx-form-field
+        controlId="maximumWeight"
+        label="Peso máximo (g, opcional)"
+        hint="Ex.: 175. Maior que o mínimo."
+        autocomplete="off"
+        inputMode="numeric"
+        [control]="form.controls.maximumWeight"
+        [error]="messageFor('maximumWeight')"
+      />
     }
   }
 

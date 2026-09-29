@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { Cage, CagePage } from '../domain/cage';
 import { FeedFormula } from '../domain/feed-formula';
 import { Sector, SectorSummary } from '../domain/sector';
+import { Weighing, WeighingOverview } from '../domain/weighing';
 import { FarmHttpAdapter } from './farm-http.adapter';
 
 /**
@@ -69,11 +70,21 @@ describe('FarmHttpAdapter', () => {
     });
 
     it('posts a new sector with the name and the description as typed', async () => {
-      const pending = adapter.registerSector({ name: ' Codornas — Galpão 4 ', description: '' });
+      const pending = adapter.registerSector({
+        name: ' Codornas — Galpão 4 ',
+        description: '',
+        minimumWeight: '',
+        maximumWeight: '',
+      });
 
       const request = backend.expectOne('/api/v1/sectors');
       expect(request.request.method).toBe('POST');
-      expect(request.request.body).toEqual({ name: ' Codornas — Galpão 4 ', description: '' });
+      expect(request.request.body).toEqual({
+        name: ' Codornas — Galpão 4 ',
+        description: '',
+        minimumWeight: null,
+        maximumWeight: null,
+      });
       request.flush(galpao, { status: 201, statusText: 'Created' });
 
       const result = await pending;
@@ -84,19 +95,51 @@ describe('FarmHttpAdapter', () => {
       const pending = adapter.updateSector(galpao.id, {
         name: 'Codornas — Galpão 1 (norte)',
         description: 'Baterias A a D',
+        minimumWeight: '',
+        maximumWeight: '',
       });
 
       const request = backend.expectOne(`/api/v1/sectors/${galpao.id}`);
       expect(request.request.method).toBe('PUT');
-      expect(request.request.body).toEqual({ name: 'Codornas — Galpão 1 (norte)', description: 'Baterias A a D' });
+      expect(request.request.body).toEqual({
+        name: 'Codornas — Galpão 1 (norte)',
+        description: 'Baterias A a D',
+        minimumWeight: null,
+        maximumWeight: null,
+      });
       request.flush({ ...galpao, name: 'Codornas — Galpão 1 (norte)' });
 
       const result = await pending;
       expect(result.success && result.value.name).toBe('Codornas — Galpão 1 (norte)');
     });
 
+    it('sends the reference weight range as numbers, and the empty limits as absent (005)', async () => {
+      const pending = adapter.registerSector({
+        name: 'Codornas — Galpão 4',
+        description: '',
+        minimumWeight: '155',
+        maximumWeight: '',
+      });
+
+      const request = backend.expectOne('/api/v1/sectors');
+      expect(request.request.body).toEqual({
+        name: 'Codornas — Galpão 4',
+        description: '',
+        minimumWeight: 155,
+        maximumWeight: null,
+      });
+      request.flush(galpao, { status: 201, statusText: 'Created' });
+
+      await pending;
+    });
+
     it('spreads every refused field of a registration into its own violation', async () => {
-      const pending = adapter.registerSector({ name: 'A', description: 'd'.repeat(501) });
+      const pending = adapter.registerSector({
+        name: 'A',
+        description: 'd'.repeat(501),
+        minimumWeight: '',
+        maximumWeight: '',
+      });
 
       backend.expectOne('/api/v1/sectors').flush(
         {
@@ -400,6 +443,96 @@ describe('FarmHttpAdapter', () => {
       expect(!result.success && result.notification.messageFor('pricePerKg')).toBe(
         'O preço deve ficar entre R$ 0,01 e R$ 1.000,00 o quilo.',
       );
+    });
+  });
+
+  describe('weighings', () => {
+    const sectorId = '3f6c2b1a-8d4e-4c7f-9a2b-1e5d7c9f0a11';
+    const cageId = '2a4c6e8a-0b1d-4f3a-9c5e-7a9b1d3f5a66';
+    const weighings = `/api/v1/sectors/${sectorId}/cages/${cageId}/weighings`;
+    const weighing: Weighing = {
+      id: '7b9d1f3a-5c7e-4a9b-8d1f-3a5c7e9b1d77',
+      weighedOn: '2026-09-24',
+      averageWeight: 161.4,
+      recordedBy: { id: '5e7a9c1e-3b5d-4f7a-9c1e-3b5d7f9a1c22', name: 'Marina Alves' },
+      recordedAt: '2026-09-24T10:12:40Z',
+    };
+
+    it('asks for the overview of the weight of a cage, with the identifiers encoded in the path', async () => {
+      const overview: WeighingOverview = {
+        cage: { id: cageId, code: 'A-01', battery: 'A', number: 1, birdCount: 48, status: 'ACTIVE' },
+        sector: { id: sectorId, name: 'Codornas — Galpão 1', status: 'ACTIVE' },
+        chart: [],
+        history: [],
+      };
+      const pending = adapter.getWeighingOverview('../me', cageId);
+
+      const request = backend.expectOne(`/api/v1/sectors/..%2Fme/cages/${cageId}/weighings`);
+      expect(request.request.method).toBe('GET');
+      request.flush(overview);
+
+      const result = await pending;
+      expect(result.success && result.value).toEqual(overview);
+    });
+
+    it('posts a weighing with the weight as typed, the comma included', async () => {
+      // O peso vai como foi digitado: quem lê a casa decimal, e recusa as duas casas no campo, é o
+      // backend (R-007 da 005).
+      const pending = adapter.recordWeighing(sectorId, cageId, { weighedOn: '2026-09-24', averageWeight: '161,4' });
+
+      const request = backend.expectOne(weighings);
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body).toEqual({ weighedOn: '2026-09-24', averageWeight: '161,4' });
+      request.flush(weighing, { status: 201, statusText: 'Created' });
+
+      const result = await pending;
+      expect(result.success && result.value).toEqual(weighing);
+    });
+
+    it('turns the refusal of a day already weighed into the message of the day field', async () => {
+      const pending = adapter.recordWeighing(sectorId, cageId, { weighedOn: '2026-09-24', averageWeight: '158' });
+
+      backend.expectOne(weighings).flush(
+        {
+          code: 'WEIGHING_DATE_IN_USE',
+          title: 'Operação recusada',
+          status: 409,
+          detail: 'A gaiola já tem pesagem em 24/09/2026. Corrija a pesagem desse dia.',
+          details: { weighedOn: 'A gaiola já tem pesagem em 24/09/2026. Corrija a pesagem desse dia.' },
+        },
+        { status: 409, statusText: 'Conflict' },
+      );
+
+      const result = await pending;
+      expect(!result.success && result.notification.messageFor('weighedOn')).toBe(
+        'A gaiola já tem pesagem em 24/09/2026. Corrija a pesagem desse dia.',
+      );
+    });
+
+    it('finds, corrects and voids a weighing by its encoded identifiers', async () => {
+      const weighingUrl = `${weighings}/7b9d1f3a-5c7e-4a9b-8d1f-3a5c7e9b1d77`;
+
+      const found = adapter.findWeighing(sectorId, cageId, weighing.id);
+      const findRequest = backend.expectOne(weighingUrl);
+      expect(findRequest.request.method).toBe('GET');
+      findRequest.flush(weighing);
+      expect((await found).success).toBe(true);
+
+      const corrected = adapter.correctWeighing(sectorId, cageId, weighing.id, {
+        weighedOn: '2026-09-24',
+        averageWeight: '161',
+      });
+      const correctRequest = backend.expectOne(weighingUrl);
+      expect(correctRequest.request.method).toBe('PUT');
+      expect(correctRequest.request.body).toEqual({ weighedOn: '2026-09-24', averageWeight: '161' });
+      correctRequest.flush(weighing);
+      expect((await corrected).success).toBe(true);
+
+      const voided = adapter.voidWeighing(sectorId, cageId, weighing.id);
+      const voidRequest = backend.expectOne(`${weighingUrl}/voiding`);
+      expect(voidRequest.request.method).toBe('POST');
+      voidRequest.flush(null, { status: 204, statusText: 'No Content' });
+      expect((await voided).success).toBe(true);
     });
   });
 });

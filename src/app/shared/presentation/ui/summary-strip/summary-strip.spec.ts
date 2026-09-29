@@ -50,4 +50,18 @@ describe('SummaryStrip', () => {
     expect(second.querySelector('b')?.textContent?.trim()).toBe('4');
     expect(second.querySelector('em')).toBeNull();
   });
+
+  it('shows the value of an item as a status badge when it has a tone (005)', () => {
+    TestBed.configureTestingModule({ imports: [SummaryStrip] });
+    fixture = TestBed.createComponent(SummaryStrip);
+    fixture.componentRef.setInput('label', 'Peso da gaiola');
+    fixture.componentRef.setInput('items', [
+      { label: 'Situação', value: 'Dentro da faixa', note: 'Faixa 155–175 g', tone: 'success' },
+    ]);
+    fixture.detectChanges();
+
+    const badge = element().querySelector('[role="listitem"] b .badge');
+    expect(badge?.textContent?.trim()).toBe('Dentro da faixa');
+    expect(badge?.getAttribute('data-tone')).toBe('success');
+  });
 });

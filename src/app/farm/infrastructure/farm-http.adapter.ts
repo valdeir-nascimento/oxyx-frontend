@@ -7,10 +7,12 @@ import { jsonNumberOf } from '../../shared/infrastructure/typed-number';
 import { CageGateway } from '../application/cage/cage-gateway';
 import { FeedFormulaGateway } from '../application/formula/feed-formula-gateway';
 import { SectorGateway } from '../application/sector/sector-gateway';
+import { WeighingGateway } from '../application/weighing/weighing-gateway';
 import { Cage, CageInput, CagePage, CageSearch } from '../domain/cage';
 import { FeedFormula, FeedFormulaInput } from '../domain/feed-formula';
 import { Sector, SectorInput, SectorSummary } from '../domain/sector';
 import { StatusFilter } from '../domain/status';
+import { Weighing, WeighingInput, WeighingOverview } from '../domain/weighing';
 
 const SECTORS = '/api/v1/sectors';
 const FORMULAS = '/api/v1/feed-formulas';
@@ -29,6 +31,20 @@ function sectorUrl(id: string): string {
 function cagesUrl(sectorId: string, cageId?: string): string {
   const cages = `${sectorUrl(sectorId)}/cages`;
   return cageId === undefined ? cages : `${cages}/${encodeURIComponent(cageId)}`;
+}
+
+/** Endereço das pesagens de uma gaiola, e de uma delas, com os identificadores codificados. */
+function weighingsUrl(sectorId: string, cageId: string, weighingId?: string): string {
+  const weighings = `${cagesUrl(sectorId, cageId)}/weighings`;
+  return weighingId === undefined ? weighings : `${weighings}/${encodeURIComponent(weighingId)}`;
+}
+
+/**
+ * O corpo de registro e de correção de pesagem. O peso vai como foi digitado, com a vírgula: quem lê a
+ * casa decimal, e recusa as duas casas no campo, é o backend (R-007 da 005).
+ */
+function weighingBodyOf(input: WeighingInput): Record<string, unknown> {
+  return { weighedOn: input.weighedOn, averageWeight: input.averageWeight };
 }
 
 /** Endereço de uma fórmula de ração, com o identificador codificado, como o do setor. */
@@ -50,6 +66,19 @@ function formulaBodyOf(input: FeedFormulaInput): Record<string, unknown> {
   };
 }
 
+/**
+ * O corpo de cadastro e de edição de setor. Os limites da faixa de peso vão como número, como as
+ * quantidades da gaiola, e os vazios ficam de fora: sem os dois, o setor fica sem faixa (feature 005).
+ */
+function sectorBodyOf(input: SectorInput): Record<string, unknown> {
+  return {
+    name: input.name,
+    description: input.description,
+    minimumWeight: jsonNumberOf(input.minimumWeight),
+    maximumWeight: jsonNumberOf(input.maximumWeight),
+  };
+}
+
 /** O corpo de cadastro e de edição de gaiola. */
 function cageBodyOf(input: CageInput): Record<string, unknown> {
   return {
@@ -67,7 +96,7 @@ function cageBodyOf(input: CageInput): Record<string, unknown> {
  * recusa vira `Result`, nunca exceção, por `resultOf`.
  */
 @Injectable({ providedIn: 'root' })
-export class FarmHttpAdapter implements SectorGateway, CageGateway, FeedFormulaGateway {
+export class FarmHttpAdapter implements SectorGateway, CageGateway, FeedFormulaGateway, WeighingGateway {
   private readonly http = inject(HttpClient);
 
   async listSectors(status: StatusFilter): Promise<Result<readonly SectorSummary[]>> {
@@ -80,11 +109,11 @@ export class FarmHttpAdapter implements SectorGateway, CageGateway, FeedFormulaG
   }
 
   async registerSector(input: SectorInput): Promise<Result<Sector>> {
-    return resultOf(() => firstValueFrom(this.http.post<Sector>(SECTORS, input)));
+    return resultOf(() => firstValueFrom(this.http.post<Sector>(SECTORS, sectorBodyOf(input))));
   }
 
   async updateSector(id: string, input: SectorInput): Promise<Result<Sector>> {
-    return resultOf(() => firstValueFrom(this.http.put<Sector>(sectorUrl(id), input)));
+    return resultOf(() => firstValueFrom(this.http.put<Sector>(sectorUrl(id), sectorBodyOf(input))));
   }
 
   async deactivateSector(id: string): Promise<Result<Sector>> {
@@ -156,5 +185,40 @@ export class FarmHttpAdapter implements SectorGateway, CageGateway, FeedFormulaG
 
   async reactivateFeedFormula(id: string): Promise<Result<FeedFormula>> {
     return resultOf(() => firstValueFrom(this.http.post<FeedFormula>(`${formulaUrl(id)}/reactivation`, null)));
+  }
+
+  async getWeighingOverview(sectorId: string, cageId: string): Promise<Result<WeighingOverview>> {
+    return resultOf(() => firstValueFrom(this.http.get<WeighingOverview>(weighingsUrl(sectorId, cageId))));
+  }
+
+  async recordWeighing(sectorId: string, cageId: string, input: WeighingInput): Promise<Result<Weighing>> {
+    return resultOf(() =>
+      firstValueFrom(this.http.post<Weighing>(weighingsUrl(sectorId, cageId), weighingBodyOf(input))),
+    );
+  }
+
+  async findWeighing(sectorId: string, cageId: string, weighingId: string): Promise<Result<Weighing>> {
+    return resultOf(() =>
+      firstValueFrom(this.http.get<Weighing>(weighingsUrl(sectorId, cageId, weighingId))),
+    );
+  }
+
+  async correctWeighing(
+    sectorId: string,
+    cageId: string,
+    weighingId: string,
+    input: WeighingInput,
+  ): Promise<Result<Weighing>> {
+    return resultOf(() =>
+      firstValueFrom(
+        this.http.put<Weighing>(weighingsUrl(sectorId, cageId, weighingId), weighingBodyOf(input)),
+      ),
+    );
+  }
+
+  async voidWeighing(sectorId: string, cageId: string, weighingId: string): Promise<Result<void>> {
+    return resultOf(() =>
+      firstValueFrom(this.http.post<void>(`${weighingsUrl(sectorId, cageId, weighingId)}/voiding`, null)),
+    );
   }
 }

@@ -1,3 +1,14 @@
 :host {
   display: block;
 }
+
+/* O valor escrito por extenso ("Sem faixa definida") quebra a linha no celular, em vez de passar da célula. */
+.summary b {
+  white-space: normal;
+}
+
+/* O selo da situação no lugar do número, no tamanho do texto, como o protótipo (feature 005). */
+.badged {
+  font-size: inherit;
+  margin-top: 4px;
+}

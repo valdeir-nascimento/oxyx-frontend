@@ -1,0 +1,96 @@
+@if (points().length > 0) {
+  <!-- A área recebe o foco; as setas escolhem o ponto. O desenho é uma imagem com nome. -->
+  <div
+    class="chart"
+    data-explore
+    role="group"
+    tabindex="0"
+    aria-label="Explorar os pontos do gráfico com as setas"
+    (focus)="show(points().length - 1)"
+    (blur)="hide()"
+    (keydown)="explore($event)"
+  >
+    <svg
+      [attr.viewBox]="'0 0 ' + width() + ' ' + height"
+      [attr.width]="width()"
+      [attr.height]="height"
+      role="img"
+      [attr.aria-label]="label()"
+      (pointermove)="follow($event)"
+      (pointerleave)="hide()"
+    >
+      @if (bandArea(); as area) {
+        <rect
+          data-band
+          [attr.x]="margin.left"
+          [attr.y]="area.y"
+          [attr.width]="innerWidth()"
+          [attr.height]="area.height"
+          class="band"
+        />
+        <text [attr.x]="margin.left + 8" [attr.y]="area.y + 14" class="caption">
+          {{ area.label }}
+        </text>
+      }
+
+      @for (tick of ticks(); track tick.value) {
+        <line
+          [attr.x1]="margin.left"
+          [attr.x2]="width() - margin.right + 8"
+          [attr.y1]="tick.y"
+          [attr.y2]="tick.y"
+          class="grid"
+        />
+        <text
+          data-tick
+          [attr.x]="margin.left - 8"
+          [attr.y]="tick.y + 4"
+          text-anchor="end"
+          class="caption tnum"
+        >
+          {{ tick.text }}
+        </text>
+      }
+
+      @for (point of plotted(); track $index) {
+        @if (point.labeled) {
+          <text
+            data-day
+            [attr.x]="point.x"
+            [attr.y]="height - 8"
+            text-anchor="middle"
+            class="caption"
+          >
+            {{ point.label }}
+          </text>
+        }
+      }
+
+      <path [attr.d]="area()" class="wash" />
+      <path data-line [attr.d]="line()" class="line" />
+      <circle [attr.cx]="last().x" [attr.cy]="last().y" r="4.5" class="dot" />
+      <text data-last [attr.x]="last().x + 10" [attr.y]="last().y + 4" class="value">
+        {{ last().text }}
+      </text>
+
+      @if (chosen(); as point) {
+        <line
+          [attr.x1]="point.x"
+          [attr.x2]="point.x"
+          [attr.y1]="margin.top"
+          [attr.y2]="margin.top + innerHeight"
+          class="cross"
+        />
+        <circle [attr.cx]="point.x" [attr.cy]="point.y" r="5" class="dot" />
+      }
+    </svg>
+
+    @if (chosen(); as point) {
+      <div #tip class="chart-tip">
+        <b><i aria-hidden="true"></i>{{ point.text }}</b>
+      </div>
+    }
+  </div>
+
+  <p class="sr" role="status">{{ chosen()?.text ?? '' }}</p>
+}

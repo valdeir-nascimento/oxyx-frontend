@@ -1,10 +1,15 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { StatusBadge, StatusBadgeTone } from '../status-badge/status-badge';
 
-/** Um item da faixa: o rótulo, o valor já escrito e, se houver, a nota abaixo dele. */
+/**
+ * Um item da faixa: o rótulo, o valor já escrito e, se houver, a nota abaixo dele. Com o tom, o valor é
+ * uma situação, e aparece num selo, como a "Dentro da faixa" do peso médio (feature 005).
+ */
 export interface SummaryItem {
   readonly label: string;
   readonly value: string;
   readonly note?: string;
+  readonly tone?: StatusBadgeTone;
 }
 
 /**
@@ -15,6 +20,7 @@ export interface SummaryItem {
  */
 @Component({
   selector: 'ovyx-summary-strip',
+  imports: [StatusBadge],
   templateUrl: './summary-strip.html',
   styleUrl: './summary-strip.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
