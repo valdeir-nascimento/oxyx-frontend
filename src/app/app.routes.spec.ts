@@ -15,6 +15,7 @@ import { SECTOR_GATEWAY } from './farm/application/sector/sector-gateway';
 import { WEIGHING_GATEWAY } from './farm/application/weighing/weighing-gateway';
 import { Sector } from './farm/domain/sector';
 import { DAILY_REPORT_GATEWAY } from './production/application/daily-report/daily-report-gateway';
+import { DASHBOARD_GATEWAY } from './production/application/dashboard/dashboard-gateway';
 import { SessionStore } from './identity/application/authentication/session-store';
 import { sessionInterceptor } from './identity/infrastructure/session.interceptor';
 import { AuthenticatedCaretaker } from './identity/domain/authenticated-caretaker';
@@ -147,6 +148,15 @@ describe('routes', () => {
           },
         },
         {
+          provide: DASHBOARD_GATEWAY,
+          useValue: {
+            getDashboardOverview: vi.fn().mockResolvedValue(
+              success({ today: '2026-09-24', partOfDay: 'MORNING', activeSectors: 0, completeToday: 0, sectors: [] }),
+            ),
+            getSectorDashboard: vi.fn(),
+          },
+        },
+        {
           provide: DAILY_REPORT_GATEWAY,
           useValue: {
             listActiveFormulas: vi.fn().mockResolvedValue(success([])),
@@ -215,6 +225,14 @@ describe('routes', () => {
     configure(success(maria));
 
     expect(await goTo('/')).toBe('/');
+  });
+
+  it('opens the dashboard at the root, for the common user and the administrator (006, FR-001)', async () => {
+    configure(success(maria));
+
+    expect(await goTo('/')).toBe('/');
+    expect(TestBed.inject(Title).getTitle()).toBe('Início — Ovyx');
+    expect(TestBed.inject(DASHBOARD_GATEWAY).getDashboardOverview).toHaveBeenCalled();
   });
 
   it('holds whoever owes the provisional password on the change screen', async () => {

@@ -1,0 +1,48 @@
+import type { Mock } from 'vitest';
+import { TestBed } from '@angular/core/testing';
+import { success } from '../../../shared/application/result';
+import { DASHBOARD_GATEWAY } from './dashboard-gateway';
+import { GetDashboardOverviewUseCase } from './get-dashboard-overview.usecase';
+import { GetSectorDashboardUseCase } from './get-sector-dashboard.usecase';
+
+/** Os casos de uso do painel pedem ao backend o que a tela mostra, sem conta nenhuma no cliente (R-009 da 006). */
+describe('dashboard use cases', () => {
+  const sectorId = '3f6c2b1a-8d4e-4c7f-9a2b-1e5d7c9f0a11';
+  let gateway: Record<string, Mock>;
+
+  beforeEach(() => {
+    gateway = {
+      getDashboardOverview: vi.fn().mockResolvedValue(success(null)),
+      getSectorDashboard: vi.fn().mockResolvedValue(success(null)),
+    };
+    TestBed.configureTestingModule({
+      providers: [{ provide: DASHBOARD_GATEWAY, useValue: gateway }],
+    });
+  });
+
+  it('asks for the overview of the dashboard and hands the answer back', async () => {
+    const overview = {
+      today: '2026-09-24',
+      partOfDay: 'MORNING',
+      activeSectors: 1,
+      completeToday: 1,
+      sectors: [],
+    };
+    gateway['getDashboardOverview'].mockResolvedValue(success(overview));
+
+    const result = await TestBed.inject(GetDashboardOverviewUseCase).execute();
+
+    expect(gateway['getDashboardOverview']).toHaveBeenCalled();
+    expect(result.success && result.value).toBe(overview);
+  });
+
+  it('asks for the dashboard of the sector in the period', async () => {
+    const dashboard = { period: 'YESTERDAY' };
+    gateway['getSectorDashboard'].mockResolvedValue(success(dashboard));
+
+    const result = await TestBed.inject(GetSectorDashboardUseCase).execute(sectorId, 'YESTERDAY');
+
+    expect(gateway['getSectorDashboard']).toHaveBeenCalledWith(sectorId, 'YESTERDAY');
+    expect(result.success && result.value).toBe(dashboard);
+  });
+});

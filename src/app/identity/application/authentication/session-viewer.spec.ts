@@ -36,4 +36,22 @@ describe('SessionViewer', () => {
 
     expect(viewer.isAdministrator()).toBe(false);
   });
+
+  // ---------------------------------------------------------------- primeiro nome (006, R-008)
+
+  it('tells the first name of the person in the session, for the greeting', () => {
+    TestBed.inject(SessionStore).remember({ ...maria, fullName: 'Maria Aparecida Silva' });
+
+    expect(TestBed.inject(SessionViewer).firstName()).toBe('Maria');
+  });
+
+  it('ignores the spaces around the name', () => {
+    TestBed.inject(SessionStore).remember({ ...maria, fullName: '  Maria Silva ' });
+
+    expect(TestBed.inject(SessionViewer).firstName()).toBe('Maria');
+  });
+
+  it('knows no name without a session', () => {
+    expect(TestBed.inject(SessionViewer).firstName()).toBe('');
+  });
 });

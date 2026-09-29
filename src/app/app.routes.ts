@@ -56,9 +56,13 @@ export const routes: Routes = [
       import('./identity/presentation/shell/authenticated-shell').then((m) => m.AuthenticatedShell),
     children: [
       {
+        // O painel do Início (feature 006): a tela inicial depois do login, a mesma para os dois perfis.
         path: '',
-        loadComponent: () => import('./shared/presentation/home/home').then((m) => m.Home),
-        title: 'Ovyx',
+        loadComponent: () =>
+          import('./production/presentation/dashboard/dashboard-page/dashboard-page').then(
+            (m) => m.DashboardPage,
+          ),
+        title: 'Início — Ovyx',
         data: { crumbs: ['Início'] },
       },
       {

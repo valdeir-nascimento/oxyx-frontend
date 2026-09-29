@@ -1,0 +1,26 @@
+<div class="hero-q">
+  <svg class="ring" viewBox="0 0 64 64" aria-hidden="true">
+    <circle cx="32" cy="32" [attr.r]="radius" class="ring-track" />
+    <circle
+      cx="32"
+      cy="32"
+      [attr.r]="radius"
+      class="ring-value"
+      [attr.stroke-dasharray]="ringDash()"
+      transform="rotate(-90 32 32)"
+    />
+  </svg>
+  <div>
+    <div class="kpi-val tnum">{{ mainText() }}</div>
+    <div class="muted note">{{ mainNote() }}</div>
+  </div>
+</div>
+<div class="bars" role="list" [attr.aria-label]="label()">
+  @for (bar of bars(); track bar.label) {
+    <div class="bar-row" role="listitem">
+      <span class="lab">{{ bar.label }}</span>
+      <span class="track" aria-hidden="true"><i [style.width.%]="bar.width"></i></span>
+      <span class="val tnum">{{ bar.countText }} <small>{{ bar.percentText }}</small></span>
+    </div>
+  }
+</div>

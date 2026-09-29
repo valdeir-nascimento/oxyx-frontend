@@ -15,6 +15,7 @@ import { SECTOR_GATEWAY } from './farm/application/sector/sector-gateway';
 import { WEIGHING_GATEWAY } from './farm/application/weighing/weighing-gateway';
 import { FarmHttpAdapter } from './farm/infrastructure/farm-http.adapter';
 import { DAILY_REPORT_GATEWAY } from './production/application/daily-report/daily-report-gateway';
+import { DASHBOARD_GATEWAY } from './production/application/dashboard/dashboard-gateway';
 import { ProductionHttpAdapter } from './production/infrastructure/production-http.adapter';
 import { SessionViewer } from './identity/application/authentication/session-viewer';
 import { IdentityHttpAdapter } from './identity/infrastructure/identity-http.adapter';
@@ -44,6 +45,7 @@ export const appConfig: ApplicationConfig = {
     { provide: FEED_FORMULA_GATEWAY, useExisting: FarmHttpAdapter },
     { provide: WEIGHING_GATEWAY, useExisting: FarmHttpAdapter },
     { provide: DAILY_REPORT_GATEWAY, useExisting: ProductionHttpAdapter },
+    { provide: DASHBOARD_GATEWAY, useExisting: ProductionHttpAdapter },
     // O perfil de quem vê, para as telas dos contextos que não conhecem o identity (feature 002).
     { provide: VIEWER, useExisting: SessionViewer },
   ],
