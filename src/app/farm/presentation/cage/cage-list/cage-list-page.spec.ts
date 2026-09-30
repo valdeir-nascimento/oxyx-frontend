@@ -1,4 +1,5 @@
 import type { Mock } from 'vitest';
+import { ExportCagesUseCase } from '../../../application/cage/export-cages.usecase';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
@@ -45,6 +46,7 @@ describe('CageListPage', () => {
   let find: Mock;
   let deactivate: Mock;
   let reactivate: Mock;
+  let exportCages: Mock;
   let fixture: ComponentFixture<CageListPage>;
 
   function element(): HTMLElement {
@@ -75,6 +77,7 @@ describe('CageListPage', () => {
         { provide: FindSectorByIdUseCase, useValue: { execute: find } },
         { provide: DeactivateCageUseCase, useValue: { execute: deactivate } },
         { provide: ReactivateCageUseCase, useValue: { execute: reactivate } },
+        { provide: ExportCagesUseCase, useValue: { execute: exportCages } },
         { provide: VIEWER, useValue: { isAdministrator: signal(administrator) } },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ sectorId: galpao.id }) } } },
       ],
@@ -90,6 +93,7 @@ describe('CageListPage', () => {
     find = vi.fn().mockResolvedValue(success(galpao));
     deactivate = vi.fn().mockResolvedValue(success({ ...cage('B-07', 'B', 7), status: 'INACTIVE' }));
     reactivate = vi.fn().mockResolvedValue(success(cage('B-07', 'B', 7)));
+    exportCages = vi.fn().mockResolvedValue(success('gaiolas-codornas-galpao-1.xlsx'));
   });
 
   function named(label: string): HTMLElement | null {
@@ -583,5 +587,107 @@ describe('CageListPage', () => {
       cell.textContent?.trim(),
     );
     expect(weights).toEqual(['161,4 g', '—']);
+  });
+
+  // ---------------------------------------------------------------- exportação (007, US3)
+
+  function exportButton(): HTMLButtonElement | undefined {
+    return Array.from(element().querySelectorAll<HTMLButtonElement>('.tbl-tools button')).find((candidate) =>
+      ['Exportar', 'Gerando…'].includes(candidate.textContent?.trim() ?? ''),
+    );
+  }
+
+  it('offers the export of the cages in the bar of the filters, small and ghost', async () => {
+    await render();
+
+    expect(exportButton()?.className).toContain('btn-ghost');
+    expect(exportButton()?.className).toContain('btn-sm');
+  });
+
+  it('exports the cages with the search and the filters applied, and says the spreadsheet was generated', async () => {
+    await render();
+    const field = element().querySelector<HTMLInputElement>('#code')!;
+    field.value = 'b-0';
+    field.dispatchEvent(new Event('input'));
+    element().querySelector('form.tbl-tools')!.dispatchEvent(new Event('submit'));
+    await settle();
+    button('B', group('Bateria')).click();
+    await settle();
+    button('Todas', group('Situação')).click();
+    await settle();
+
+    exportButton()!.click();
+    await settle();
+
+    expect(exportCages).toHaveBeenCalledWith(galpao.id, { code: 'b-0', battery: 'B', status: 'ALL' });
+    expect(toasts()).toContain('Planilha gerada (gaiolas-codornas-galpao-1.xlsx).');
+  });
+
+  it('says it is generating and takes no second request until it finishes', async () => {
+    let finish: (value: unknown) => void = () => undefined;
+    exportCages.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    await render();
+
+    exportButton()!.click();
+    fixture.detectChanges();
+    exportButton()!.click();
+    fixture.detectChanges();
+
+    expect(exportButton()!.textContent?.trim()).toBe('Gerando…');
+    expect(exportButton()!.getAttribute('aria-busy')).toBe('true');
+    expect(exportCages).toHaveBeenCalledTimes(1);
+    finish(success('gaiolas.xlsx'));
+    await settle();
+    expect(exportButton()!.textContent?.trim()).toBe('Exportar');
+  });
+
+  it('says the spreadsheet could not be generated', async () => {
+    exportCages.mockResolvedValue(
+      failure(Notification.of([{ code: 'REQUEST_FAILED', message: 'Não houve resposta do servidor. Tente novamente em instantes.' }])),
+    );
+    await render();
+
+    exportButton()!.click();
+    await settle();
+
+    expect(TestBed.inject(Toaster).toasts()).toContainEqual(
+      expect.objectContaining({
+        message: 'Não foi possível gerar a planilha: Não houve resposta do servidor. Tente novamente em instantes.',
+        tone: 'danger',
+      }),
+    );
+  });
+
+  // ---------------------------------------------------------------- QA 1 da 007: anúncio e foco
+
+  it('announces to the screen reader that the spreadsheet of the cages is being generated', async () => {
+    let finish: (value: unknown) => void = () => undefined;
+    exportCages.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    await render();
+    const status = element().querySelector('[data-export-status]');
+    expect(status?.getAttribute('role')).toBe('status');
+
+    exportButton()!.click();
+    fixture.detectChanges();
+
+    expect(status?.textContent?.trim()).toBe('Gerando a planilha…');
+    finish(success('gaiolas.xlsx'));
+    await settle();
+    expect(status?.textContent?.trim()).toBe('');
+  });
+
+  it('gives the focus back to the export button when the generation lost it', async () => {
+    let finish: (value: unknown) => void = () => undefined;
+    exportCages.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    await render();
+
+    exportButton()!.click();
+    fixture.detectChanges();
+    (document.activeElement as HTMLElement | null)?.blur();
+    finish(success('gaiolas.xlsx'));
+    await settle();
+    await settle();
+
+    expect(document.activeElement).toBe(exportButton());
   });
 });

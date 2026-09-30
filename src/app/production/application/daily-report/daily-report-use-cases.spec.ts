@@ -1,9 +1,12 @@
 import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { success } from '../../../shared/application/result';
+import { failure, success } from '../../../shared/application/result';
+import { FILE_SAVER } from '../../../shared/application/file-saver';
+import { Notification } from '../../../shared/domain/notification';
 import { ConfirmNoMortalityUseCase } from './confirm-no-mortality.usecase';
 import { CorrectDailyReportUseCase } from './correct-daily-report.usecase';
 import { DAILY_REPORT_GATEWAY } from './daily-report-gateway';
+import { ExportDailyReportsUseCase } from './export-daily-reports.usecase';
 import { FindDailyReportUseCase } from './find-daily-report.usecase';
 import { FindReportCageUseCase } from './find-report-cage.usecase';
 import { ListActiveFormulasUseCase } from './list-active-formulas.usecase';
@@ -20,6 +23,7 @@ import { SuggestFeedUseCase } from './suggest-feed.usecase';
 describe('daily report use cases', () => {
   const sectorId = '5c8d2e4f-6a1b-4c3d-9e7f-0a2b4c6d8e33';
   let gateway: Record<string, Mock>;
+  let saver: { save: Mock };
 
   beforeEach(() => {
     gateway = {
@@ -36,8 +40,15 @@ describe('daily report use cases', () => {
       suggestFeed: vi.fn().mockResolvedValue(success(null)),
       recordFeedBySuggestion: vi.fn().mockResolvedValue(success(null)),
       recordFeed: vi.fn().mockResolvedValue(success(null)),
+      exportDailyReports: vi.fn(),
     };
-    TestBed.configureTestingModule({ providers: [{ provide: DAILY_REPORT_GATEWAY, useValue: gateway }] });
+    saver = { save: vi.fn() };
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: DAILY_REPORT_GATEWAY, useValue: gateway },
+        { provide: FILE_SAVER, useValue: saver },
+      ],
+    });
   });
 
   it('lists the reports of the sector', async () => {
@@ -132,5 +143,28 @@ describe('daily report use cases', () => {
     await TestBed.inject(RecordFeedUseCase).execute(sectorId, 'r1', 'c1', typed);
 
     expect(gateway['recordFeed']).toHaveBeenCalledWith(sectorId, 'r1', 'c1', typed);
+  });
+
+  // ---------------------------------------------------------------- exportação (007)
+
+  it('exports the reports of the interval, saves the spreadsheet and hands its name back', async () => {
+    const file = { name: 'relatorios-codornas-galpao-4-01-09-2026-a-28-09-2026.xlsx', content: new Blob(['PK']) };
+    gateway['exportDailyReports'].mockResolvedValue(success(file));
+
+    const result = await TestBed.inject(ExportDailyReportsUseCase).execute(sectorId, '2026-09-01', '2026-09-28');
+
+    expect(gateway['exportDailyReports']).toHaveBeenCalledWith(sectorId, '2026-09-01', '2026-09-28');
+    expect(saver.save).toHaveBeenCalledWith(file);
+    expect(result).toEqual(success(file.name));
+  });
+
+  it('saves nothing when the backend refuses the interval', async () => {
+    const refusal = Notification.of([{ code: 'VALIDATION_FAILED', field: 'from', message: 'Informe a data inicial.' }]);
+    gateway['exportDailyReports'].mockResolvedValue(failure(refusal));
+
+    const result = await TestBed.inject(ExportDailyReportsUseCase).execute(sectorId, '', '2026-09-28');
+
+    expect(saver.save).not.toHaveBeenCalled();
+    expect(result).toEqual(failure(refusal));
   });
 });

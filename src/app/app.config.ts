@@ -19,7 +19,9 @@ import { DASHBOARD_GATEWAY } from './production/application/dashboard/dashboard-
 import { ProductionHttpAdapter } from './production/infrastructure/production-http.adapter';
 import { SessionViewer } from './identity/application/authentication/session-viewer';
 import { IdentityHttpAdapter } from './identity/infrastructure/identity-http.adapter';
+import { FILE_SAVER } from './shared/application/file-saver';
 import { VIEWER } from './shared/application/viewer';
+import { BrowserFileSaver } from './shared/infrastructure/browser-file-saver';
 import { sessionInterceptor } from './identity/infrastructure/session.interceptor';
 
 export const appConfig: ApplicationConfig = {
@@ -48,5 +50,6 @@ export const appConfig: ApplicationConfig = {
     { provide: DASHBOARD_GATEWAY, useExisting: ProductionHttpAdapter },
     // O perfil de quem vê, para as telas dos contextos que não conhecem o identity (feature 002).
     { provide: VIEWER, useExisting: SessionViewer },
+    { provide: FILE_SAVER, useExisting: BrowserFileSaver },
   ],
 };

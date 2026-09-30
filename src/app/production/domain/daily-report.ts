@@ -258,3 +258,17 @@ export function percentOf(value: number, decimals: number): string {
   }).format(value);
   return `${text}%`;
 }
+
+/** O intervalo de uma exportação dos relatórios, em AAAA-MM-DD, como os campos de data o escrevem. */
+export interface ExportInterval {
+  readonly from: string;
+  readonly to: string;
+}
+
+/**
+ * O intervalo que a exportação dos relatórios sugere (R-015 da 007): do primeiro dia do mês até hoje, o
+ * fechamento do mês, que é o uso mais comum.
+ */
+export function monthToDateOf(today: string): ExportInterval {
+  return { from: `${today.slice(0, 8)}01`, to: today };
+}

@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { HttpHeaders, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { DailyReport, DailyReportPage, DailyReportSuggestion } from '../domain/daily-report';
@@ -369,5 +369,81 @@ describe('ProductionHttpAdapter', () => {
       const result = await pending;
       expect(!result.success && result.notification.errors[0].code).toBe('SECTOR_NOT_FOUND');
     });
+  });
+
+  // ---------------------------------------------------------------- exportação (007)
+
+  const spreadsheet = new Blob(['PK'], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+
+  it('asks for the spreadsheet of the reports of the interval, as a file', async () => {
+    const pending = adapter.exportDailyReports(sectorId, '2026-09-01', '2026-09-28');
+
+    const request = backend.expectOne((candidate) => candidate.url === `${reports}/export`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('from')).toBe('2026-09-01');
+    expect(request.request.params.get('to')).toBe('2026-09-28');
+    expect(request.request.responseType).toBe('blob');
+    request.flush(spreadsheet, {
+      headers: new HttpHeaders({
+        'Content-Disposition': 'attachment; filename="relatorios-codornas-galpao-4-01-09-2026-a-28-09-2026.xlsx"',
+      }),
+    });
+
+    const result = await pending;
+    expect(result.success && result.value.name).toBe('relatorios-codornas-galpao-4-01-09-2026-a-28-09-2026.xlsx');
+  });
+
+  it('leaves out a date left blank, for the backend to say it is missing', async () => {
+    const pending = adapter.exportDailyReports(sectorId, '', '2026-09-28');
+
+    const request = backend.expectOne((candidate) => candidate.url === `${reports}/export`);
+    expect(request.request.params.has('from')).toBe(false);
+    expect(request.request.params.get('to')).toBe('2026-09-28');
+    request.flush(spreadsheet);
+
+    await pending;
+  });
+
+  it('turns the refusal of the interval, sent as a Blob, into the messages of each date', async () => {
+    const pending = adapter.exportDailyReports(sectorId, '2026-09-28', '2026-09-01');
+
+    backend.expectOne((candidate) => candidate.url === `${reports}/export`).flush(
+      new Blob(
+        [
+          JSON.stringify({
+            code: 'VALIDATION_FAILED',
+            title: 'Dados inválidos',
+            status: 400,
+            details: { to: 'A data final deve ser igual ou posterior à inicial.' },
+          }),
+        ],
+        { type: 'application/problem+json' },
+      ),
+      { status: 400, statusText: 'Bad Request' },
+    );
+
+    const result = await pending;
+    expect(!result.success && result.notification.messageFor('to')).toBe(
+      'A data final deve ser igual ou posterior à inicial.',
+    );
+  });
+
+  it('asks for the spreadsheet of the dashboard of the sector in the period, as a file', async () => {
+    const pending = adapter.exportSectorDashboard('galpão/1', 'LAST_7_DAYS');
+
+    const request = backend.expectOne(
+      (candidate) => candidate.url === `/api/v1/sectors/${encodeURIComponent('galpão/1')}/dashboard/export`,
+    );
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('period')).toBe('LAST_7_DAYS');
+    expect(request.request.responseType).toBe('blob');
+    request.flush(spreadsheet, {
+      headers: new HttpHeaders({ 'Content-Disposition': 'attachment; filename="painel-galpao-1-28-09-2026.xlsx"' }),
+    });
+
+    const result = await pending;
+    expect(result.success && result.value.name).toBe('painel-galpao-1-28-09-2026.xlsx');
   });
 });

@@ -7,6 +7,12 @@
     <ovyx-icon name="barn" [size]="18" />
     <span>Voltar aos setores</span>
   </a>
+  @if (!missing()) {
+    <a class="btn btn-ghost" [routerLink]="['/setores', sectorId, 'relatorios', 'exportar']">
+      <ovyx-icon name="download" [size]="18" />
+      <span>Exportar</span>
+    </a>
+  }
   @if (canOpen()) {
     <a class="btn btn-primary" [routerLink]="['/setores', sectorId, 'relatorios', 'novo']">
       <ovyx-icon name="plus" [size]="18" />

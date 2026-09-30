@@ -6,6 +6,8 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { failure, success } from '../../../../shared/application/result';
 import { VIEWER } from '../../../../shared/application/viewer';
 import { Notification } from '../../../../shared/domain/notification';
+import { Toaster } from '../../../../shared/presentation/ui/toast/toaster';
+import { ExportSectorDashboardUseCase } from '../../../application/dashboard/export-sector-dashboard.usecase';
 import { GetDashboardOverviewUseCase } from '../../../application/dashboard/get-dashboard-overview.usecase';
 import { GetSectorDashboardUseCase } from '../../../application/dashboard/get-sector-dashboard.usecase';
 import { DashboardOverview, SectorDashboard } from '../../../domain/dashboard';
@@ -111,6 +113,7 @@ describe('DashboardPage', () => {
 
   let getOverview: Mock;
   let getDashboard: Mock;
+  let exportDashboard: Mock;
   let harness: RouterTestingHarness;
 
   function element(): HTMLElement {
@@ -144,6 +147,7 @@ describe('DashboardPage', () => {
         provideRouter([{ path: '', component: DashboardPage }]),
         { provide: GetDashboardOverviewUseCase, useValue: { execute: getOverview } },
         { provide: GetSectorDashboardUseCase, useValue: { execute: getDashboard } },
+        { provide: ExportSectorDashboardUseCase, useValue: { execute: exportDashboard } },
         {
           provide: VIEWER,
           useValue: { isAdministrator: signal(false), firstName: signal(firstName) },
@@ -162,6 +166,7 @@ describe('DashboardPage', () => {
   beforeEach(() => {
     getOverview = vi.fn().mockResolvedValue(success(overview));
     getDashboard = vi.fn().mockResolvedValue(success(dashboard));
+    exportDashboard = vi.fn().mockResolvedValue(success('painel-codornas-galpao-1-24-09-2026.xlsx'));
   });
 
   // ---------------------------------------------------------------- cabeçalho
@@ -605,5 +610,130 @@ describe('DashboardPage', () => {
       card('Produtividade diária').querySelector('svg[role="img"]')?.getAttribute('aria-label'),
     ).toContain('com a meta de 80%');
     expect(card('Produtividade diária').textContent).toContain('Meta 80%');
+  });
+
+  // ---------------------------------------------------------------- exportação (007, US2)
+
+  function exportButton(): HTMLButtonElement | undefined {
+    return Array.from(element().querySelectorAll<HTMLButtonElement>('.page-head button')).find((button) =>
+      ['Exportar', 'Gerando…'].includes(button.textContent?.trim() ?? ''),
+    );
+  }
+
+  function toasts(): readonly { message: string; tone: string }[] {
+    return TestBed.inject(Toaster).toasts();
+  }
+
+  it('offers the export of the dashboard in the header, before opening the report of today', async () => {
+    getDashboard.mockResolvedValue(success({ ...dashboard, todayReport: undefined }));
+
+    await open(`/?setor=${codornas.id}&periodo=hoje`);
+
+    const actions = Array.from(element().querySelectorAll('.page-head a, .page-head button')).map((action) =>
+      action.textContent?.trim(),
+    );
+    expect(actions).toEqual(['Exportar', 'Abrir relatório de hoje']);
+  });
+
+  it('exports the sector and the period of the dashboard shown, and says the spreadsheet was generated', async () => {
+    await open(`/?setor=${codornas.id}&periodo=7-dias`);
+
+    exportButton()!.click();
+    await settle();
+
+    expect(exportDashboard).toHaveBeenCalledWith(codornas.id, dashboard.period);
+    expect(toasts().map((toast) => toast.message)).toContain('Planilha gerada (painel-codornas-galpao-1-24-09-2026.xlsx).');
+  });
+
+  it('exports the dashboard shown, and not the one of the address still loading', async () => {
+    getDashboard.mockImplementation((sectorId: string) =>
+      sectorId === codornas.id ? Promise.resolve(success(dashboard)) : new Promise(() => undefined),
+    );
+    await open(`/?setor=${codornas.id}&periodo=hoje`);
+    await harness.navigateByUrl(`/?setor=${poedeiras.id}&periodo=7-dias`);
+    await settle();
+
+    exportButton()!.click();
+    await settle();
+
+    expect(exportDashboard).toHaveBeenCalledWith(codornas.id, dashboard.period);
+  });
+
+  it('says it is generating and takes no second request until it finishes', async () => {
+    let finish: (value: unknown) => void = () => undefined;
+    exportDashboard.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    await open(`/?setor=${codornas.id}&periodo=hoje`);
+
+    exportButton()!.click();
+    harness.detectChanges();
+    exportButton()!.click();
+    harness.detectChanges();
+
+    expect(exportButton()!.textContent?.trim()).toBe('Gerando…');
+    expect(exportButton()!.disabled).toBe(true);
+    expect(exportButton()!.getAttribute('aria-busy')).toBe('true');
+    expect(exportDashboard).toHaveBeenCalledTimes(1);
+    finish(success('painel.xlsx'));
+    await settle();
+    expect(exportButton()!.textContent?.trim()).toBe('Exportar');
+  });
+
+  it('says the spreadsheet could not be generated, and lets it be tried again', async () => {
+    exportDashboard.mockResolvedValueOnce(
+      failure(Notification.of([{ code: 'REQUEST_FAILED', message: 'Não houve resposta do servidor. Tente novamente em instantes.' }])),
+    );
+    await open(`/?setor=${codornas.id}&periodo=hoje`);
+
+    exportButton()!.click();
+    await settle();
+
+    expect(toasts()).toContainEqual(
+      expect.objectContaining({
+        message: 'Não foi possível gerar a planilha: Não houve resposta do servidor. Tente novamente em instantes.',
+        tone: 'danger',
+      }),
+    );
+    expect(exportButton()!.disabled).toBe(false);
+  });
+
+  it('offers no export without a dashboard, as in the invitation of a farm without reports', async () => {
+    getOverview.mockResolvedValue(success({ ...overview, sectors: [] }));
+
+    await open('/');
+
+    expect(exportButton()).toBeUndefined();
+  });
+
+  // ---------------------------------------------------------------- QA 1 da 007: anúncio e foco
+
+  it('announces to the screen reader that the spreadsheet is being generated', async () => {
+    let finish: (value: unknown) => void = () => undefined;
+    exportDashboard.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    await open(`/?setor=${codornas.id}&periodo=hoje`);
+    const status = element().querySelector('[data-export-status]');
+    expect(status?.getAttribute('role')).toBe('status');
+    expect(status?.textContent?.trim()).toBe('');
+
+    exportButton()!.click();
+    harness.detectChanges();
+
+    expect(status?.textContent?.trim()).toBe('Gerando a planilha…');
+    finish(success('painel.xlsx'));
+    await settle();
+    expect(status?.textContent?.trim()).toBe('');
+  });
+
+  it('gives the focus back to the export button when the generation lost it', async () => {
+    let finish: (value: unknown) => void = () => undefined;
+    exportDashboard.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    await open(`/?setor=${codornas.id}&periodo=hoje`);
+
+    exportButton()!.click();
+    harness.detectChanges();
+    (document.activeElement as HTMLElement | null)?.blur();
+    finish(success('painel.xlsx'));
+    await settle();
+
+    expect(document.activeElement).toBe(exportButton());
   });
 });

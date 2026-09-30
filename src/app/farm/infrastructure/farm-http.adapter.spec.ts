@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { HttpHeaders, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Cage, CagePage } from '../domain/cage';
@@ -534,5 +534,40 @@ describe('FarmHttpAdapter', () => {
       voidRequest.flush(null, { status: 204, statusText: 'No Content' });
       expect((await voided).success).toBe(true);
     });
+  });
+
+  // ---------------------------------------------------------------- exportação (007)
+
+  const exportedSector = '3f6c2b1a-8d4e-4c7f-9a2b-1e5d7c9f0a11';
+
+  it('asks for the spreadsheet of the cages with the filters of the list, without pages, as a file', async () => {
+    const pending = adapter.exportCages(exportedSector, { code: 'B-0', battery: 'B', status: 'ALL' });
+
+    const request = backend.expectOne((candidate) => candidate.url === `/api/v1/sectors/${exportedSector}/cages/export`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('code')).toBe('B-0');
+    expect(request.request.params.get('battery')).toBe('B');
+    expect(request.request.params.get('status')).toBe('ALL');
+    expect(request.request.params.has('page')).toBe(false);
+    expect(request.request.params.has('size')).toBe(false);
+    expect(request.request.responseType).toBe('blob');
+    request.flush(new Blob(['PK']), {
+      headers: new HttpHeaders({ 'Content-Disposition': 'attachment; filename="gaiolas-codornas-galpao-1.xlsx"' }),
+    });
+
+    const result = await pending;
+    expect(result.success && result.value.name).toBe('gaiolas-codornas-galpao-1.xlsx');
+  });
+
+  it('leaves out of the export the filters left blank', async () => {
+    const pending = adapter.exportCages(exportedSector, { code: '', battery: '', status: 'ACTIVE' });
+
+    const request = backend.expectOne((candidate) => candidate.url === `/api/v1/sectors/${exportedSector}/cages/export`);
+    expect(request.request.params.has('code')).toBe(false);
+    expect(request.request.params.has('battery')).toBe(false);
+    expect(request.request.params.get('status')).toBe('ACTIVE');
+    request.flush(new Blob(['PK']));
+
+    await pending;
   });
 });

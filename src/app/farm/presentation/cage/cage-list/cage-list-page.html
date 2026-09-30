@@ -43,6 +43,8 @@
     </section>
   } @else {
     <section class="card">
+      <!-- O anúncio da geração da planilha (007): o botão desabilitado não é anunciado. -->
+      <p class="sr" role="status" data-export-status>{{ exporting() ? 'Gerando a planilha…' : '' }}</p>
       <form class="tbl-tools" role="search" aria-label="Buscar gaiolas" (submit)="search($event)">
         <ovyx-search-field
           controlId="code"
@@ -64,6 +66,9 @@
           [value]="status()"
           (valueChange)="filterByStatus($event)"
         />
+        <ovyx-button data-export variant="ghost" size="sm" icon="download" [busy]="exporting()" (pressed)="export()">{{
+          exporting() ? 'Gerando…' : 'Exportar'
+        }}</ovyx-button>
       </form>
 
       <ovyx-data-table

@@ -151,6 +151,14 @@ export const routes: Routes = [
               import('./production/presentation/daily-report/report-dialog/report-dialog').then((m) => m.ReportDialog),
             title: 'Novo relatório — Ovyx',
           },
+          {
+            // A exportação dos relatórios de um intervalo (007, US1): leitura, e por isso também no setor
+            // inativo e sem o guard da abertura.
+            path: 'exportar',
+            loadComponent: () =>
+              import('./production/presentation/daily-report/export-dialog/export-dialog').then((m) => m.ExportDialog),
+            title: 'Exportar relatórios — Ovyx',
+          },
         ],
       },
       {

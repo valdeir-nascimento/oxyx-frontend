@@ -1,6 +1,9 @@
 import type { Mock } from 'vitest';
+import { Notification } from '../../../shared/domain/notification';
+import { FILE_SAVER } from '../../../shared/application/file-saver';
+import { ExportCagesUseCase } from './export-cages.usecase';
 import { TestBed } from '@angular/core/testing';
-import { success } from '../../../shared/application/result';
+import { failure, success } from '../../../shared/application/result';
 import { CAGE_GATEWAY } from './cage-gateway';
 import { DeactivateCageUseCase } from './deactivate-cage.usecase';
 import { FindCageByIdUseCase } from './find-cage-by-id.usecase';
@@ -16,6 +19,7 @@ import { UpdateCageUseCase } from './update-cage.usecase';
 describe('cage use cases', () => {
   const sectorId = '3f6c2b1a-8d4e-4c7f-9a2b-1e5d7c9f0a11';
   let gateway: Record<string, Mock>;
+  let saver: { save: Mock };
 
   beforeEach(() => {
     gateway = {
@@ -25,8 +29,15 @@ describe('cage use cases', () => {
       updateCage: vi.fn().mockResolvedValue(success(null)),
       deactivateCage: vi.fn().mockResolvedValue(success(null)),
       reactivateCage: vi.fn().mockResolvedValue(success(null)),
+      exportCages: vi.fn(),
     };
-    TestBed.configureTestingModule({ providers: [{ provide: CAGE_GATEWAY, useValue: gateway }] });
+    saver = { save: vi.fn() };
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: CAGE_GATEWAY, useValue: gateway },
+        { provide: FILE_SAVER, useValue: saver },
+      ],
+    });
   });
 
   it('searches with the code and the battery trimmed', async () => {
@@ -77,5 +88,27 @@ describe('cage use cases', () => {
 
     expect(gateway['deactivateCage']).toHaveBeenCalledWith(sectorId, 'cage-1');
     expect(gateway['reactivateCage']).toHaveBeenCalledWith(sectorId, 'cage-1');
+  });
+
+  it('exports the cages of the filters, saves the spreadsheet and hands its name back (007)', async () => {
+    const file = { name: 'gaiolas-codornas-galpao-1.xlsx', content: new Blob(['PK']) };
+    gateway['exportCages'].mockResolvedValue(success(file));
+    const filters = { code: 'B-0', battery: 'B', status: 'ACTIVE' as const };
+
+    const result = await TestBed.inject(ExportCagesUseCase).execute(sectorId, filters);
+
+    expect(gateway['exportCages']).toHaveBeenCalledWith(sectorId, filters);
+    expect(saver.save).toHaveBeenCalledWith(file);
+    expect(result).toEqual(success(file.name));
+  });
+
+  it('saves nothing when the export of the cages is refused (007)', async () => {
+    const refusal = Notification.of([{ code: 'SECTOR_NOT_FOUND', message: 'Setor não encontrado.' }]);
+    gateway['exportCages'].mockResolvedValue(failure(refusal));
+
+    const result = await TestBed.inject(ExportCagesUseCase).execute(sectorId, { code: '', battery: '', status: 'ALL' });
+
+    expect(saver.save).not.toHaveBeenCalled();
+    expect(result).toEqual(failure(refusal));
   });
 });

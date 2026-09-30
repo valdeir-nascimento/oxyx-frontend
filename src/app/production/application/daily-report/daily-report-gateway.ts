@@ -1,5 +1,6 @@
 import { InjectionToken } from '@angular/core';
 import { Result } from '../../../shared/application/result';
+import { SpreadsheetFile } from '../../../shared/application/spreadsheet-file';
 import {
   DailyReport,
   DailyReportInput,
@@ -43,6 +44,8 @@ export interface DailyReportGateway {
   suggestFeed(sectorId: string, reportId: string, formulaId: string): Promise<Result<FeedSuggestion>>;
   recordFeedBySuggestion(sectorId: string, reportId: string, formulaId: string): Promise<Result<DailyReport>>;
   recordFeed(sectorId: string, reportId: string, cageId: string, input: FeedInput): Promise<Result<ReportCage>>;
+  /** A planilha dos relatórios do setor entre as duas datas, inclusive (feature 007). */
+  exportDailyReports(sectorId: string, from: string, to: string): Promise<Result<SpreadsheetFile>>;
 }
 
 export const DAILY_REPORT_GATEWAY = new InjectionToken<DailyReportGateway>('DailyReportGateway');
