@@ -7,6 +7,8 @@ import { AUTHENTICATION_GATEWAY } from './identity/application/authentication/au
 import { CARETAKER_GATEWAY } from './identity/application/caretaker/caretaker-gateway';
 import { SessionStore } from './identity/application/authentication/session-store';
 import { IdentityHttpAdapter } from './identity/infrastructure/identity-http.adapter';
+import { FILE_SAVER } from './shared/application/file-saver';
+import { BrowserFileSaver } from './shared/infrastructure/browser-file-saver';
 import { appConfig } from './app.config';
 
 /**
@@ -28,6 +30,10 @@ describe('appConfig', () => {
     expect(TestBed.inject(AUTHENTICATION_GATEWAY)).toBe(adapter);
     expect(TestBed.inject(ACCOUNT_GATEWAY)).toBe(adapter);
     expect(TestBed.inject(CARETAKER_GATEWAY)).toBe(adapter);
+  });
+
+  it('saves the downloaded spreadsheets through the browser', () => {
+    expect(TestBed.inject(FILE_SAVER)).toBe(TestBed.inject(BrowserFileSaver));
   });
 
   it('forgets the identity when the backend refuses the session', () => {
