@@ -1,5 +1,6 @@
 import { InjectionToken } from '@angular/core';
 import { Result } from '../../../shared/application/result';
+import { SpreadsheetFile } from '../../../shared/application/spreadsheet-file';
 import { DashboardOverview, DashboardPeriod, SectorDashboard } from '../../domain/dashboard';
 
 /**
@@ -9,6 +10,8 @@ import { DashboardOverview, DashboardPeriod, SectorDashboard } from '../../domai
 export interface DashboardGateway {
   getDashboardOverview(): Promise<Result<DashboardOverview>>;
   getSectorDashboard(sectorId: string, period: DashboardPeriod): Promise<Result<SectorDashboard>>;
+  /** A planilha do painel do setor no período (feature 007). */
+  exportSectorDashboard(sectorId: string, period: DashboardPeriod): Promise<Result<SpreadsheetFile>>;
 }
 
 export const DASHBOARD_GATEWAY = new InjectionToken<DashboardGateway>('DashboardGateway');

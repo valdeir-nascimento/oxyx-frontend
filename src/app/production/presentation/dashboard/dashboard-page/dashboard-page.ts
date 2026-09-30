@@ -1,6 +1,9 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
+  Injector,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -15,6 +18,7 @@ import {
   Distribution,
   DistributionPart,
 } from '../../../../shared/presentation/ui/distribution/distribution';
+import { Button } from '../../../../shared/presentation/ui/button/button';
 import { DataTable } from '../../../../shared/presentation/ui/data-table/data-table';
 import { EmptyState } from '../../../../shared/presentation/ui/empty-state/empty-state';
 import { ErrorSummary } from '../../../../shared/presentation/ui/error-summary/error-summary';
@@ -36,6 +40,8 @@ import {
   StatusBadgeTone,
 } from '../../../../shared/presentation/ui/status-badge/status-badge';
 import { TabLink, TabNav } from '../../../../shared/presentation/ui/tab-nav/tab-nav';
+import { Toaster } from '../../../../shared/presentation/ui/toast/toaster';
+import { ExportSectorDashboardUseCase } from '../../../application/dashboard/export-sector-dashboard.usecase';
 import { GetDashboardOverviewUseCase } from '../../../application/dashboard/get-dashboard-overview.usecase';
 import { GetSectorDashboardUseCase } from '../../../application/dashboard/get-sector-dashboard.usecase';
 import { percentOf } from '../../../domain/daily-report';
@@ -189,6 +195,7 @@ function daysNote(days: number, what: string): string | undefined {
 @Component({
   selector: 'ovyx-dashboard-page',
   imports: [
+    Button,
     DataTable,
     Distribution,
     EmptyState,
@@ -209,6 +216,10 @@ function daysNote(days: number, what: string): string | undefined {
 export class DashboardPage {
   private readonly getOverview = inject(GetDashboardOverviewUseCase);
   private readonly getDashboard = inject(GetSectorDashboardUseCase);
+  private readonly exportDashboard = inject(ExportSectorDashboardUseCase);
+  private readonly toaster = inject(Toaster);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
   private readonly viewer = inject(VIEWER);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -219,6 +230,8 @@ export class DashboardPage {
   protected readonly periods = PERIODS;
   protected readonly overview = signal<DashboardOverview | null>(null);
   protected readonly dashboard = signal<SectorDashboard | null>(null);
+  /** Se a planilha do painel está sendo gerada (007): o botão fica desabilitado e diz "Gerando…". */
+  protected readonly exporting = signal(false);
   protected readonly refusal = signal(Notification.empty());
 
   /** O número do último pedido do painel: só a resposta dele entra na tela. */
@@ -513,5 +526,42 @@ export class DashboardPage {
     }
     this.refusal.set(Notification.empty());
     this.dashboard.set(result.value);
+  }
+
+  /**
+   * Exporta o painel mostrado (US2 da 007): o setor e o período de `dashboard()`, e não os da URL que ainda
+   * carrega, como os atalhos. Enquanto gera, não aceita outro pedido; o resultado vai para o aviso.
+   */
+  protected async export(): Promise<void> {
+    const shown = this.dashboard();
+    if (!shown || this.exporting()) {
+      return;
+    }
+    this.exporting.set(true);
+    const result = await this.exportDashboard.execute(shown.sector.id, shown.period);
+    this.exporting.set(false);
+    this.giveFocusBackToExport();
+    if (result.success) {
+      this.toaster.show(`Planilha gerada (${result.value}).`);
+      return;
+    }
+    const reasons = result.notification.errors.map((error) => error.message).join(' ');
+    this.toaster.show(`Não foi possível gerar a planilha: ${reasons}`, 'danger');
+  }
+
+  /**
+   * O botão desabilitado durante a geração perde o foco, que cai no corpo da página (QA 1 da 007). Quando o botão
+   * volta, o foco volta para ele, se não foi para outro lugar.
+   */
+  private giveFocusBackToExport(): void {
+    afterNextRender(
+      () => {
+        const focused = document.activeElement;
+        if (!focused || focused === document.body) {
+          this.host.nativeElement.querySelector<HTMLElement>('[data-export] button')?.focus();
+        }
+      },
+      { injector: this.injector },
+    );
   }
 }

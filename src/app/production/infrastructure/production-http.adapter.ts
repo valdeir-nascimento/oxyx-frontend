@@ -2,7 +2,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Result, success } from '../../shared/application/result';
-import { resultOf } from '../../shared/infrastructure/http-result';
+import { fileResultOf, resultOf } from '../../shared/infrastructure/http-result';
+import { SpreadsheetFile } from '../../shared/application/spreadsheet-file';
 import { jsonNumberOf } from '../../shared/infrastructure/typed-number';
 import { DailyReportGateway } from '../application/daily-report/daily-report-gateway';
 import { DashboardGateway } from '../application/dashboard/dashboard-gateway';
@@ -182,6 +183,43 @@ export class ProductionHttpAdapter implements DailyReportGateway, DashboardGatew
       firstValueFrom(
         this.http.get<SectorDashboard>(`/api/v1/sectors/${encodeURIComponent(sectorId)}/dashboard`, { params }),
       ),
+    );
+  }
+
+  /**
+   * A planilha dos relatórios do intervalo (007). A data em branco não vai, e o backend diz que falta; a
+   * recusa, que chega como Blob, é lida pelo `fileResultOf`.
+   */
+  exportDailyReports(sectorId: string, from: string, to: string): Promise<Result<SpreadsheetFile>> {
+    let params = new HttpParams();
+    if (from) {
+      params = params.set('from', from);
+    }
+    if (to) {
+      params = params.set('to', to);
+    }
+    return fileResultOf(
+      () =>
+        firstValueFrom(
+          this.http.get(`${reportsUrl(sectorId)}/export`, { params, responseType: 'blob', observe: 'response' }),
+        ),
+      'relatorios.xlsx',
+    );
+  }
+
+  /** A planilha do painel do setor no período (007), com a recusa lida pelo `fileResultOf`. */
+  exportSectorDashboard(sectorId: string, period: DashboardPeriod): Promise<Result<SpreadsheetFile>> {
+    const params = new HttpParams().set('period', period);
+    return fileResultOf(
+      () =>
+        firstValueFrom(
+          this.http.get(`/api/v1/sectors/${encodeURIComponent(sectorId)}/dashboard/export`, {
+            params,
+            responseType: 'blob',
+            observe: 'response',
+          }),
+        ),
+      'painel.xlsx',
     );
   }
 }

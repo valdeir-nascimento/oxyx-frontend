@@ -162,6 +162,21 @@ describe('ReportListPage', () => {
     expect(link('Voltar aos setores')?.getAttribute('href')).toBe('/setores');
   });
 
+  it('offers the export of the reports to a spreadsheet from the header (007, US1)', async () => {
+    await render();
+
+    const exporting = link('Exportar');
+    expect(exporting?.getAttribute('href')).toBe(`/setores/${sectorId}/relatorios/exportar`);
+  });
+
+  it('keeps the export in an inactive sector, which is only consulted (007, US1)', async () => {
+    list.mockResolvedValue(success(pageOf([summary()], { sector: { ...sector, status: 'INACTIVE' } })));
+
+    await render();
+
+    expect(link('Exportar')?.getAttribute('href')).toBe(`/setores/${sectorId}/relatorios/exportar`);
+  });
+
   it('shows the sector in the header and names the table by it', async () => {
     await render();
 

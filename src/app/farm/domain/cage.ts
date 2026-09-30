@@ -30,6 +30,13 @@ export interface CagePage {
   readonly totalPages: number;
 }
 
+/** Os filtros da lista que a exportação das gaiolas leva (007): a busca, a bateria e a situação, sem página. */
+export interface CageExport {
+  readonly code: string;
+  readonly battery: string;
+  readonly status: StatusFilter;
+}
+
 /** O que a pessoa pede na lista: trecho do código, bateria, situação e página. */
 export interface CageSearch {
   readonly code?: string;

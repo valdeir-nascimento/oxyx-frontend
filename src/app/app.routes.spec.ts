@@ -1,4 +1,5 @@
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { FILE_SAVER } from './shared/application/file-saver';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Title } from '@angular/platform-browser';
@@ -71,6 +72,7 @@ describe('routes', () => {
           },
         },
         { provide: ACCOUNT_GATEWAY, useValue: { changeOwnPassword: vi.fn() } },
+        { provide: FILE_SAVER, useValue: { save: vi.fn() } },
         {
           provide: CARETAKER_GATEWAY,
           useValue: {
@@ -424,6 +426,13 @@ describe('routes', () => {
     configure(success(maria));
 
     expect(await goTo(`/setores/${codornas.id}/relatorios/novo`)).toBe(`/setores/${codornas.id}/relatorios/novo`);
+  });
+
+  it('opens the dialog of the export of the reports to a common user (007, US1)', async () => {
+    configure(success(maria));
+
+    expect(await goTo(`/setores/${codornas.id}/relatorios/exportar`)).toBe(`/setores/${codornas.id}/relatorios/exportar`);
+    expect(TestBed.inject(Title).getTitle()).toBe('Exportar relatórios — Ovyx');
   });
 
   it('opens the page of a report on the production tab, named by its day (003, US1 and US2)', async () => {

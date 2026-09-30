@@ -32,6 +32,7 @@ import {
 import { StatusBadge } from '../../../../shared/presentation/ui/status-badge/status-badge';
 import { Toaster } from '../../../../shared/presentation/ui/toast/toaster';
 import { DeactivateCageUseCase } from '../../../application/cage/deactivate-cage.usecase';
+import { ExportCagesUseCase } from '../../../application/cage/export-cages.usecase';
 import { ReactivateCageUseCase } from '../../../application/cage/reactivate-cage.usecase';
 import { SearchCagesUseCase } from '../../../application/cage/search-cages.usecase';
 import { FindSectorByIdUseCase } from '../../../application/sector/find-sector-by-id.usecase';
@@ -112,6 +113,7 @@ export class CageListPage {
   private readonly findSector = inject(FindSectorByIdUseCase);
   private readonly deactivateCage = inject(DeactivateCageUseCase);
   private readonly reactivateCage = inject(ReactivateCageUseCase);
+  private readonly exportCages = inject(ExportCagesUseCase);
   private readonly toaster = inject(Toaster);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
@@ -160,6 +162,8 @@ export class CageListPage {
 
   /** Os filtros da última pesquisa feita. */
   private readonly searched = signal<Filters>(NO_FILTERS);
+  /** Se a planilha das gaiolas está sendo gerada (007): o botão fica desabilitado e diz "Gerando…". */
+  protected readonly exporting = signal(false);
 
   protected readonly batteryOptions = computed<readonly SegmentOption[]>(() => [
     { value: '', label: 'Todas' },
@@ -381,5 +385,41 @@ export class CageListPage {
     }
     this.refusal.set(Notification.empty());
     this.page.set(result.value);
+  }
+
+  /**
+   * Exporta as gaiolas com a busca e os filtros da última busca feita, e não o que está no campo e ainda não foi
+   * buscado, como as páginas (US3 da 007). Enquanto gera, não aceita outro pedido; o resultado vai para o aviso.
+   */
+  protected async export(): Promise<void> {
+    if (this.exporting()) {
+      return;
+    }
+    this.exporting.set(true);
+    const result = await this.exportCages.execute(this.sectorId, this.searched());
+    this.exporting.set(false);
+    this.giveFocusBackToExport();
+    if (result.success) {
+      this.toaster.show(`Planilha gerada (${result.value}).`);
+      return;
+    }
+    const reasons = result.notification.errors.map((error) => error.message).join(' ');
+    this.toaster.show(`Não foi possível gerar a planilha: ${reasons}`, 'danger');
+  }
+
+  /**
+   * O botão desabilitado durante a geração perde o foco, que cai no corpo da página (QA 1 da 007). Quando o botão
+   * volta, o foco volta para ele, se não foi para outro lugar.
+   */
+  private giveFocusBackToExport(): void {
+    afterNextRender(
+      () => {
+        const focused = document.activeElement;
+        if (!focused || focused === document.body) {
+          this.host.nativeElement.querySelector<HTMLElement>('[data-export] button')?.focus();
+        }
+      },
+      { injector: this.injector },
+    );
   }
 }

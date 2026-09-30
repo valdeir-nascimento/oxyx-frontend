@@ -1,6 +1,7 @@
 import { InjectionToken } from '@angular/core';
 import { Result } from '../../../shared/application/result';
-import { Cage, CageInput, CagePage, CageSearch } from '../../domain/cage';
+import { SpreadsheetFile } from '../../../shared/application/spreadsheet-file';
+import { Cage, CageExport, CageInput, CagePage, CageSearch } from '../../domain/cage';
 
 /**
  * Porta das gaiolas, declarada na aplicação e implementada em `infrastructure`. A gaiola é recurso do
@@ -13,6 +14,8 @@ export interface CageGateway {
   updateCage(sectorId: string, cageId: string, input: CageInput): Promise<Result<Cage>>;
   deactivateCage(sectorId: string, cageId: string): Promise<Result<Cage>>;
   reactivateCage(sectorId: string, cageId: string): Promise<Result<Cage>>;
+  /** A planilha das gaiolas do setor com os filtros da lista, de todas as páginas (feature 007). */
+  exportCages(sectorId: string, filters: CageExport): Promise<Result<SpreadsheetFile>>;
 }
 
 export const CAGE_GATEWAY = new InjectionToken<CageGateway>('CageGateway');

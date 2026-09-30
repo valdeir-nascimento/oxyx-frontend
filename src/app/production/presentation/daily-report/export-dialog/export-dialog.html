@@ -1,0 +1,41 @@
+<ovyx-dialog
+  title="Exportar relatórios"
+  subtitle="Os relatórios do setor entre as duas datas, numa planilha do Excel."
+  icon="download"
+  (closed)="close()"
+  (submitted)="submit()"
+>
+  <p class="sr" role="status" data-export-status>{{ submitting() ? 'Gerando a planilha…' : '' }}</p>
+
+  @if (notification().hasErrors) {
+    <ovyx-error-summary
+      class="span2"
+      heading="Não foi possível gerar a planilha:"
+      [errors]="errors()"
+      [fields]="fields"
+    />
+  }
+
+  <ovyx-form-field
+    controlId="exportFrom"
+    label="De"
+    type="date"
+    [control]="form.controls.from"
+    [error]="messageFor('from')"
+  />
+  <ovyx-form-field
+    controlId="exportTo"
+    label="Até"
+    type="date"
+    hint="No máximo 366 dias."
+    [control]="form.controls.to"
+    [error]="messageFor('to')"
+  />
+
+  <ovyx-button dialog-actions variant="secondary" [disabled]="submitting()" (pressed)="close()"
+    >Cancelar</ovyx-button
+  >
+  <ovyx-button dialog-actions type="submit" icon="download" [busy]="submitting()">
+    {{ submitting() ? 'Gerando…' : 'Exportar' }}
+  </ovyx-button>
+</ovyx-dialog>

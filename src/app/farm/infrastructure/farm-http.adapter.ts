@@ -2,13 +2,14 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Result } from '../../shared/application/result';
-import { resultOf } from '../../shared/infrastructure/http-result';
+import { SpreadsheetFile } from '../../shared/application/spreadsheet-file';
+import { fileResultOf, resultOf } from '../../shared/infrastructure/http-result';
 import { jsonNumberOf } from '../../shared/infrastructure/typed-number';
 import { CageGateway } from '../application/cage/cage-gateway';
 import { FeedFormulaGateway } from '../application/formula/feed-formula-gateway';
 import { SectorGateway } from '../application/sector/sector-gateway';
 import { WeighingGateway } from '../application/weighing/weighing-gateway';
-import { Cage, CageInput, CagePage, CageSearch } from '../domain/cage';
+import { Cage, CageExport, CageInput, CagePage, CageSearch } from '../domain/cage';
 import { FeedFormula, FeedFormulaInput } from '../domain/feed-formula';
 import { Sector, SectorInput, SectorSummary } from '../domain/sector';
 import { StatusFilter } from '../domain/status';
@@ -219,6 +220,27 @@ export class FarmHttpAdapter implements SectorGateway, CageGateway, FeedFormulaG
   async voidWeighing(sectorId: string, cageId: string, weighingId: string): Promise<Result<void>> {
     return resultOf(() =>
       firstValueFrom(this.http.post<void>(`${weighingsUrl(sectorId, cageId, weighingId)}/voiding`, null)),
+    );
+  }
+
+  /**
+   * A planilha das gaiolas (007): os filtros da lista, sem página. Só vão os filtros pedidos, como na
+   * pesquisa; a recusa, que chega como Blob, é lida pelo `fileResultOf`.
+   */
+  exportCages(sectorId: string, filters: CageExport): Promise<Result<SpreadsheetFile>> {
+    let params = new HttpParams().set('status', filters.status);
+    if (filters.code) {
+      params = params.set('code', filters.code);
+    }
+    if (filters.battery) {
+      params = params.set('battery', filters.battery);
+    }
+    return fileResultOf(
+      () =>
+        firstValueFrom(
+          this.http.get(`${cagesUrl(sectorId)}/export`, { params, responseType: 'blob', observe: 'response' }),
+        ),
+      'gaiolas.xlsx',
     );
   }
 }
