@@ -1,0 +1,162 @@
+<p class="reporting" data-reporting>{{ reporting() }}</p>
+
+<section class="kpis" aria-label="Indicadores da granja no período">
+  @for (kpi of kpis(); track kpi.label) {
+    <ovyx-kpi
+      [label]="kpi.label"
+      [icon]="kpi.icon"
+      [highlight]="kpi.highlight"
+      [value]="kpi.value"
+      [unit]="kpi.unit"
+      [change]="kpi.change"
+      [tone]="kpi.tone"
+      [direction]="kpi.direction"
+      [comparison]="comparison()"
+      [trend]="kpi.trend"
+      [trendLabel]="kpi.trendLabel"
+      [note]="kpi.note"
+    />
+  }
+</section>
+
+<div class="grid-2">
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h2>Produtividade diária</h2>
+        <div class="sub">
+          Ovos coletados ÷ aves no início do dia, todos os setores · últimos 7 dias
+        </div>
+      </div>
+      @if (targetBadge(); as badge) {
+        <ovyx-status-badge [label]="badge.label" [tone]="badge.tone" />
+      }
+    </div>
+    <div class="card-body">
+      @if (productivityPoints().length > 0) {
+        <ovyx-line-chart
+          [label]="productivityLabel()"
+          [points]="productivityPoints()"
+          [reference]="target()"
+          [format]="formatRate"
+        />
+      } @else {
+        <p class="muted">Nenhum relatório nos últimos 7 dias.</p>
+      }
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h2>Classificação dos ovos</h2>
+        <div class="sub">Todos os setores no período</div>
+      </div>
+    </div>
+    <div class="card-body">
+      @if (grading(); as view) {
+        <ovyx-distribution
+          label="Classes de ovos fora do padrão"
+          [mainPercent]="view.mainPercent"
+          [mainText]="view.mainText"
+          [mainNote]="view.mainNote"
+          [parts]="view.parts"
+        />
+      } @else {
+        <p class="muted">Nenhum ovo no período.</p>
+      }
+    </div>
+  </section>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <div>
+      <h2>Custo por ovo</h2>
+      <div class="sub">
+        Custo da ração ÷ ovos coletados · últimos 7 dias, só com a ração completa
+      </div>
+    </div>
+  </div>
+  <div class="card-body">
+    @if (costPoints().length > 0) {
+      <ovyx-line-chart
+        label="Custo por ovo da granja toda nos últimos 7 dias"
+        [points]="costPoints()"
+        [format]="formatCostPerEgg"
+      />
+    } @else {
+      <p class="muted">Nenhum dia com a ração completa nos últimos 7 dias.</p>
+    }
+  </div>
+</section>
+
+<section class="card" data-sectors>
+  <div class="card-head">
+    <div>
+      <h2>Setores</h2>
+      <div class="sub">Cada setor no período, diante da sua meta</div>
+    </div>
+  </div>
+  <ovyx-data-table caption="Comparação dos setores no período" [empty]="rows().length === 0">
+    <thead>
+      <tr>
+        <th scope="col">Setor</th>
+        <th scope="col" class="r">Produção</th>
+        <th scope="col" class="r">Produtividade</th>
+        <th scope="col" class="r">Meta</th>
+        <th scope="col">Situação</th>
+        <th scope="col" class="r">Custo por ovo</th>
+        <th scope="col">Relatório de hoje</th>
+        <th scope="col" class="r">Alertas</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows(); track row.id) {
+        <tr [attr.data-sector]="row.id">
+          <td class="main" data-label="Setor">
+            <a
+              [routerLink]="['/']"
+              [queryParams]="{ setor: row.id, periodo: periodRoute() }"
+              [attr.aria-label]="'Abrir o painel de ' + row.name"
+              >{{ row.name }}</a
+            >
+          </td>
+          <td class="r tnum" data-label="Produção">
+            @if (row.production; as value) {
+              {{ value }}
+            } @else {
+              <span class="zero">—</span>
+            }
+          </td>
+          <td class="r tnum" data-label="Produtividade">
+            @if (row.layingRate; as value) {
+              {{ value }}
+            } @else {
+              <span class="zero">—</span>
+            }
+          </td>
+          <td class="r tnum" data-label="Meta">{{ row.target }}</td>
+          <td data-label="Situação">
+            @if (row.status; as badge) {
+              <ovyx-status-badge [label]="badge.label" [tone]="badge.tone" />
+            } @else {
+              <span class="zero">—</span>
+            }
+          </td>
+          <td class="r tnum" data-label="Custo por ovo">
+            @if (row.costPerEgg; as value) {
+              {{ value }}
+            } @else {
+              <span class="zero">—</span>
+            }
+          </td>
+          <td data-label="Relatório de hoje">
+            <ovyx-status-badge [label]="row.today.label" [tone]="row.today.tone" />
+          </td>
+          <td class="r tnum" data-label="Alertas">{{ row.openAlerts }}</td>
+        </tr>
+      }
+    </tbody>
+  </ovyx-data-table>
+</section>

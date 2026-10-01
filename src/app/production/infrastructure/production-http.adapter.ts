@@ -20,7 +20,7 @@ import {
   ProductionInput,
   ReportCage,
 } from '../domain/daily-report';
-import { DashboardOverview, DashboardPeriod, SectorDashboard } from '../domain/dashboard';
+import { DashboardOverview, DashboardPeriod, FarmDashboard, SectorDashboard } from '../domain/dashboard';
 
 /**
  * Endereço dos relatórios de um setor, e de um deles, com os identificadores codificados: eles vêm do
@@ -186,6 +186,12 @@ export class ProductionHttpAdapter implements DailyReportGateway, DashboardGatew
     );
   }
 
+  /** O painel da granja toda no período (009). */
+  async getFarmDashboard(period: DashboardPeriod): Promise<Result<FarmDashboard>> {
+    const params = new HttpParams().set('period', period);
+    return resultOf(() => firstValueFrom(this.http.get<FarmDashboard>('/api/v1/dashboard/farm', { params })));
+  }
+
   /**
    * A planilha dos relatórios do intervalo (007). A data em branco não vai, e o backend diz que falta; a
    * recusa, que chega como Blob, é lida pelo `fileResultOf`.
@@ -214,6 +220,22 @@ export class ProductionHttpAdapter implements DailyReportGateway, DashboardGatew
       () =>
         firstValueFrom(
           this.http.get(`/api/v1/sectors/${encodeURIComponent(sectorId)}/dashboard/export`, {
+            params,
+            responseType: 'blob',
+            observe: 'response',
+          }),
+        ),
+      'painel.xlsx',
+    );
+  }
+
+  /** A planilha da granja toda no período (009). */
+  exportFarmDashboard(period: DashboardPeriod): Promise<Result<SpreadsheetFile>> {
+    const params = new HttpParams().set('period', period);
+    return fileResultOf(
+      () =>
+        firstValueFrom(
+          this.http.get('/api/v1/dashboard/farm/export', {
             params,
             responseType: 'blob',
             observe: 'response',

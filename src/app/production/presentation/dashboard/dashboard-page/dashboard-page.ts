@@ -14,59 +14,54 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { VIEWER } from '../../../../shared/application/viewer';
 import { Notification } from '../../../../shared/domain/notification';
-import {
-  Distribution,
-  DistributionPart,
-} from '../../../../shared/presentation/ui/distribution/distribution';
+import { Distribution } from '../../../../shared/presentation/ui/distribution/distribution';
 import { Button } from '../../../../shared/presentation/ui/button/button';
 import { DataTable } from '../../../../shared/presentation/ui/data-table/data-table';
 import { EmptyState } from '../../../../shared/presentation/ui/empty-state/empty-state';
 import { ErrorSummary } from '../../../../shared/presentation/ui/error-summary/error-summary';
 import { Icon } from '../../../../shared/presentation/ui/icon/icon';
 import { IconName } from '../../../../shared/presentation/ui/icon/icons';
-import { Kpi, KpiTone } from '../../../../shared/presentation/ui/kpi/kpi';
-import {
-  ChartPoint,
-  ChartReference,
-  LineChart,
-} from '../../../../shared/presentation/ui/line-chart/line-chart';
+import { Kpi } from '../../../../shared/presentation/ui/kpi/kpi';
+import { LineChart } from '../../../../shared/presentation/ui/line-chart/line-chart';
 import { PageHeader } from '../../../../shared/presentation/ui/page-header/page-header';
 import {
   SegmentOption,
   SegmentedControl,
 } from '../../../../shared/presentation/ui/segmented-control/segmented-control';
-import {
-  StatusBadge,
-  StatusBadgeTone,
-} from '../../../../shared/presentation/ui/status-badge/status-badge';
+import { StatusBadge } from '../../../../shared/presentation/ui/status-badge/status-badge';
 import { TabLink, TabNav } from '../../../../shared/presentation/ui/tab-nav/tab-nav';
 import { Toaster } from '../../../../shared/presentation/ui/toast/toaster';
+import { ExportFarmDashboardUseCase } from '../../../application/dashboard/export-farm-dashboard.usecase';
 import { ExportSectorDashboardUseCase } from '../../../application/dashboard/export-sector-dashboard.usecase';
 import { GetDashboardOverviewUseCase } from '../../../application/dashboard/get-dashboard-overview.usecase';
+import { GetFarmDashboardUseCase } from '../../../application/dashboard/get-farm-dashboard.usecase';
 import { GetSectorDashboardUseCase } from '../../../application/dashboard/get-sector-dashboard.usecase';
 import { percentOf } from '../../../domain/daily-report';
 import {
-  DashboardDay,
   DashboardOverview,
   AlertKind,
   DashboardPeriod,
-  EggGrade,
-  Indicator,
-  LatestReport,
+  DashboardSector,
+  FarmDashboard,
   isComplete,
-  verdictOf,
   PartOfDay,
   SectorDashboard,
 } from '../../../domain/dashboard';
-import {
-  countOf,
-  dayOf,
-  dayWithWeekdayOf,
-  moneyOf,
-  signedPercentOf,
-  signedPointsOf,
-} from '../../labels/labels';
+import { countOf, dayWithWeekdayOf, moneyOf } from '../../labels/labels';
 import { alertRouteOf } from '../alert-target';
+import {
+  KpiView,
+  gradingOf,
+  kpisOf,
+  pointsOf,
+  reportSituationOf,
+  targetBadgeOf,
+  targetReferenceOf,
+} from '../dashboard-views';
+import { FarmPanel } from '../farm-panel/farm-panel';
+
+/** A aba da granja toda na URL (`?setor=granja`, R-002 da 009). */
+const FARM_TAB = 'granja';
 
 /** O período na URL da tela, em português (R-002 da 006). */
 const PERIOD_OF_ROUTE: Readonly<Record<string, DashboardPeriod>> = {
@@ -94,17 +89,6 @@ const PERIOD_LABEL: Readonly<Record<DashboardPeriod, string>> = {
   LAST_7_DAYS: 'Últimos 7 dias',
 };
 
-/** As classes de ovos em português, como na aba Produção do relatório. */
-const GRADE_LABEL: Readonly<Record<EggGrade, string>> = {
-  standard: 'Padrão',
-  small: 'Pequenos',
-  jumbo: 'Jumbo',
-  dirty: 'Sujos',
-  cracked: 'Trincados',
-  bloodSpot: 'Com sangue',
-  abnormal: 'Anormais',
-};
-
 /** O ícone de cada alerta, como os do protótipo. */
 const ALERT_ICON: Readonly<Record<AlertKind, IconName>> = {
   REPORT_NOT_OPENED: 'report',
@@ -128,35 +112,6 @@ const PERIODS: readonly SegmentOption[] = [
   { value: '7-dias', label: '7 dias' },
 ];
 
-/** Um indicador como o `ovyx-kpi` o recebe: tudo já escrito. */
-interface KpiView {
-  readonly label: string;
-  readonly icon: 'egg' | 'percent' | 'grain' | 'coin';
-  readonly highlight: boolean;
-  readonly value?: string;
-  readonly unit?: string;
-  readonly change?: string;
-  readonly tone: KpiTone;
-  readonly direction?: 'up' | 'down';
-  readonly trend: readonly (number | undefined)[];
-  readonly trendLabel: string;
-  readonly note?: string;
-}
-
-/** A situação dos lançamentos de um relatório: completo, ou o primeiro que falta. */
-function situationOf(report: LatestReport): { label: string; tone: StatusBadgeTone } {
-  if (isComplete(report)) {
-    return { label: 'Completo', tone: 'success' };
-  }
-  // Pendente: o rótulo é o do primeiro lançamento que falta, na ordem das abas do relatório.
-  if (report.productionStatus === 'PENDING') {
-    return { label: 'Produção pendente', tone: 'warning' };
-  }
-  return report.feedStatus === 'PENDING'
-    ? { label: 'Ração pendente', tone: 'warning' }
-    : { label: 'Mortalidade pendente', tone: 'warning' };
-}
-
 /** O dia de hoje por extenso, sem `Date` local: "Quinta-feira, 24 de setembro de 2026". */
 function longDayOf(isoDate: string): string {
   const [year, month, day] = isoDate.split('-').map(Number);
@@ -168,21 +123,6 @@ function longDayOf(isoDate: string): string {
     timeZone: 'UTC',
   }).format(new Date(Date.UTC(year, month - 1, day)));
   return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-/** Se o valor subiu ou desceu, para a seta do indicador. */
-function directionOf(indicator: Indicator): 'up' | 'down' | undefined {
-  if (indicator.change === undefined || indicator.change === 0) {
-    return undefined;
-  }
-  return indicator.change > 0 ? 'up' : 'down';
-}
-
-function daysNote(days: number, what: string): string | undefined {
-  if (days === 0) {
-    return undefined;
-  }
-  return `${days} ${days === 1 ? 'dia' : 'dias'} ${what}`;
 }
 
 /**
@@ -200,6 +140,7 @@ function daysNote(days: number, what: string): string | undefined {
     Distribution,
     EmptyState,
     ErrorSummary,
+    FarmPanel,
     Icon,
     Kpi,
     LineChart,
@@ -216,6 +157,8 @@ function daysNote(days: number, what: string): string | undefined {
 export class DashboardPage {
   private readonly getOverview = inject(GetDashboardOverviewUseCase);
   private readonly getDashboard = inject(GetSectorDashboardUseCase);
+  private readonly getFarm = inject(GetFarmDashboardUseCase);
+  private readonly exportFarm = inject(ExportFarmDashboardUseCase);
   private readonly exportDashboard = inject(ExportSectorDashboardUseCase);
   private readonly toaster = inject(Toaster);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -230,6 +173,8 @@ export class DashboardPage {
   protected readonly periods = PERIODS;
   protected readonly overview = signal<DashboardOverview | null>(null);
   protected readonly dashboard = signal<SectorDashboard | null>(null);
+  /** O painel da granja toda, quando é a aba mostrada (feature 009); o do setor fica nulo. */
+  protected readonly farm = signal<FarmDashboard | null>(null);
   /** Se a planilha do painel está sendo gerada (007): o botão fica desabilitado e diz "Gerando…". */
   protected readonly exporting = signal(false);
   protected readonly refusal = signal(Notification.empty());
@@ -253,129 +198,74 @@ export class DashboardPage {
     return `${longDayOf(overview.today)}. ${overview.completeToday} de ${overview.activeSectors} ${sectors} com o relatório do dia completo.`;
   });
 
-  /** O setor e o período da URL, já conferidos contra as abas. */
-  private readonly chosen = computed(() => {
+  /** Com duas ou mais abas de setor, a granja toda vem antes delas (FR-001 da 009, R-008). */
+  private readonly hasFarm = computed(() => (this.overview()?.sectors.length ?? 0) >= 2);
+
+  /**
+   * A aba e o período da URL, já conferidos contra as abas. Com a granja toda, ela é o padrão: sem setor, ou com um
+   * que não é aba (FR-002 da 009). Sem ela, o primeiro setor.
+   */
+  private readonly chosen = computed<{
+    readonly tab: string;
+    readonly sector: DashboardSector | null;
+    readonly period: DashboardPeriod;
+  } | null>(() => {
     const overview = this.overview();
     if (!overview || overview.sectors.length === 0) {
       return null;
     }
     const params = this.params();
-    const sectorId = params.get('setor');
-    const sector =
-      overview.sectors.find((candidate) => candidate.id === sectorId) ?? overview.sectors[0];
     const period = PERIOD_OF_ROUTE[params.get('periodo') ?? ''] ?? 'TODAY';
-    return { sector, period };
+    const sector = overview.sectors.find((candidate) => candidate.id === params.get('setor'));
+    if (sector) {
+      return { tab: sector.id, sector, period };
+    }
+    if (this.hasFarm()) {
+      return { tab: FARM_TAB, sector: null, period };
+    }
+    return { tab: overview.sectors[0].id, sector: overview.sectors[0], period };
   });
 
   protected readonly periodRoute = computed(
     () => ROUTE_OF_PERIOD[this.chosen()?.period ?? 'TODAY'],
   );
 
-  protected readonly tabs = computed<readonly TabLink[]>(() =>
-    (this.overview()?.sectors ?? []).map((sector) => ({
+  protected readonly tabs = computed<readonly TabLink[]>(() => {
+    const sectors = (this.overview()?.sectors ?? []).map((sector) => ({
       label: sector.name,
       link: ['/'],
       queryParams: { setor: sector.id, periodo: this.periodRoute() },
-    })),
-  );
-
-  protected readonly kpis = computed<readonly KpiView[]>(() => {
-    const dashboard = this.dashboard();
-    if (!dashboard) {
-      return [];
+    }));
+    if (!this.hasFarm()) {
+      return sectors;
     }
-    const { production, layingRate, feedCost, costPerEgg } = dashboard.indicators;
-    const series = (field: keyof Omit<DashboardDay, 'date'>) =>
-      dashboard.trend.map((day) => day[field]);
     return [
-      {
-        label: 'Produção',
-        icon: 'egg',
-        highlight: true,
-        value: production.value === undefined ? undefined : countOf(production.value),
-        unit: 'ovos',
-        change: production.change === undefined ? undefined : signedPercentOf(production.change),
-        tone: verdictOf(production),
-        direction: directionOf(production),
-        trend: series('production'),
-        trendLabel: 'Produção dos últimos 7 dias',
-        note: daysNote(production.incompleteDays, 'com a produção pendente'),
-      },
-      {
-        label: 'Produtividade',
-        icon: 'percent',
-        highlight: false,
-        value: layingRate.value === undefined ? undefined : percentOf(layingRate.value, 2),
-        change: layingRate.change === undefined ? undefined : signedPointsOf(layingRate.change),
-        tone: verdictOf(layingRate),
-        direction: directionOf(layingRate),
-        trend: series('layingRate'),
-        trendLabel: 'Produtividade dos últimos 7 dias',
-        note: daysNote(layingRate.incompleteDays, 'com a produção pendente'),
-      },
-      {
-        label: 'Custo de ração',
-        icon: 'grain',
-        highlight: false,
-        value: feedCost.value === undefined ? undefined : moneyOf(feedCost.value),
-        change: feedCost.change === undefined ? undefined : signedPercentOf(feedCost.change),
-        tone: verdictOf(feedCost),
-        direction: directionOf(feedCost),
-        trend: series('feedCost'),
-        trendLabel: 'Custo de ração dos últimos 7 dias',
-        note: daysNote(feedCost.incompleteDays, 'sem ração completa'),
-      },
-      {
-        label: 'Custo por ovo',
-        icon: 'coin',
-        highlight: false,
-        value: costPerEgg.value === undefined ? undefined : moneyOf(costPerEgg.value, 3),
-        change: costPerEgg.change === undefined ? undefined : signedPercentOf(costPerEgg.change),
-        tone: verdictOf(costPerEgg),
-        direction: directionOf(costPerEgg),
-        trend: series('costPerEgg'),
-        trendLabel: 'Custo por ovo dos últimos 7 dias',
-        note: daysNote(costPerEgg.incompleteDays, 'sem ração completa'),
-      },
+      { label: 'Granja toda', link: ['/'], queryParams: { setor: FARM_TAB, periodo: this.periodRoute() } },
+      ...sectors,
     ];
   });
 
+  protected readonly kpis = computed<readonly KpiView[]>(() => {
+    const dashboard = this.dashboard();
+    return dashboard ? kpisOf(dashboard.indicators, dashboard.trend, 'DAY') : [];
+  });
+
   /** A comparação do painel mostrado, e não da URL que ainda carrega. */
-  protected readonly comparison = computed(() => COMPARISON[this.dashboard()?.period ?? 'TODAY']);
+  protected readonly comparison = computed(
+    () => COMPARISON[this.dashboard()?.period ?? this.farm()?.period ?? 'TODAY'],
+  );
 
   // ---------------------------------------------------------------- gráficos e classificação (US2)
 
-  /** Os pontos de um valor da série: só os dias que o têm, e o dia sem valor fica sem ponto (FR-013). */
-  private pointsOf(
-    field: 'layingRate' | 'costPerEgg',
-    write: (value: number) => string,
-  ): readonly ChartPoint[] {
-    return (this.dashboard()?.trend ?? []).flatMap((day) => {
-      const value = day[field];
-      return value === undefined
-        ? []
-        : [
-            {
-              label: dayOf(day.date).slice(0, 5),
-              value,
-              text: `${write(value)} em ${dayOf(day.date)}`,
-            },
-          ];
-    });
-  }
-
   protected readonly productivityPoints = computed(() =>
-    this.pointsOf('layingRate', (value) => percentOf(value, 2)),
+    pointsOf(this.dashboard()?.trend ?? [], 'layingRate', (value) => percentOf(value, 2)),
   );
 
   protected readonly costPoints = computed(() =>
-    this.pointsOf('costPerEgg', (value) => moneyOf(value, 3)),
+    pointsOf(this.dashboard()?.trend ?? [], 'costPerEgg', (value) => moneyOf(value, 3)),
   );
 
-  protected readonly target = computed<ChartReference | undefined>(() => {
-    const target = this.dashboard()?.target;
-    return target === undefined ? undefined : { value: target, label: `Meta ${countOf(target)}%` };
-  });
+  protected readonly target = computed(() => targetReferenceOf(this.dashboard()?.target));
 
   /** O nome do gráfico para o leitor de tela, com a meta que vem do backend. */
   protected readonly productivityLabel = computed(() => {
@@ -385,15 +275,7 @@ export class DashboardPage {
       : '';
   });
 
-  protected readonly targetBadge = computed<{ label: string; tone: StatusBadgeTone } | null>(() => {
-    const status = this.dashboard()?.targetStatus;
-    if (!status) {
-      return null;
-    }
-    return status === 'ABOVE'
-      ? { label: 'Acima da meta', tone: 'success' }
-      : { label: 'Abaixo da meta', tone: 'warning' };
-  });
+  protected readonly targetBadge = computed(() => targetBadgeOf(this.dashboard()?.targetStatus));
 
   protected readonly formatRate = (value: number): string => percentOf(value, 2);
 
@@ -425,7 +307,7 @@ export class DashboardPage {
   protected readonly latestReports = computed(() =>
     (this.dashboard()?.latestReports ?? []).map((report) => ({
       ...report,
-      situation: situationOf(report),
+      situation: reportSituationOf(report),
     })),
   );
 
@@ -442,23 +324,7 @@ export class DashboardPage {
     return dashboard ? `${PERIOD_LABEL[dashboard.period]} · ${dashboard.sector.name}` : '';
   });
 
-  protected readonly grading = computed(() => {
-    const grades = this.dashboard()?.grades;
-    if (!grades) {
-      return null;
-    }
-    return {
-      mainPercent: grades.standard.percent,
-      mainText: percentOf(grades.standard.percent, 1),
-      mainNote: `padrão · ${countOf(grades.standard.count)} de ${countOf(grades.collected)} ovos`,
-      parts: grades.shares.map<DistributionPart>((share) => ({
-        label: GRADE_LABEL[share.grade],
-        count: share.count,
-        countText: countOf(share.count),
-        percentText: percentOf(share.percent, 1),
-      })),
-    };
-  });
+  protected readonly grading = computed(() => gradingOf(this.dashboard()?.grades));
 
   /**
    * O setor do painel mostrado, para os atalhos. É o da resposta, e não o da URL: enquanto o painel de outra
@@ -482,25 +348,30 @@ export class DashboardPage {
       }
       const params = this.params();
       const periodRoute = ROUTE_OF_PERIOD[chosen.period];
-      if (params.get('setor') !== chosen.sector.id || params.get('periodo') !== periodRoute) {
+      if (params.get('setor') !== chosen.tab || params.get('periodo') !== periodRoute) {
         untracked(
           () =>
             void this.router.navigate([], {
               relativeTo: this.route,
-              queryParams: { setor: chosen.sector.id, periodo: periodRoute },
+              queryParams: { setor: chosen.tab, periodo: periodRoute },
               replaceUrl: true,
             }),
         );
         return;
       }
-      untracked(() => void this.loadDashboard(chosen.sector.id, chosen.period));
+      const sector = chosen.sector;
+      untracked(() =>
+        sector === null
+          ? void this.loadFarm(chosen.period)
+          : void this.loadDashboard(sector.id, chosen.period),
+      );
     });
   }
 
   protected choosePeriod(periodRoute: string): void {
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { setor: this.chosen()?.sector.id, periodo: periodRoute },
+      queryParams: { setor: this.chosen()?.tab, periodo: periodRoute },
     });
   }
 
@@ -520,12 +391,38 @@ export class DashboardPage {
       return;
     }
     if (!result.success) {
-      this.dashboard.set(null);
-      this.refusal.set(result.notification);
+      this.showRefusal(result.notification);
       return;
     }
     this.refusal.set(Notification.empty());
+    this.farm.set(null);
     this.dashboard.set(result.value);
+  }
+
+  /** O painel da granja toda (feature 009), com o mesmo contador de pedidos das abas dos setores. */
+  private async loadFarm(period: DashboardPeriod): Promise<void> {
+    const request = ++this.request;
+    const result = await this.getFarm.execute(period);
+    if (request !== this.request) {
+      return;
+    }
+    if (!result.success) {
+      this.showRefusal(result.notification);
+      return;
+    }
+    this.refusal.set(Notification.empty());
+    this.dashboard.set(null);
+    this.farm.set(result.value);
+  }
+
+  /**
+   * A recusa no lugar do painel: os dois somem, o do setor e o da granja, para a aba nova não mostrar nem exportar o
+   * painel da aba anterior (revisão 1 da 009).
+   */
+  private showRefusal(notification: Notification): void {
+    this.dashboard.set(null);
+    this.farm.set(null);
+    this.refusal.set(notification);
   }
 
   /**
@@ -534,11 +431,15 @@ export class DashboardPage {
    */
   protected async export(): Promise<void> {
     const shown = this.dashboard();
-    if (!shown || this.exporting()) {
+    const farm = this.farm();
+    if ((!shown && !farm) || this.exporting()) {
       return;
     }
     this.exporting.set(true);
-    const result = await this.exportDashboard.execute(shown.sector.id, shown.period);
+    // O painel mostrado, e não o da URL que ainda carrega: o do setor, ou a granja toda (US4 da 009).
+    const result = shown
+      ? await this.exportDashboard.execute(shown.sector.id, shown.period)
+      : await this.exportFarm.execute(farm!.period);
     this.exporting.set(false);
     this.giveFocusBackToExport();
     if (result.success) {

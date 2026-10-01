@@ -2,7 +2,7 @@
 <p class="sr" role="status" data-export-status>{{ exporting() ? 'Gerando a planilha…' : '' }}</p>
 
 <ovyx-page-header eyebrow="Painel" [title]="greeting()" [subtitle]="subtitle()">
-  @if (dashboard()) {
+  @if (dashboard() || farm()) {
     <ovyx-button data-export variant="ghost" icon="download" [busy]="exporting()" (pressed)="export()">{{
       exporting() ? 'Gerando…' : 'Exportar'
     }}</ovyx-button>
@@ -32,6 +32,10 @@
       (valueChange)="choosePeriod($event)"
     />
   </div>
+}
+
+@if (farm(); as farmData) {
+  <ovyx-farm-panel [farm]="farmData" [comparison]="comparison()" [periodRoute]="periodRoute()" />
 }
 
 @if (kpis().length > 0) {

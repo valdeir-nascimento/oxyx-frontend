@@ -7,10 +7,12 @@ import { failure, success } from '../../../../shared/application/result';
 import { VIEWER } from '../../../../shared/application/viewer';
 import { Notification } from '../../../../shared/domain/notification';
 import { Toaster } from '../../../../shared/presentation/ui/toast/toaster';
+import { ExportFarmDashboardUseCase } from '../../../application/dashboard/export-farm-dashboard.usecase';
 import { ExportSectorDashboardUseCase } from '../../../application/dashboard/export-sector-dashboard.usecase';
 import { GetDashboardOverviewUseCase } from '../../../application/dashboard/get-dashboard-overview.usecase';
+import { GetFarmDashboardUseCase } from '../../../application/dashboard/get-farm-dashboard.usecase';
 import { GetSectorDashboardUseCase } from '../../../application/dashboard/get-sector-dashboard.usecase';
-import { DashboardOverview, SectorDashboard } from '../../../domain/dashboard';
+import { DashboardOverview, FarmDashboard, SectorDashboard } from '../../../domain/dashboard';
 import { DashboardPage } from './dashboard-page';
 
 /**
@@ -111,8 +113,27 @@ describe('DashboardPage', () => {
     },
   };
 
+  /** A granja toda, com os dois setores somados (feature 009). */
+  const farm: FarmDashboard = {
+    period: 'TODAY',
+    from: '2026-09-24',
+    to: '2026-09-24',
+    activeSectors: 3,
+    reportingSectors: 2,
+    indicators: {
+      production: { value: 2900, previous: 2860, change: 1.4, goodDirection: 'UP', incompleteDays: 0 },
+      layingRate: { value: 90.63, previous: 89.38, change: 1.25, goodDirection: 'UP', incompleteDays: 0 },
+      feedCost: { value: 280, previous: 277.65, change: 0.8, goodDirection: 'DOWN', incompleteDays: 0 },
+      costPerEgg: { value: 0.097, previous: 0.097, change: 0, goodDirection: 'DOWN', incompleteDays: 0 },
+    },
+    trend: [{ date: '2026-09-24', production: 2900, layingRate: 90.63, reportingSectors: 2 }],
+    sectors: [],
+  };
+
   let getOverview: Mock;
   let getDashboard: Mock;
+  let getFarm: Mock;
+  let exportFarm: Mock;
   let exportDashboard: Mock;
   let harness: RouterTestingHarness;
 
@@ -147,6 +168,8 @@ describe('DashboardPage', () => {
         provideRouter([{ path: '', component: DashboardPage }]),
         { provide: GetDashboardOverviewUseCase, useValue: { execute: getOverview } },
         { provide: GetSectorDashboardUseCase, useValue: { execute: getDashboard } },
+        { provide: GetFarmDashboardUseCase, useValue: { execute: getFarm } },
+        { provide: ExportFarmDashboardUseCase, useValue: { execute: exportFarm } },
         { provide: ExportSectorDashboardUseCase, useValue: { execute: exportDashboard } },
         {
           provide: VIEWER,
@@ -166,6 +189,8 @@ describe('DashboardPage', () => {
   beforeEach(() => {
     getOverview = vi.fn().mockResolvedValue(success(overview));
     getDashboard = vi.fn().mockResolvedValue(success(dashboard));
+    getFarm = vi.fn().mockResolvedValue(success(farm));
+    exportFarm = vi.fn().mockResolvedValue(success('painel-granja-24-09-2026.xlsx'));
     exportDashboard = vi.fn().mockResolvedValue(success('painel-codornas-galpao-1-24-09-2026.xlsx'));
   });
 
@@ -194,27 +219,65 @@ describe('DashboardPage', () => {
 
   // ---------------------------------------------------------------- abas e período
 
-  it('chooses the first sector and today when the address says nothing, and writes them in it', async () => {
+  it('chooses the whole farm and today when the address says nothing and there are two sectors (009)', async () => {
     await open('/');
 
-    expect(url()).toBe(`/?setor=${codornas.id}&periodo=hoje`);
-    expect(getDashboard).toHaveBeenCalledWith(codornas.id, 'TODAY');
+    expect(url()).toBe('/?setor=granja&periodo=hoje');
+    expect(getFarm).toHaveBeenCalledWith('TODAY');
+    expect(getDashboard).not.toHaveBeenCalled();
+  });
+
+  it('chooses the only sector, with no whole farm, when there is one sector (009)', async () => {
+    getOverview.mockResolvedValue(success({ ...overview, sectors: [codornas] }));
+
+    await open('/?setor=granja&periodo=ontem');
+
+    const tabs = Array.from(element().querySelectorAll<HTMLAnchorElement>('nav.tabs a'));
+    expect(tabs.map((tab) => tab.textContent?.trim())).toEqual([codornas.name]);
+    expect(url()).toBe(`/?setor=${codornas.id}&periodo=ontem`);
+    expect(getFarm).not.toHaveBeenCalled();
+  });
+
+  it('shows the whole farm first, with its indicators and without the shortcuts of a sector (009)', async () => {
+    await open('/?setor=granja&periodo=hoje');
+
+    const tabs = Array.from(element().querySelectorAll<HTMLAnchorElement>('nav.tabs a'));
+    expect(tabs.map((tab) => tab.textContent?.trim())).toEqual(['Granja toda', codornas.name, poedeiras.name]);
+    expect(tabs.map((tab) => tab.getAttribute('aria-current'))).toEqual(['page', null, null]);
+    expect(element().querySelector('ovyx-farm-panel')).not.toBeNull();
+    expect(text()).toContain('2.900');
+    expect(text()).toContain('2 de 3 setores com relatório');
+    expect(text()).not.toContain('Abrir relatório de hoje');
+    expect(text()).not.toContain('Alertas e pendências');
+  });
+
+  it('keeps the whole farm when the period changes (009)', async () => {
+    await open('/?setor=granja&periodo=hoje');
+
+    const sevenDays = Array.from(element().querySelectorAll<HTMLButtonElement>('.seg button')).find(
+      (button) => button.textContent?.trim() === '7 dias',
+    )!;
+    sevenDays.click();
+    await settle();
+
+    expect(url()).toBe('/?setor=granja&periodo=7-dias');
+    expect(getFarm).toHaveBeenLastCalledWith('LAST_7_DAYS');
   });
 
   it('shows a tab for each sector, with the one of the address as the current', async () => {
     await open(`/?setor=${poedeiras.id}&periodo=hoje`);
 
     const tabs = Array.from(element().querySelectorAll<HTMLAnchorElement>('nav.tabs a'));
-    expect(tabs.map((tab) => tab.textContent?.trim())).toEqual([codornas.name, poedeiras.name]);
-    expect(tabs.map((tab) => tab.getAttribute('aria-current'))).toEqual([null, 'page']);
+    expect(tabs.map((tab) => tab.textContent?.trim())).toEqual(['Granja toda', codornas.name, poedeiras.name]);
+    expect(tabs.map((tab) => tab.getAttribute('aria-current'))).toEqual([null, null, 'page']);
     expect(getDashboard).toHaveBeenCalledWith(poedeiras.id, 'TODAY');
   });
 
-  it('falls back to the first sector when the one of the address is not a tab', async () => {
+  it('falls back to the whole farm when the sector of the address is not a tab (009)', async () => {
     await open('/?setor=setor-inativo&periodo=ontem');
 
-    expect(url()).toBe(`/?setor=${codornas.id}&periodo=ontem`);
-    expect(getDashboard).toHaveBeenLastCalledWith(codornas.id, 'YESTERDAY');
+    expect(url()).toBe('/?setor=granja&periodo=ontem');
+    expect(getFarm).toHaveBeenLastCalledWith('YESTERDAY');
   });
 
   it('asks for the dashboard again when the period changes, and writes it in the address', async () => {
@@ -326,6 +389,46 @@ describe('DashboardPage', () => {
 
     expect(text()).toContain('Não foi possível carregar o painel:');
     expect(text()).toContain('Não foi possível falar com o servidor.');
+  });
+
+  it('shows the refusal when the whole farm cannot be read, without a farm panel nor its export (009)', async () => {
+    getFarm.mockResolvedValue(
+      failure(Notification.of([{ code: 'UNEXPECTED', message: 'Não foi possível falar com o servidor.' }])),
+    );
+
+    await open('/?setor=granja&periodo=hoje');
+
+    expect(text()).toContain('Não foi possível carregar o painel:');
+    expect(element().querySelector('ovyx-farm-panel')).toBeNull();
+    expect(element().querySelector('[data-export]')).toBeNull();
+  });
+
+  it('does not keep the farm panel nor export it when the sector chosen next cannot be read (009)', async () => {
+    await open('/?setor=granja&periodo=hoje');
+    getDashboard.mockResolvedValue(
+      failure(Notification.of([{ code: 'UNEXPECTED', message: 'Não foi possível falar com o servidor.' }])),
+    );
+
+    await harness.navigateByUrl(`/?setor=${codornas.id}&periodo=hoje`, DashboardPage);
+    await settle();
+
+    expect(text()).toContain('Não foi possível carregar o painel:');
+    expect(element().querySelector('ovyx-farm-panel')).toBeNull();
+    expect(element().querySelector('[data-export]')).toBeNull();
+  });
+
+  it('does not keep the dashboard of the sector when the farm chosen next cannot be read (009)', async () => {
+    await open(`/?setor=${codornas.id}&periodo=hoje`);
+    getFarm.mockResolvedValue(
+      failure(Notification.of([{ code: 'UNEXPECTED', message: 'Não foi possível falar com o servidor.' }])),
+    );
+
+    await harness.navigateByUrl('/?setor=granja&periodo=hoje', DashboardPage);
+    await settle();
+
+    expect(text()).toContain('Não foi possível carregar o painel:');
+    expect(element().querySelector('section.kpis')).toBeNull();
+    expect(element().querySelector('[data-export]')).toBeNull();
   });
 
   // ---------------------------------------------------------------- gráficos e classificação (US2)
@@ -665,6 +768,32 @@ describe('DashboardPage', () => {
 
     expect(exportDashboard).toHaveBeenCalledWith(codornas.id, dashboard.period);
     expect(toasts().map((toast) => toast.message)).toContain('Planilha gerada (painel-codornas-galpao-1-24-09-2026.xlsx).');
+  });
+
+  it('exports the whole farm in the period shown, and says the spreadsheet was generated (009)', async () => {
+    await open('/?setor=granja&periodo=7-dias');
+
+    exportButton()!.click();
+    await settle();
+
+    expect(exportFarm).toHaveBeenCalledWith('TODAY');
+    expect(exportDashboard).not.toHaveBeenCalled();
+    expect(toasts().map((toast) => toast.message)).toContain('Planilha gerada (painel-granja-24-09-2026.xlsx).');
+  });
+
+  it('says it is generating the spreadsheet of the farm and gives the focus back (009)', async () => {
+    let finish: (value: unknown) => void = () => undefined;
+    exportFarm.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    await open('/?setor=granja&periodo=hoje');
+
+    exportButton()!.click();
+    await settle();
+
+    expect(exportButton()?.textContent?.trim()).toBe('Gerando…');
+    expect(element().querySelector('[data-export-status]')?.textContent).toBe('Gerando a planilha…');
+    finish(success('painel-granja-24-09-2026.xlsx'));
+    await settle();
+    expect(exportButton()?.textContent?.trim()).toBe('Exportar');
   });
 
   it('exports the dashboard shown, and not the one of the address still loading', async () => {

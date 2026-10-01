@@ -38,7 +38,7 @@ export interface Indicator {
   /** Em porcentagem (produção e custos) ou em pontos percentuais (produtividade); ausente sem comparação. */
   readonly change?: number;
   readonly goodDirection: GoodDirection;
-  /** Os dias do período com o lançamento pendente. */
+  /** Os dias do período com o lançamento pendente; na granja toda, os relatórios (feature 009). */
   readonly incompleteDays: number;
 }
 
@@ -56,6 +56,16 @@ export interface DashboardDay {
   readonly layingRate?: number;
   readonly feedCost?: number;
   readonly costPerEgg?: number;
+}
+
+/**
+ * Um dia da série da granja toda (feature 009): os setores com relatório no dia somados, a meta da granja no dia e
+ * quantos setores têm relatório nele.
+ */
+export interface FarmDay extends DashboardDay {
+  /** A meta da granja no dia, ponderada pelas aves; ausente sem relatório. */
+  readonly target?: number;
+  readonly reportingSectors: number;
 }
 
 /** O relatório de hoje do setor e a situação de cada lançamento. */
@@ -88,6 +98,44 @@ export interface SectorDashboard {
   readonly openAlerts: number;
   /** Os 4 relatórios mais recentes, do mais novo para o mais antigo. */
   readonly latestReports: readonly LatestReport[];
+}
+
+/** Um setor ativo na comparação da granja, no período (feature 009). Sem relatório, os números ficam ausentes. */
+export interface FarmSectorRow {
+  readonly sector: DashboardSector;
+  readonly production?: number;
+  readonly layingRate?: number;
+  /** A meta atual do setor. */
+  readonly target: number;
+  /** A produtividade do período diante da meta; ausente sem relatório no período. */
+  readonly targetStatus?: TargetStatus;
+  readonly costPerEgg?: number;
+  /** Ausente se hoje ainda não foi aberto. */
+  readonly todayReport?: TodayReport;
+  /** Os alertas e as pendências abertos hoje, os mesmos do painel do setor. */
+  readonly openAlerts: number;
+}
+
+/** O painel da granja toda num período, como o backend o devolve (`FarmDashboard`, feature 009). */
+export interface FarmDashboard {
+  readonly period: DashboardPeriod;
+  readonly from: string;
+  readonly to: string;
+  readonly activeSectors: number;
+  /** Os setores ativos com relatório no período. */
+  readonly reportingSectors: number;
+  /** Os indicadores somados; os pendentes contam relatórios, e não dias. */
+  readonly indicators: Indicators;
+  /** Os 7 dias até hoje. */
+  readonly trend: readonly FarmDay[];
+  /** A meta da granja nos 7 dias; ausente sem relatório. */
+  readonly target?: number;
+  /** O último dia com relatório diante da meta daquele dia; ausente sem dia com relatório. */
+  readonly targetStatus?: TargetStatus;
+  /** A classificação dos ovos do período, somada; ausente sem ovo. */
+  readonly grades?: EggGrading;
+  /** Os setores ativos, na ordem das abas. */
+  readonly sectors: readonly FarmSectorRow[];
 }
 
 /** Um dos relatórios mais recentes do setor, com a situação de cada lançamento. */
