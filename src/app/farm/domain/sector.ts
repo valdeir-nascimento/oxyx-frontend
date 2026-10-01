@@ -16,6 +16,8 @@ export interface SectorSummary {
   readonly birdCount: number;
   /** A faixa de peso de referência das aves, em gramas; ausente sem faixa (feature 005). */
   readonly referenceWeight?: ReferenceWeight;
+  /** A meta de produtividade do setor, em porcentagem, com até uma casa (feature 008). */
+  readonly layingRateTarget: number;
 }
 
 /** A faixa de peso de referência das aves de um setor, em gramas, com os limites incluídos (feature 005). */
@@ -47,4 +49,6 @@ export interface SectorInput {
   /** Os limites da faixa de peso, como digitados; os dois vazios, o setor fica sem faixa (feature 005). */
   readonly minimumWeight: string;
   readonly maximumWeight: string;
+  /** A meta de produtividade, como digitada: "85", "82,5" (feature 008). */
+  readonly layingRateTarget: string;
 }

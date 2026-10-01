@@ -29,6 +29,7 @@ describe('CageListPage', () => {
     status: 'ACTIVE',
     activeCageCount: 30,
     birdCount: 1480,
+    layingRateTarget: 85,
     batteries: ['A', 'B'],
     createdAt: '2026-09-20T10:15:00Z',
     updatedAt: '2026-09-24T17:40:12Z',
@@ -189,7 +190,7 @@ describe('CageListPage', () => {
 
   it('invites to register the first cage of a sector without cages', async () => {
     search.mockResolvedValue(success(pageOf([])));
-    find.mockResolvedValue(success({ ...galpao, activeCageCount: 0, birdCount: 0, batteries: [] }));
+    find.mockResolvedValue(success({ ...galpao, activeCageCount: 0, birdCount: 0, layingRateTarget: 85, batteries: [] }));
     await render();
 
     const empty = element().querySelector('ovyx-empty-state')!;
@@ -321,7 +322,7 @@ describe('CageListPage', () => {
   it('keeps the search and the filters in an inactive sector, and reaches its cages through the inactive ones', async () => {
     // Revisão e QA (D-1): com a cascata, o setor inativo não tem gaiola ativa; a tela dizia "Nenhuma
     // gaiola neste setor" e escondia a busca e os filtros, e as gaiolas dele ficavam inalcançáveis.
-    find.mockResolvedValue(success({ ...galpao, status: 'INACTIVE', activeCageCount: 0, birdCount: 0 }));
+    find.mockResolvedValue(success({ ...galpao, status: 'INACTIVE', activeCageCount: 0, birdCount: 0, layingRateTarget: 85 }));
     searchByStatus([], [{ ...cage('A-01', 'A', 1), status: 'INACTIVE' }]);
     await render();
 
@@ -339,7 +340,7 @@ describe('CageListPage', () => {
   });
 
   it('reaches the only cage of an active sector after it was deactivated', async () => {
-    find.mockResolvedValue(success({ ...galpao, activeCageCount: 0, birdCount: 0, batteries: ['D'] }));
+    find.mockResolvedValue(success({ ...galpao, activeCageCount: 0, birdCount: 0, layingRateTarget: 85, batteries: ['D'] }));
     searchByStatus([], [{ ...cage('D-01', 'D', 1), status: 'INACTIVE' }]);
     await render();
 
@@ -351,7 +352,7 @@ describe('CageListPage', () => {
   });
 
   it('tells a common user, and not the administrator, that the cages of an inactive sector are only for consultation', async () => {
-    find.mockResolvedValue(success({ ...galpao, status: 'INACTIVE', activeCageCount: 0, birdCount: 0 }));
+    find.mockResolvedValue(success({ ...galpao, status: 'INACTIVE', activeCageCount: 0, birdCount: 0, layingRateTarget: 85 }));
     searchByStatus([], []);
     await render(false);
 
@@ -361,7 +362,7 @@ describe('CageListPage', () => {
 
   it('does not invite a common user to register the first cage', async () => {
     search.mockResolvedValue(success(pageOf([])));
-    find.mockResolvedValue(success({ ...galpao, activeCageCount: 0, birdCount: 0, batteries: [] }));
+    find.mockResolvedValue(success({ ...galpao, activeCageCount: 0, birdCount: 0, layingRateTarget: 85, batteries: [] }));
     await render(false);
 
     const empty = element().querySelector('ovyx-empty-state')!;
@@ -371,7 +372,7 @@ describe('CageListPage', () => {
 
   it('does not invite to register a cage in an inactive sector without cages', async () => {
     search.mockResolvedValue(success(pageOf([])));
-    find.mockResolvedValue(success({ ...galpao, status: 'INACTIVE', activeCageCount: 0, birdCount: 0, batteries: [] }));
+    find.mockResolvedValue(success({ ...galpao, status: 'INACTIVE', activeCageCount: 0, birdCount: 0, layingRateTarget: 85, batteries: [] }));
     await render();
 
     const empty = element().querySelector('ovyx-empty-state')!;

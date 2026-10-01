@@ -25,6 +25,7 @@ describe('SectorListPage', () => {
     status: 'ACTIVE',
     activeCageCount: 48,
     birdCount: 2400,
+    layingRateTarget: 85,
   };
   const galpao2: SectorSummary = {
     id: '7a1b9c3d-2e4f-4a6b-8c0d-5e7f9a1b3c22',
@@ -32,6 +33,7 @@ describe('SectorListPage', () => {
     status: 'INACTIVE',
     activeCageCount: 0,
     birdCount: 0,
+    layingRateTarget: 82.5,
   };
 
   let list: Mock;
@@ -120,6 +122,16 @@ describe('SectorListPage', () => {
     expect(first.querySelector('.setor-stats')?.textContent).toContain('48');
     expect(first.querySelector('.setor-stats')?.textContent).toContain('2.400');
     expect(card('Poedeiras brancas — Galpão 2').querySelector('ovyx-status-badge')?.textContent).toContain('Inativo');
+  });
+
+  it('shows the laying rate target of each sector as the third number of its card (008)', async () => {
+    await render();
+
+    const stats = (name: string) =>
+      Array.from(card(name).querySelectorAll('.setor-stats > div')).map((stat) => stat.textContent?.trim());
+    expect(stats('Codornas — Galpão 1')).toHaveLength(3);
+    expect(stats('Codornas — Galpão 1')[2]).toMatch(/^Meta\s*85%$/);
+    expect(stats('Poedeiras brancas — Galpão 2')[2]).toMatch(/^Meta\s*82,5%$/);
   });
 
   it('asks again with the status chosen in the filter', async () => {

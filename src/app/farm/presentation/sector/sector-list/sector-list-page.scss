@@ -23,9 +23,9 @@
   display: flex;
 }
 
-/* Dois totais, e não os três do protótipo: os ovos do dia vêm com os relatórios de produção. */
+/* Três números, como o protótipo: as gaiolas ativas, as aves e a meta de produtividade (feature 008). */
 .setor-stats {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .emblem {

@@ -69,6 +69,16 @@
         [control]="form.controls.maximumWeight"
         [error]="messageFor('maximumWeight')"
       />
+      <!-- A meta de produtividade do setor (feature 008): obrigatória; o cadastro sugere 85. -->
+      <ovyx-form-field
+        controlId="layingRateTarget"
+        label="Meta de produtividade (%)"
+        hint="Ovos por ave ao dia. De 1 a 100, com até uma casa decimal."
+        autocomplete="off"
+        inputMode="decimal"
+        [control]="form.controls.layingRateTarget"
+        [error]="messageFor('layingRateTarget')"
+      />
     }
   }
 

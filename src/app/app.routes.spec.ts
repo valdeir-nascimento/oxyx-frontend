@@ -52,6 +52,7 @@ describe('routes', () => {
     status: 'ACTIVE',
     activeCageCount: 0,
     birdCount: 0,
+    layingRateTarget: 85,
     batteries: [],
     createdAt: '2026-09-21T08:30:00Z',
     updatedAt: '2026-09-21T08:30:00Z',

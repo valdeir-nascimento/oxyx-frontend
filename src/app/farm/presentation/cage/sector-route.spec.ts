@@ -20,6 +20,7 @@ describe('sector route', () => {
     status: 'ACTIVE',
     activeCageCount: 48,
     birdCount: 1920,
+    layingRateTarget: 85,
     batteries: ['A', 'B'],
     createdAt: '2026-09-21T08:30:00Z',
     updatedAt: '2026-09-24T17:42:05Z',
