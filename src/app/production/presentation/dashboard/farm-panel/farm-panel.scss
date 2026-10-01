@@ -1,0 +1,19 @@
+/* Os .kpis, .card e .tbl são do design system; o painel da granja só os empilha, como a aba do setor. */
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.reporting {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+/* O título dos cartões é h2 (a página tem h1), com o estilo do h3 do design system. */
+.card-head h2 {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+}

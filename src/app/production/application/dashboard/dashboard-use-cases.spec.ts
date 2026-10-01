@@ -4,8 +4,10 @@ import { failure, success } from '../../../shared/application/result';
 import { FILE_SAVER } from '../../../shared/application/file-saver';
 import { Notification } from '../../../shared/domain/notification';
 import { DASHBOARD_GATEWAY } from './dashboard-gateway';
+import { ExportFarmDashboardUseCase } from './export-farm-dashboard.usecase';
 import { ExportSectorDashboardUseCase } from './export-sector-dashboard.usecase';
 import { GetDashboardOverviewUseCase } from './get-dashboard-overview.usecase';
+import { GetFarmDashboardUseCase } from './get-farm-dashboard.usecase';
 import { GetSectorDashboardUseCase } from './get-sector-dashboard.usecase';
 
 /** Os casos de uso do painel pedem ao backend o que a tela mostra, sem conta nenhuma no cliente (R-009 da 006). */
@@ -18,7 +20,9 @@ describe('dashboard use cases', () => {
     gateway = {
       getDashboardOverview: vi.fn().mockResolvedValue(success(null)),
       getSectorDashboard: vi.fn().mockResolvedValue(success(null)),
+      getFarmDashboard: vi.fn().mockResolvedValue(success(null)),
       exportSectorDashboard: vi.fn(),
+      exportFarmDashboard: vi.fn(),
     };
     saver = { save: vi.fn() };
     TestBed.configureTestingModule({
@@ -45,6 +49,16 @@ describe('dashboard use cases', () => {
     expect(result.success && result.value).toBe(overview);
   });
 
+  it('asks for the dashboard of the whole farm in the period (009)', async () => {
+    const farm = { period: 'LAST_7_DAYS' };
+    gateway['getFarmDashboard'].mockResolvedValue(success(farm));
+
+    const result = await TestBed.inject(GetFarmDashboardUseCase).execute('LAST_7_DAYS');
+
+    expect(gateway['getFarmDashboard']).toHaveBeenCalledWith('LAST_7_DAYS');
+    expect(result.success && result.value).toBe(farm);
+  });
+
   it('asks for the dashboard of the sector in the period', async () => {
     const dashboard = { period: 'YESTERDAY' };
     gateway['getSectorDashboard'].mockResolvedValue(success(dashboard));
@@ -64,6 +78,27 @@ describe('dashboard use cases', () => {
     expect(gateway['exportSectorDashboard']).toHaveBeenCalledWith(sectorId, 'LAST_7_DAYS');
     expect(saver.save).toHaveBeenCalledWith(file);
     expect(result).toEqual(success(file.name));
+  });
+
+  it('exports the whole farm in the period, saves the spreadsheet and hands its name back (009)', async () => {
+    const file = { name: 'painel-granja-28-09-2026.xlsx', content: new Blob(['PK']) };
+    gateway['exportFarmDashboard'].mockResolvedValue(success(file));
+
+    const result = await TestBed.inject(ExportFarmDashboardUseCase).execute('LAST_7_DAYS');
+
+    expect(gateway['exportFarmDashboard']).toHaveBeenCalledWith('LAST_7_DAYS');
+    expect(saver.save).toHaveBeenCalledWith(file);
+    expect(result).toEqual(success(file.name));
+  });
+
+  it('saves nothing when the export of the farm is refused (009)', async () => {
+    const refusal = Notification.of([{ code: 'VALIDATION_FAILED', message: 'Período inválido.' }]);
+    gateway['exportFarmDashboard'].mockResolvedValue(failure(refusal));
+
+    const result = await TestBed.inject(ExportFarmDashboardUseCase).execute('TODAY');
+
+    expect(saver.save).not.toHaveBeenCalled();
+    expect(result.success).toBe(false);
   });
 
   it('saves nothing when the export is refused (007)', async () => {

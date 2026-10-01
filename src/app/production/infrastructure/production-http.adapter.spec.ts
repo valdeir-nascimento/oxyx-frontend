@@ -356,6 +356,18 @@ describe('ProductionHttpAdapter', () => {
       expect(result.success && result.value.period).toBe('LAST_7_DAYS');
     });
 
+    it('asks for the dashboard of the whole farm, with the period in the query (009)', async () => {
+      const pending = adapter.getFarmDashboard('LAST_7_DAYS');
+
+      const request = backend.expectOne((candidate) => candidate.url === '/api/v1/dashboard/farm');
+      expect(request.request.method).toBe('GET');
+      expect(request.request.params.get('period')).toBe('LAST_7_DAYS');
+      request.flush({ period: 'LAST_7_DAYS', trend: [], sectors: [] });
+
+      const result = await pending;
+      expect(result.success && result.value.period).toBe('LAST_7_DAYS');
+    });
+
     it('turns the refusal of an unknown sector into the notification', async () => {
       const pending = adapter.getSectorDashboard(sectorId, 'TODAY');
 
@@ -428,6 +440,21 @@ describe('ProductionHttpAdapter', () => {
     expect(!result.success && result.notification.messageFor('to')).toBe(
       'A data final deve ser igual ou posterior à inicial.',
     );
+  });
+
+  it('asks for the spreadsheet of the whole farm in the period, as a file (009)', async () => {
+    const pending = adapter.exportFarmDashboard('LAST_7_DAYS');
+
+    const request = backend.expectOne((candidate) => candidate.url === '/api/v1/dashboard/farm/export');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('period')).toBe('LAST_7_DAYS');
+    expect(request.request.responseType).toBe('blob');
+    request.flush(spreadsheet, {
+      headers: new HttpHeaders({ 'Content-Disposition': 'attachment; filename="painel-granja-28-09-2026.xlsx"' }),
+    });
+
+    const result = await pending;
+    expect(result.success && result.value.name).toBe('painel-granja-28-09-2026.xlsx');
   });
 
   it('asks for the spreadsheet of the dashboard of the sector in the period, as a file', async () => {
