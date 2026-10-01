@@ -357,6 +357,28 @@ describe('DashboardPage', () => {
     ).toBe('Abaixo da meta');
   });
 
+  it('draws the target of the sector, with a decimal when it has one, and names it in the chart (008)', async () => {
+    getDashboard.mockResolvedValue(success({ ...dashboard, target: 82.5 }));
+
+    await open(`/?setor=${codornas.id}&periodo=hoje`);
+
+    const productivity = card('Produtividade diária');
+    expect(productivity.textContent).toContain('Meta 82,5%');
+    expect(productivity.querySelector('ovyx-line-chart [aria-label^="Produtividade diária"]')?.getAttribute('aria-label')).toBe(
+      'Produtividade diária de Codornas — Galpão 1, com a meta de 82,5%',
+    );
+  });
+
+  it('says above the target of a sector below 85% when the backend says so (008)', async () => {
+    getDashboard.mockResolvedValue(success({ ...dashboard, target: 72, targetStatus: 'ABOVE' }));
+
+    await open(`/?setor=${codornas.id}&periodo=hoje`);
+
+    const productivity = card('Produtividade diária');
+    expect(productivity.textContent).toContain('Meta 72%');
+    expect(productivity.querySelector('ovyx-status-badge')?.textContent?.trim()).toBe('Acima da meta');
+  });
+
   it('leaves the days without a value out of the charts, instead of drawing them as zero', async () => {
     await open(`/?setor=${codornas.id}&periodo=hoje`);
 

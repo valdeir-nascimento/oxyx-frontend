@@ -50,6 +50,16 @@ export function countOf(value: number): string {
   return value.toLocaleString('pt-BR');
 }
 
+/** A meta de produtividade do setor, com a casa decimal só quando houver: "72%", "82,5%" (feature 008). */
+export function targetOf(percent: number): string {
+  return `${targetInputOf(percent)}%`;
+}
+
+/** A meta como o campo do formulário a mostra, com vírgula e sem o "%": "72", "82,5" (feature 008). */
+export function targetInputOf(percent: number): string {
+  return percent.toLocaleString('pt-BR', { maximumFractionDigits: 1, useGrouping: false });
+}
+
 /** O dia no formato brasileiro, a partir do ISO: "2026-09-24" vira "24/09/2026". */
 export function dayOf(isoDate: string): string {
   const [year, month, day] = isoDate.split('-');

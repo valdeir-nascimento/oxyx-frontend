@@ -26,6 +26,7 @@ describe('SectorFormDialog', () => {
     status: 'ACTIVE',
     activeCageCount: 48,
     birdCount: 2400,
+    layingRateTarget: 85,
     batteries: ['A', 'B', 'C', 'D'],
     createdAt: '2026-09-20T10:15:00Z',
     updatedAt: '2026-09-24T17:40:12Z',
@@ -124,6 +125,7 @@ describe('SectorFormDialog', () => {
       description: 'Codornas japonesas em postura, baterias A e B',
       minimumWeight: '',
       maximumWeight: '',
+      layingRateTarget: '85',
     });
   });
 
@@ -203,6 +205,7 @@ describe('SectorFormDialog', () => {
       description: 'Codornas japonesas em postura, baterias A a D',
       minimumWeight: '',
       maximumWeight: '',
+      layingRateTarget: '85',
     });
     expect(toasts()).toEqual(['Alterações salvas: Codornas — Galpão 1 (norte).']);
     expect(navigate).toHaveBeenCalledWith(['/setores']);
@@ -252,6 +255,7 @@ describe('SectorFormDialog', () => {
       description: '',
       minimumWeight: '155',
       maximumWeight: '175',
+      layingRateTarget: '85',
     });
   });
 
@@ -281,5 +285,63 @@ describe('SectorFormDialog', () => {
     expect(element().querySelector('#minimumWeight-error')?.textContent).toContain(
       'O peso mínimo deve ser menor que o máximo.',
     );
+  });
+
+  // ---------------------------------------------------------------- meta de produtividade (008)
+
+  it('suggests a target of 85 for a new sector, with a hint and the decimal keyboard', async () => {
+    await render();
+
+    const target = field('layingRateTarget');
+    expect(target.value).toBe('85');
+    expect(target.getAttribute('inputmode')).toBe('decimal');
+    expect(element().querySelector('label[for="layingRateTarget"]')?.textContent).toContain(
+      'Meta de produtividade (%)',
+    );
+    const hint = element().querySelector(`#${target.getAttribute('aria-describedby')?.split(' ')[0]}`);
+    expect(hint?.textContent).toContain('Ovos por ave ao dia. De 1 a 100, com até uma casa decimal.');
+  });
+
+  it('registers the target as typed', async () => {
+    await render();
+    type('name', 'Poedeiras — Galpão 3');
+    type('layingRateTarget', '82,5');
+
+    await submit();
+
+    expect(register).toHaveBeenCalledWith({
+      name: 'Poedeiras — Galpão 3',
+      description: '',
+      minimumWeight: '',
+      maximumWeight: '',
+      layingRateTarget: '82,5',
+    });
+  });
+
+  it('opens the edition with the target of the sector, with a comma', async () => {
+    find.mockResolvedValue(success({ ...galpao, layingRateTarget: 82.5 }));
+
+    await render(galpao.id);
+
+    expect(field('layingRateTarget').value).toBe('82,5');
+  });
+
+  it('shows the refusal of the target next to its field', async () => {
+    update.mockResolvedValue(
+      failure(
+        Notification.of([
+          { code: 'VALIDATION_FAILED', field: 'layingRateTarget', message: 'A meta deve ficar entre 1% e 100%.' },
+        ]),
+      ),
+    );
+    await render(galpao.id);
+    type('layingRateTarget', '101');
+
+    await submit();
+
+    expect(element().querySelector('#layingRateTarget-error')?.textContent).toContain(
+      'A meta deve ficar entre 1% e 100%.',
+    );
+    expect(navigate).not.toHaveBeenCalled();
   });
 });

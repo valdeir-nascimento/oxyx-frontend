@@ -21,11 +21,18 @@ describe('sector use cases', () => {
     status: 'ACTIVE',
     activeCageCount: 0,
     birdCount: 0,
+    layingRateTarget: 85,
     batteries: [],
     createdAt: '2026-09-20T10:15:00Z',
     updatedAt: '2026-09-20T10:15:00Z',
   };
-  const typedSector: SectorInput = { name: ' Galpão 4 ', description: '', minimumWeight: '', maximumWeight: '' };
+  const typedSector: SectorInput = {
+    name: ' Galpão 4 ',
+    description: '',
+    minimumWeight: '',
+    maximumWeight: '',
+    layingRateTarget: '85',
+  };
 
   let gateway: Record<string, Mock>;
 

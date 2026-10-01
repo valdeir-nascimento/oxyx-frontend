@@ -20,11 +20,14 @@ import { Toaster } from '../../../../shared/presentation/ui/toast/toaster';
 import { FindSectorByIdUseCase } from '../../../application/sector/find-sector-by-id.usecase';
 import { RegisterSectorUseCase } from '../../../application/sector/register-sector.usecase';
 import { UpdateSectorUseCase } from '../../../application/sector/update-sector.usecase';
+import { targetInputOf } from '../../labels/labels';
 import { SectorChanges } from '../sector-changes';
 
 const NOT_FOUND = 'SECTOR_NOT_FOUND';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const FIELDS = ['name', 'description', 'minimumWeight', 'maximumWeight'];
+const FIELDS = ['name', 'description', 'minimumWeight', 'maximumWeight', 'layingRateTarget'];
+/** A meta que o cadastro sugere: a do protótipo, que o painel usava para todos os setores até a feature 008. */
+const SUGGESTED_TARGET = '85';
 const LIST = '/setores';
 
 /**
@@ -66,6 +69,7 @@ export class SectorFormDialog {
     description: '',
     minimumWeight: '',
     maximumWeight: '',
+    layingRateTarget: SUGGESTED_TARGET,
   });
 
   protected readonly notification = signal(Notification.empty());
@@ -141,12 +145,13 @@ export class SectorFormDialog {
       return;
     }
 
-    const { name, description, referenceWeight } = result.value;
+    const { name, description, referenceWeight, layingRateTarget } = result.value;
     this.form.patchValue({
       name,
       description: description ?? '',
       minimumWeight: referenceWeight ? String(referenceWeight.minimum) : '',
       maximumWeight: referenceWeight ? String(referenceWeight.maximum) : '',
+      layingRateTarget: targetInputOf(layingRateTarget),
     });
     this.loadedName.set(name);
     this.state.set('ready');

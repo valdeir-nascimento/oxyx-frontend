@@ -77,7 +77,7 @@ export interface SectorDashboard {
   readonly indicators: Indicators;
   /** Os 7 dias até hoje. */
   readonly trend: readonly DashboardDay[];
-  /** A meta de produtividade, em porcentagem (85). */
+  /** A meta de produtividade do setor, em porcentagem (feature 008). */
   readonly target: number;
   /** O último dia com relatório diante da meta; ausente sem dia com relatório. */
   readonly targetStatus?: TargetStatus;

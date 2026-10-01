@@ -22,6 +22,7 @@ describe('FarmHttpAdapter', () => {
     status: 'ACTIVE',
     activeCageCount: 48,
     birdCount: 2400,
+    layingRateTarget: 85,
     batteries: ['A', 'B', 'C', 'D'],
     createdAt: '2026-09-20T10:15:00Z',
     updatedAt: '2026-09-24T17:40:12Z',
@@ -45,6 +46,7 @@ describe('FarmHttpAdapter', () => {
         status: 'ACTIVE',
         activeCageCount: 48,
         birdCount: 2400,
+        layingRateTarget: 85,
       };
       const pending = adapter.listSectors('INACTIVE');
 
@@ -75,6 +77,7 @@ describe('FarmHttpAdapter', () => {
         description: '',
         minimumWeight: '',
         maximumWeight: '',
+        layingRateTarget: '85',
       });
 
       const request = backend.expectOne('/api/v1/sectors');
@@ -84,6 +87,7 @@ describe('FarmHttpAdapter', () => {
         description: '',
         minimumWeight: null,
         maximumWeight: null,
+        layingRateTarget: 85,
       });
       request.flush(galpao, { status: 201, statusText: 'Created' });
 
@@ -97,6 +101,7 @@ describe('FarmHttpAdapter', () => {
         description: 'Baterias A a D',
         minimumWeight: '',
         maximumWeight: '',
+        layingRateTarget: '85',
       });
 
       const request = backend.expectOne(`/api/v1/sectors/${galpao.id}`);
@@ -106,6 +111,7 @@ describe('FarmHttpAdapter', () => {
         description: 'Baterias A a D',
         minimumWeight: null,
         maximumWeight: null,
+        layingRateTarget: 85,
       });
       request.flush({ ...galpao, name: 'Codornas — Galpão 1 (norte)' });
 
@@ -119,6 +125,7 @@ describe('FarmHttpAdapter', () => {
         description: '',
         minimumWeight: '155',
         maximumWeight: '',
+        layingRateTarget: '85',
       });
 
       const request = backend.expectOne('/api/v1/sectors');
@@ -127,10 +134,37 @@ describe('FarmHttpAdapter', () => {
         description: '',
         minimumWeight: 155,
         maximumWeight: null,
+        layingRateTarget: 85,
       });
       request.flush(galpao, { status: 201, statusText: 'Created' });
 
       await pending;
+    });
+
+    it('sends a whole target as a number, and a decimal one as typed, for the backend to read (008)', async () => {
+      const whole = adapter.registerSector({
+        name: 'Codornas — Galpão 4',
+        description: '',
+        minimumWeight: '',
+        maximumWeight: '',
+        layingRateTarget: '85',
+      });
+      const wholeRequest = backend.expectOne('/api/v1/sectors');
+      expect(wholeRequest.request.body.layingRateTarget).toBe(85);
+      wholeRequest.flush(galpao, { status: 201, statusText: 'Created' });
+      await whole;
+
+      const decimal = adapter.updateSector(galpao.id, {
+        name: 'Codornas — Galpão 1',
+        description: '',
+        minimumWeight: '',
+        maximumWeight: '',
+        layingRateTarget: '82,5',
+      });
+      const decimalRequest = backend.expectOne(`/api/v1/sectors/${galpao.id}`);
+      expect(decimalRequest.request.body.layingRateTarget).toBe('82,5');
+      decimalRequest.flush({ ...galpao, layingRateTarget: 82.5 });
+      await decimal;
     });
 
     it('spreads every refused field of a registration into its own violation', async () => {
@@ -139,6 +173,7 @@ describe('FarmHttpAdapter', () => {
         description: 'd'.repeat(501),
         minimumWeight: '',
         maximumWeight: '',
+        layingRateTarget: '85',
       });
 
       backend.expectOne('/api/v1/sectors').flush(
