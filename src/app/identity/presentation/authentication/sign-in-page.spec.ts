@@ -19,6 +19,7 @@ describe('SignInPage', () => {
     fullName: 'Maria Silva',
     role: 'USER' as const,
     mustChangePassword: false,
+    theme: 'SYSTEM',
   };
 
   let execute: Mock;

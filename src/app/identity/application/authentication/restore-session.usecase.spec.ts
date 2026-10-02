@@ -1,4 +1,7 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { THEME_DISPLAY } from '../../../shared/application/theme-display';
+import { AccountTheme } from '../account/account-theme';
 import { Notification } from '../../../shared/domain/notification';
 import { Result, failure, success } from '../../../shared/application/result';
 import { AuthenticatedCaretaker } from '../../domain/authenticated-caretaker';
@@ -16,6 +19,7 @@ describe('RestoreSessionUseCase', () => {
     fullName: 'Maria Silva',
     role: 'USER',
     mustChangePassword: false,
+    theme: 'SYSTEM',
   };
 
   let gateway: AuthenticationGateway;
@@ -27,7 +31,7 @@ describe('RestoreSessionUseCase', () => {
       currentCaretaker: vi.fn().mockResolvedValue(result),
     };
     TestBed.configureTestingModule({
-      providers: [RestoreSessionUseCase, { provide: AUTHENTICATION_GATEWAY, useValue: gateway }],
+      providers: [RestoreSessionUseCase, { provide: AUTHENTICATION_GATEWAY, useValue: gateway }, { provide: THEME_DISPLAY, useValue: { apply: vi.fn(), current: signal('SYSTEM') } }],
     });
     return TestBed.inject(RestoreSessionUseCase);
   }
@@ -74,5 +78,22 @@ describe('RestoreSessionUseCase', () => {
 
     expect(result.success).toBe(false);
     expect(store.caretaker()).toBeNull();
+  });
+
+  // ---------------------------------------------------------------- tema (011)
+
+  it('applies the theme of the account when the session comes back, and not when it does not', async () => {
+    const follow = vi.fn();
+    TestBed.configureTestingModule({ providers: [{ provide: AccountTheme, useValue: { follow } }] });
+    const dark = { ...maria, theme: 'DARK' as const };
+
+    await useCaseWith(success(dark)).execute();
+    vi.mocked(gateway.currentCaretaker).mockResolvedValue(
+      failure(Notification.of([{ code: 'UNAUTHENTICATED', message: 'Sessão expirada.' }])),
+    );
+    await TestBed.inject(RestoreSessionUseCase).execute();
+
+    expect(follow).toHaveBeenCalledTimes(1);
+    expect(follow).toHaveBeenCalledWith(dark);
   });
 });

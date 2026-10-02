@@ -1,0 +1,52 @@
+/* O seletor de tema (feature 011): o botão de ícone do topo e a lista das três opções, ancorada à direita dele, com
+ * as superfícies e as sombras do design system nos dois temas. */
+.theme-picker {
+  position: relative;
+}
+
+.theme-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  display: grid;
+  gap: 2px;
+  min-width: 210px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+}
+
+.theme-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.theme-menu button:hover,
+.theme-menu button:focus-visible {
+  background: var(--sunken);
+}
+
+.theme-menu button[aria-checked='true'] {
+  font-weight: 600;
+}
+
+.theme-menu .grow {
+  flex: 1;
+}
+
+.mark {
+  color: var(--primary);
+}

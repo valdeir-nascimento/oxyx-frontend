@@ -20,6 +20,7 @@ describe('ChangePasswordPage', () => {
     fullName: 'Maria Silva',
     role: 'ADMINISTRATOR' as const,
     mustChangePassword: false,
+    theme: 'SYSTEM' as const,
   };
 
   let execute: Mock;

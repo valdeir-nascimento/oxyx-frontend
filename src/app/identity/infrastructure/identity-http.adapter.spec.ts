@@ -18,6 +18,7 @@ describe('IdentityHttpAdapter', () => {
     fullName: 'Maria Silva',
     role: 'USER' as const,
     mustChangePassword: false,
+    theme: 'SYSTEM',
   };
 
   beforeEach(() => {
@@ -340,5 +341,18 @@ describe('IdentityHttpAdapter', () => {
       backend.expectOne(`${encoded}/deactivation`).flush(joao);
       await deactivated;
     });
+  });
+
+  // ---------------------------------------------------------------- tema (011)
+
+  it('puts the theme chosen in the account', async () => {
+    const pending = adapter.changeTheme('DARK');
+
+    const request = backend.expectOne('/api/v1/me/theme');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual({ theme: 'DARK' });
+    request.flush(null, { status: 204, statusText: 'No Content' });
+
+    expect((await pending).success).toBe(true);
   });
 });

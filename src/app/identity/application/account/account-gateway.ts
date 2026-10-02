@@ -1,4 +1,5 @@
 import { InjectionToken } from '@angular/core';
+import { ThemePreference } from '../../../shared/domain/theme-preference';
 import { Result } from '../../../shared/application/result';
 import { PasswordChange } from '../../domain/password-change';
 
@@ -11,6 +12,9 @@ import { PasswordChange } from '../../domain/password-change';
 export interface AccountGateway {
   /** Troca a própria senha. A sessão atual segue valendo depois da troca (V-05). */
   changeOwnPassword(change: PasswordChange): Promise<Result<void>>;
+
+  /** Guarda o tema escolhido na conta (feature 011). */
+  changeTheme(theme: ThemePreference): Promise<Result<void>>;
 }
 
 export const ACCOUNT_GATEWAY = new InjectionToken<AccountGateway>('AccountGateway');

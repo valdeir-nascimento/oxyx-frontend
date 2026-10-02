@@ -25,6 +25,7 @@ describe('SignOutUseCase', () => {
       fullName: 'Maria Silva',
       role: 'USER',
       mustChangePassword: false,
+      theme: 'SYSTEM',
     });
     return store;
   }

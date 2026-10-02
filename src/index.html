@@ -5,6 +5,20 @@
   <title>Ovyx</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- O tema lembrado no navegador, antes de qualquer estilo e do Angular, para a tela não piscar no tema errado
+       (feature 011). Repete o themeAttributeOf de app/shared/domain/theme-preference.ts. -->
+  <script>
+    try {
+      var stored = localStorage.getItem('ovyx-theme');
+      if (stored === 'DARK') {
+        document.documentElement.dataset.theme = 'dark';
+      } else if (stored === 'LIGHT') {
+        document.documentElement.dataset.theme = 'light';
+      }
+    } catch (e) {
+      // Sem armazenamento, vale o tema do aparelho.
+    }
+  </script>
   <link rel="icon" type="image/svg+xml" href="marca.svg">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <!-- Fontes do design system (Bricolage Grotesque, Onest e JetBrains Mono), pelo Google Fonts. -->

@@ -27,7 +27,7 @@ describe('sessionInterceptor', () => {
 
   beforeEach(() => {
     restore = vi.fn().mockResolvedValue(
-      success({ id: '7c1f0b2e-3d4a-4f5b-8c9d-0e1f2a3b4c5d', fullName: 'Maria Silva', role: 'USER', mustChangePassword: false }),
+      success({ id: '7c1f0b2e-3d4a-4f5b-8c9d-0e1f2a3b4c5d', fullName: 'Maria Silva', role: 'USER', mustChangePassword: false, theme: 'SYSTEM' }),
     );
     TestBed.configureTestingModule({
       providers: [
@@ -106,7 +106,7 @@ describe('sessionInterceptor', () => {
     // decidia pela identidade antiga.
     let answer!: () => void;
     restore.mockReturnValue(
-      new Promise((resolve) => (answer = () => resolve(success({ id: '1', fullName: 'Maria', role: 'USER', mustChangePassword: true })))),
+      new Promise((resolve) => (answer = () => resolve(success({ id: '1', fullName: 'Maria', role: 'USER', mustChangePassword: true, theme: 'SYSTEM' })))),
     );
     failWith(problem('FORBIDDEN', 403), 403);
     failWith(problem('PASSWORD_CHANGE_REQUIRED', 403), 403);
