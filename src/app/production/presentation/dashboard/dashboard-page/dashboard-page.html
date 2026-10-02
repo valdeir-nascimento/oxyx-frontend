@@ -158,6 +158,7 @@
             <a
               class="icon-btn sm"
               [routerLink]="alert.route"
+              [queryParams]="alert.query"
               [attr.aria-label]="'Abrir: ' + alert.title"
               [attr.title]="'Abrir: ' + alert.title"
             >

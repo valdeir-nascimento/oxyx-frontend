@@ -26,6 +26,7 @@ describe('SectorListPage', () => {
     activeCageCount: 48,
     birdCount: 2400,
     layingRateTarget: 85,
+    weighingDay: 'FRIDAY',
   };
   const galpao2: SectorSummary = {
     id: '7a1b9c3d-2e4f-4a6b-8c0d-5e7f9a1b3c22',
@@ -436,5 +437,16 @@ describe('SectorListPage', () => {
     const empty = element().querySelector<HTMLElement>('[data-empty]');
     expect(document.activeElement).toBe(empty);
     expect(empty?.getAttribute('aria-label')).toBe('Nenhum setor ativo');
+  });
+
+  it('shows the weighing day of each sector in its card, or the 7-day term without one (010)', async () => {
+    await render();
+
+    expect(card('Codornas — Galpão 1').querySelector('.setor-schedule')?.textContent?.trim()).toBe(
+      'Pesagem às sextas',
+    );
+    expect(card('Poedeiras brancas — Galpão 2').querySelector('.setor-schedule')?.textContent?.trim()).toBe(
+      'Pesagem a cada 7 dias',
+    );
   });
 });

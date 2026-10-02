@@ -46,6 +46,13 @@
   }
 
   @if (overview(); as data) {
+    <!-- A próxima pesagem pela agenda do setor (feature 010), com ou sem pesagem registrada. -->
+    @if (nextWeighing()) {
+      <p class="next-weighing" data-next-weighing>
+        <ovyx-icon name="calendar" [size]="18" />
+        <span>{{ nextWeighing() }}</span>
+      </p>
+    }
     @if (!weighed()) {
       <section class="card" data-empty tabindex="-1" aria-label="Nenhuma pesagem registrada">
         <ovyx-empty-state

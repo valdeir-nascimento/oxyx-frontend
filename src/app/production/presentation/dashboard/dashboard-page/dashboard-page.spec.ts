@@ -726,6 +726,30 @@ describe('DashboardPage', () => {
     expect(kpiText('Produção', '.comparison')).toBe('vs ontem');
   });
 
+  it('leads the late weighing to the cages of the sector filtered by the pending ones, as a warning (010)', async () => {
+    const alerts: SectorDashboard['alerts'] = [
+      {
+        kind: 'WEIGHING_LATE',
+        tone: 'WARNING',
+        title: 'Pesagem atrasada',
+        detail: '2 gaiolas sem a pesagem de sexta-feira, 25/09, baterias B e C.',
+        target: {},
+      },
+    ];
+    getDashboard.mockResolvedValue(success({ ...dashboard, alerts, openAlerts: 1 }));
+
+    await open(`/?setor=${codornas.id}&periodo=hoje`);
+
+    const shortcut = card('Alertas e pendências').querySelector<HTMLAnchorElement>(
+      '[aria-label="Abrir: Pesagem atrasada"]',
+    );
+    expect(shortcut?.getAttribute('href')).toBe(`/setores/${codornas.id}/gaiolas?pesagem=pendente`);
+    const item = Array.from(card('Alertas e pendências').querySelectorAll('.list-item')).find((candidate) =>
+      candidate.textContent?.includes('Pesagem atrasada'),
+    );
+    expect(item?.querySelector('.st-ico.warning')).not.toBeNull();
+  });
+
   it('names the productivity chart with the target that comes from the dashboard', async () => {
     getDashboard.mockResolvedValue(success({ ...dashboard, target: 80 }));
 

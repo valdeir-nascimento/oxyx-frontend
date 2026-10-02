@@ -83,6 +83,11 @@
           <div><span>Aves</span><b>{{ countOf(sector.birdCount) }}</b></div>
           <div><span>Meta</span><b>{{ targetOf(sector.layingRateTarget) }}</b></div>
         </div>
+        <!-- O dia da pesagem do setor (feature 010), para todos os perfis. -->
+        <p class="setor-schedule">
+          <ovyx-icon name="calendar" [size]="16" />
+          <span>{{ weighingDayLabelOf(sector.weighingDay) }}</span>
+        </p>
         <div class="setor-actions">
           <a
             class="btn btn-secondary btn-sm"

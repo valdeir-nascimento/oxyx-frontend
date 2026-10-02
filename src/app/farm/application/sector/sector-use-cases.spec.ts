@@ -32,6 +32,7 @@ describe('sector use cases', () => {
     minimumWeight: '',
     maximumWeight: '',
     layingRateTarget: '85',
+    weighingDay: '',
   };
 
   let gateway: Record<string, Mock>;

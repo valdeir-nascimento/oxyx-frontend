@@ -33,7 +33,7 @@ import { Toaster } from '../../../../shared/presentation/ui/toast/toaster';
 import { GetWeighingOverviewUseCase } from '../../../application/weighing/get-weighing-overview.usecase';
 import { VoidWeighingUseCase } from '../../../application/weighing/void-weighing.usecase';
 import { WeighingHistoryEntry, WeighingOverview } from '../../../domain/weighing';
-import { changeOf, countOf, dayOf, weightOf } from '../../labels/labels';
+import { changeOf, countOf, dayOf, nextWeighingTextOf, weightOf } from '../../labels/labels';
 import { WeighingChanges } from '../weighing-changes';
 
 const NOT_FOUND = new Set(['SECTOR_NOT_FOUND', 'CAGE_NOT_FOUND']);
@@ -91,6 +91,9 @@ export class WeighingPage {
   protected readonly changeOf = changeOf;
 
   protected readonly overview = signal<WeighingOverview | null>(null);
+
+  /** A próxima pesagem da gaiola, pela agenda do setor (feature 010); vazia sem agenda. */
+  protected readonly nextWeighing = computed(() => nextWeighingTextOf(this.overview()?.schedule));
   protected readonly loading = signal(true);
   protected readonly missing = signal(false);
   protected readonly refusal = signal(Notification.empty());

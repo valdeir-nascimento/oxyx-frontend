@@ -470,4 +470,32 @@ describe('WeighingPage', () => {
     expect(element().textContent).toContain('Não foi possível falar com o servidor.');
     expect(element().textContent).not.toContain('Gaiola não encontrada.');
   });
+
+  // ---------------------------------------------------------------- agenda de pesagem (010)
+
+  it('tells the next weighing of the cage', async () => {
+    find.mockResolvedValue(success({ ...overview, schedule: { situation: 'UP_TO_DATE', nextOn: '2026-10-02' } }));
+
+    await render();
+
+    expect(element().querySelector('[data-next-weighing]')?.textContent?.trim()).toBe(
+      'Próxima pesagem: sexta-feira, 02/10',
+    );
+  });
+
+  it('tells a cage never weighed, also before the first weighing', async () => {
+    find.mockResolvedValue(
+      success({ ...overview, latest: undefined, history: [], chart: [], schedule: { situation: 'NEVER_WEIGHED' } }),
+    );
+
+    await render();
+
+    expect(element().querySelector('[data-next-weighing]')?.textContent?.trim()).toBe('Nunca pesada');
+  });
+
+  it('says nothing of the next weighing without a schedule, as in an inactive cage', async () => {
+    await render();
+
+    expect(element().querySelector('[data-next-weighing]')).toBeNull();
+  });
 });

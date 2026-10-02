@@ -51,6 +51,13 @@ describe('SectorFormDialog', () => {
     field(id).dispatchEvent(new Event('input'));
   }
 
+  /** Escolhe uma opção do select, como a pessoa faz. */
+  function choose(id: string, value: string): void {
+    const select = element().querySelector<HTMLSelectElement>('#' + id)!;
+    select.value = value;
+    select.dispatchEvent(new Event('change'));
+  }
+
   async function settle(): Promise<void> {
     await fixture.whenStable();
     fixture.detectChanges();
@@ -126,6 +133,7 @@ describe('SectorFormDialog', () => {
       minimumWeight: '',
       maximumWeight: '',
       layingRateTarget: '85',
+      weighingDay: '',
     });
   });
 
@@ -206,6 +214,7 @@ describe('SectorFormDialog', () => {
       minimumWeight: '',
       maximumWeight: '',
       layingRateTarget: '85',
+      weighingDay: '',
     });
     expect(toasts()).toEqual(['Alterações salvas: Codornas — Galpão 1 (norte).']);
     expect(navigate).toHaveBeenCalledWith(['/setores']);
@@ -256,6 +265,7 @@ describe('SectorFormDialog', () => {
       minimumWeight: '155',
       maximumWeight: '175',
       layingRateTarget: '85',
+      weighingDay: '',
     });
   });
 
@@ -315,6 +325,7 @@ describe('SectorFormDialog', () => {
       minimumWeight: '',
       maximumWeight: '',
       layingRateTarget: '82,5',
+      weighingDay: '',
     });
   });
 
@@ -343,5 +354,77 @@ describe('SectorFormDialog', () => {
       'A meta deve ficar entre 1% e 100%.',
     );
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  // ---------------------------------------------------------------- dia da pesagem (010)
+
+  it('offers the weighing day after the target, with no fixed day chosen in a new sector', async () => {
+    await render();
+
+    const day = field('weighingDay') as unknown as HTMLSelectElement;
+    expect(day.tagName).toBe('SELECT');
+    expect(day.value).toBe('');
+    expect(element().querySelector('label[for="weighingDay"]')?.textContent).toContain('Dia da pesagem');
+    expect(Array.from(day.options).map((option) => option.textContent?.trim())).toEqual([
+      'Sem dia fixo (a cada 7 dias)',
+      'Segunda-feira',
+      'Terça-feira',
+      'Quarta-feira',
+      'Quinta-feira',
+      'Sexta-feira',
+      'Sábado',
+      'Domingo',
+    ]);
+    const ids = Array.from(element().querySelectorAll('input, textarea, select')).map((control) => control.id);
+    expect(ids.indexOf('weighingDay')).toBe(ids.indexOf('layingRateTarget') + 1);
+  });
+
+  it('registers the weighing day chosen', async () => {
+    await render();
+    type('name', 'Poedeiras — Galpão 3');
+    choose('weighingDay', 'FRIDAY');
+
+    await submit();
+
+    expect(register).toHaveBeenCalledWith({
+      name: 'Poedeiras — Galpão 3',
+      description: '',
+      minimumWeight: '',
+      maximumWeight: '',
+      layingRateTarget: '85',
+      weighingDay: 'FRIDAY',
+    });
+  });
+
+  it('opens the edition with the weighing day of the sector, and sends no fixed day when taken away', async () => {
+    find.mockResolvedValue(success({ ...galpao, weighingDay: 'FRIDAY' }));
+    await render(galpao.id);
+    expect((field('weighingDay') as unknown as HTMLSelectElement).value).toBe('FRIDAY');
+
+    choose('weighingDay', '');
+    await submit();
+
+    expect(update).toHaveBeenCalledWith(galpao.id, expect.objectContaining({ weighingDay: '' }));
+  });
+
+  it('shows the refusal of the weighing day next to its field', async () => {
+    update.mockResolvedValue(
+      failure(
+        Notification.of([
+          {
+            code: 'VALIDATION_FAILED',
+            field: 'weighingDay',
+            message: 'Escolha um dia da semana, de segunda a domingo.',
+          },
+        ]),
+      ),
+    );
+    await render(galpao.id);
+
+    await submit();
+
+    expect(element().querySelector('#weighingDay-error')?.textContent).toContain(
+      'Escolha um dia da semana, de segunda a domingo.',
+    );
   });
 });

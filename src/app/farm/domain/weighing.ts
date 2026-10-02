@@ -1,5 +1,6 @@
 import { ReferenceWeight } from './sector';
 import { FarmStatus } from './status';
+import { WeighingStanding } from './weighing-schedule';
 
 /** Quem fez a operação, como estava na sessão. */
 export interface Actor {
@@ -85,6 +86,8 @@ export interface WeighingOverview {
   readonly chart: readonly WeighingPoint[];
   /** Da mais recente para a mais antiga. */
   readonly history: readonly WeighingHistoryEntry[];
+  /** A situação na agenda de pesagem, com a próxima pesagem; ausente na gaiola ou no setor inativo (010). */
+  readonly schedule?: WeighingStanding;
 }
 
 /**

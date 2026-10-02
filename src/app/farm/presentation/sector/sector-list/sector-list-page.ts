@@ -27,7 +27,14 @@ import { ListSectorsUseCase } from '../../../application/sector/list-sectors.use
 import { ReactivateSectorUseCase } from '../../../application/sector/reactivate-sector.usecase';
 import { SectorSummary } from '../../../domain/sector';
 import { StatusFilter } from '../../../domain/status';
-import { SECTOR_STATUS_OPTIONS, countOf, sectorStatusLabelOf, statusToneOf, targetOf } from '../../labels/labels';
+import {
+  SECTOR_STATUS_OPTIONS,
+  countOf,
+  sectorStatusLabelOf,
+  statusToneOf,
+  targetOf,
+  weighingDayLabelOf,
+} from '../../labels/labels';
 import { SectorChanges } from '../sector-changes';
 
 /** O título do estado vazio, conforme a situação escolhida. */
@@ -96,6 +103,7 @@ export class SectorListPage {
   protected readonly statusToneOf = statusToneOf;
   protected readonly countOf = countOf;
   protected readonly targetOf = targetOf;
+  protected readonly weighingDayLabelOf = weighingDayLabelOf;
 
   protected readonly status = signal<StatusFilter>('ACTIVE');
   protected readonly sectors = signal<readonly SectorSummary[]>([]);
