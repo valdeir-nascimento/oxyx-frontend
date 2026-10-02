@@ -1,4 +1,6 @@
+import { signal } from '@angular/core';
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { THEME_DISPLAY } from './shared/application/theme-display';
 import { FILE_SAVER } from './shared/application/file-saver';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
@@ -33,6 +35,7 @@ describe('routes', () => {
     fullName: 'Maria Silva',
     role: 'USER',
     mustChangePassword: false,
+    theme: 'SYSTEM',
   };
 
   function noSession(): Result<AuthenticatedCaretaker> {
@@ -72,7 +75,8 @@ describe('routes', () => {
             currentCaretaker: vi.fn().mockResolvedValue(sessionOnServer),
           },
         },
-        { provide: ACCOUNT_GATEWAY, useValue: { changeOwnPassword: vi.fn() } },
+        { provide: ACCOUNT_GATEWAY, useValue: { changeOwnPassword: vi.fn(), changeTheme: vi.fn() } },
+        { provide: THEME_DISPLAY, useValue: { apply: vi.fn(), current: signal('SYSTEM') } },
         { provide: FILE_SAVER, useValue: { save: vi.fn() } },
         {
           provide: CARETAKER_GATEWAY,

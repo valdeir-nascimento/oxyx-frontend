@@ -13,6 +13,7 @@ describe('SessionStore', () => {
     fullName: 'Maria Silva',
     role: 'ADMINISTRATOR',
     mustChangePassword: true,
+    theme: 'SYSTEM',
   };
 
   function store(): SessionStore {

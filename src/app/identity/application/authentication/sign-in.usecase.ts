@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { AccountTheme } from '../account/account-theme';
 import { Result, failure } from '../../../shared/application/result';
 import { AuthenticatedCaretaker } from '../../domain/authenticated-caretaker';
 import { validateCredentials } from '../../domain/credentials';
@@ -18,6 +19,7 @@ import { SessionStore } from './session-store';
 export class SignInUseCase {
   private readonly identity = inject(AUTHENTICATION_GATEWAY);
   private readonly session = inject(SessionStore);
+  private readonly accountTheme = inject(AccountTheme);
 
   async execute(identifier: string, password: string): Promise<Result<AuthenticatedCaretaker>> {
     const credentials = { identifier, password };
@@ -31,6 +33,8 @@ export class SignInUseCase {
 
     if (result.success) {
       this.session.remember(result.value);
+      // O tema da conta antes da navegação: a primeira tela já sai nele (feature 011).
+      this.accountTheme.follow(result.value);
     }
 
     return result;

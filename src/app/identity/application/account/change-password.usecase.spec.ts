@@ -1,4 +1,7 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { THEME_DISPLAY } from '../../../shared/application/theme-display';
+import { AccountTheme } from './account-theme';
 import { Notification } from '../../../shared/domain/notification';
 import { Result, failure, success } from '../../../shared/application/result';
 import { SessionStore } from '../authentication/session-store';
@@ -16,15 +19,20 @@ describe('ChangeOwnPasswordUseCase', () => {
     fullName: 'Maria Silva',
     role: 'ADMINISTRATOR' as const,
     mustChangePassword: true,
+    theme: 'SYSTEM' as const,
   };
 
   function gatewayThatReturns(result: Result<void>): AccountGateway {
-    return { changeOwnPassword: vi.fn().mockResolvedValue(result) };
+    return { changeOwnPassword: vi.fn().mockResolvedValue(result), changeTheme: vi.fn() };
   }
 
   function useCaseWith(gateway: AccountGateway): ChangeOwnPasswordUseCase {
     TestBed.configureTestingModule({
-      providers: [ChangeOwnPasswordUseCase, { provide: ACCOUNT_GATEWAY, useValue: gateway }],
+      providers: [
+        ChangeOwnPasswordUseCase,
+        { provide: ACCOUNT_GATEWAY, useValue: gateway },
+        { provide: THEME_DISPLAY, useValue: { apply: vi.fn(), current: signal('SYSTEM') } },
+      ],
     });
     return TestBed.inject(ChangeOwnPasswordUseCase);
   }
@@ -113,5 +121,29 @@ describe('ChangeOwnPasswordUseCase', () => {
     await useCase.execute('GranjaNorte2026', 'abc');
 
     expect(store.mustChangePassword()).toBe(true);
+  });
+
+  it('applies the theme of the account once the provisional password is changed (011, US3)', async () => {
+    const follow = vi.fn();
+    TestBed.configureTestingModule({ providers: [{ provide: AccountTheme, useValue: { follow } }] });
+    const useCase = useCaseWith(gatewayThatReturns(success(undefined)));
+    const store = TestBed.inject(SessionStore);
+    store.remember({ ...maria, theme: 'DARK' });
+
+    await useCase.execute('GranjaNorte2026', 'PosturaAviario2027');
+
+    expect(follow).toHaveBeenCalledWith({ ...maria, theme: 'DARK', mustChangePassword: false });
+  });
+
+  it('keeps the theme chosen in the session when the password is changed voluntarily (011, QA D1)', async () => {
+    // O tema da conta guardado na entrada fica velho com a escolha feita depois: aplicá-lo aqui desfazia a escolha.
+    const follow = vi.fn();
+    TestBed.configureTestingModule({ providers: [{ provide: AccountTheme, useValue: { follow } }] });
+    const useCase = useCaseWith(gatewayThatReturns(success(undefined)));
+    TestBed.inject(SessionStore).remember({ ...maria, mustChangePassword: false, theme: 'LIGHT' });
+
+    await useCase.execute('GranjaNorte2026', 'PosturaAviario2027');
+
+    expect(follow).not.toHaveBeenCalled();
   });
 });

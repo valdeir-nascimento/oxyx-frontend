@@ -17,4 +17,7 @@
     }
     <span class="cur" aria-current="page">{{ current() }}</span>
   </nav>
+  <!-- As ações da casca, à direita, como o seletor de tema (feature 011). -->
+  <span class="grow"></span>
+  <ng-content select="[top-bar-actions]" />
 </header>

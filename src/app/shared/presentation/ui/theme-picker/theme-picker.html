@@ -1,0 +1,34 @@
+<div class="theme-picker">
+  <button
+    type="button"
+    class="icon-btn"
+    aria-haspopup="menu"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="open() ? listId : null"
+    [attr.aria-label]="'Tema: ' + current().label"
+    [attr.title]="'Tema: ' + current().label"
+    (click)="toggle()"
+  >
+    <ovyx-icon [name]="current().icon" [attr.data-icon]="current().icon" />
+  </button>
+
+  @if (open()) {
+    <div class="theme-menu" role="menu" aria-label="Tema" tabindex="-1" [id]="listId" (keydown)="onKey($event)">
+      @for (option of options; track option.value; let index = $index) {
+        <button
+          type="button"
+          role="menuitemradio"
+          [attr.aria-checked]="option.value === value()"
+          [attr.tabindex]="index === active() ? 0 : -1"
+          (click)="choose(option.value)"
+        >
+          <ovyx-icon [name]="option.icon" [size]="18" />
+          <span class="grow">{{ option.label }}</span>
+          @if (option.value === value()) {
+            <ovyx-icon class="mark" name="check" [size]="16" />
+          }
+        </button>
+      }
+    </div>
+  }
+</div>

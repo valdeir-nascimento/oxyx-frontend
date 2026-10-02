@@ -7,6 +7,15 @@ import { MenuItem } from './menu-item';
 @Component({ template: '' })
 class Blank {}
 
+/** Quem usa o layout: encaixa uma ação no topo, como a casca faz com o seletor de tema. */
+@Component({
+  imports: [AuthenticatedLayout],
+  template: `<ovyx-authenticated-layout fullName="Maria Silva" roleLabel="Administrador" [menuItems]="[]">
+    <button type="button" top-bar-actions>Ação</button>
+  </ovyx-authenticated-layout>`,
+})
+class LayoutWithActions {}
+
 const MENU: readonly MenuItem[] = [
   { label: 'Início', route: '/', icon: 'chart', group: 'Painel' },
   { label: 'Responsáveis', route: '/responsaveis', icon: 'users', group: 'Administração' },
@@ -173,6 +182,18 @@ describe('AuthenticatedLayout', () => {
     await visit('/responsaveis');
 
     expect(drawer()).toBeNull();
+  });
+  it('passes the actions given to it on to the top bar (011)', async () => {
+    await TestBed.configureTestingModule({
+      imports: [LayoutWithActions],
+      providers: [provideRouter([{ path: '', component: Blank, data: { crumbs: ['Início'] } }])],
+    }).compileComponents();
+    const host = TestBed.createComponent(LayoutWithActions);
+    host.detectChanges();
+
+    const action = (host.nativeElement as HTMLElement).querySelector('.topbar [top-bar-actions]');
+
+    expect(action?.textContent).toContain('Ação');
   });
 });
 

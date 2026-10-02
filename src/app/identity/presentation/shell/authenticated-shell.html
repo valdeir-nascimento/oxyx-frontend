@@ -4,5 +4,7 @@
     [roleLabel]="roleLabel()"
     [menuItems]="menuItems()"
     (signOut)="signOut()"
-  />
+  >
+    <ovyx-theme-picker top-bar-actions [value]="theme()" (valueChange)="chooseTheme($event)" />
+  </ovyx-authenticated-layout>
 }

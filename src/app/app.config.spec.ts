@@ -38,7 +38,7 @@ describe('appConfig', () => {
 
   it('forgets the identity when the backend refuses the session', () => {
     const session = TestBed.inject(SessionStore);
-    session.remember({ id: 'maria', fullName: 'Maria Silva', role: 'USER', mustChangePassword: false });
+    session.remember({ id: 'maria', fullName: 'Maria Silva', role: 'USER', mustChangePassword: false, theme: 'SYSTEM' });
     vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
     TestBed.inject(HttpClient).get('/api/v1/anything').subscribe({ error: () => undefined });
