@@ -235,3 +235,17 @@ a.icon-btn {
   border-color: var(--warning);
   color: var(--warning-ink);
 }
+
+/* ------------------------------------------------------- selo na faixa de resumo */
+/* O selo da situação no lugar do número (feature 005): o ".summary span" do design system pinta todo span da faixa
+ * de cinza, e vencia a cor do tom do selo, com contraste de 4,45:1 no tema claro. Aqui o selo volta à cor do tom
+ * dele, com o contraste do design system nos dois temas (auditoria da feature 011). */
+.summary .badge {
+  color: var(--ink-2);
+}
+.summary .badge.b-success { color: var(--success-ink); }
+.summary .badge.b-warning { color: var(--warning-ink); }
+.summary .badge.b-danger { color: var(--danger-ink); }
+.summary .badge.b-info { color: var(--info-ink); }
+.summary .badge.b-primary { color: var(--primary-ink); }
+.summary .badge.b-accent { color: var(--accent-ink); }

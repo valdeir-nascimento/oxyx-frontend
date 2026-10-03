@@ -16,16 +16,18 @@ import { Button } from '../../../../shared/presentation/ui/button/button';
 import { Dialog } from '../../../../shared/presentation/ui/dialog/dialog';
 import { ErrorSummary } from '../../../../shared/presentation/ui/error-summary/error-summary';
 import { FormField } from '../../../../shared/presentation/ui/form-field/form-field';
+import { SelectField } from '../../../../shared/presentation/ui/select-field/select-field';
 import { Toaster } from '../../../../shared/presentation/ui/toast/toaster';
 import { FindSectorByIdUseCase } from '../../../application/sector/find-sector-by-id.usecase';
 import { RegisterSectorUseCase } from '../../../application/sector/register-sector.usecase';
 import { UpdateSectorUseCase } from '../../../application/sector/update-sector.usecase';
-import { targetInputOf } from '../../labels/labels';
+import { WEIGHING_DAY_OPTIONS, targetInputOf } from '../../labels/labels';
+import { WeighingDay } from '../../../domain/weighing-schedule';
 import { SectorChanges } from '../sector-changes';
 
 const NOT_FOUND = 'SECTOR_NOT_FOUND';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const FIELDS = ['name', 'description', 'minimumWeight', 'maximumWeight', 'layingRateTarget'];
+const FIELDS = ['name', 'description', 'minimumWeight', 'maximumWeight', 'layingRateTarget', 'weighingDay'];
 /** A meta que o cadastro sugere: a do protótipo, que o painel usava para todos os setores até a feature 008. */
 const SUGGESTED_TARGET = '85';
 const LIST = '/setores';
@@ -43,7 +45,7 @@ const LIST = '/setores';
  */
 @Component({
   selector: 'ovyx-sector-form-dialog',
-  imports: [Alert, Button, Dialog, ErrorSummary, FormField],
+  imports: [Alert, Button, Dialog, ErrorSummary, FormField, SelectField],
   templateUrl: './sector-form-dialog.html',
   styleUrl: './sector-form-dialog.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -63,6 +65,7 @@ export class SectorFormDialog {
 
   protected readonly editing = this.id !== null;
   protected readonly fields = FIELDS;
+  protected readonly weighingDayOptions = WEIGHING_DAY_OPTIONS;
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     name: '',
@@ -70,6 +73,7 @@ export class SectorFormDialog {
     minimumWeight: '',
     maximumWeight: '',
     layingRateTarget: SUGGESTED_TARGET,
+    weighingDay: '',
   });
 
   protected readonly notification = signal(Notification.empty());
@@ -109,7 +113,9 @@ export class SectorFormDialog {
     if (this.submitting() || this.state() !== 'ready') {
       return;
     }
-    const input = this.form.getRawValue();
+    const raw = this.form.getRawValue();
+    // O select só oferece os dias da semana e o vazio, "sem dia fixo".
+    const input = { ...raw, weighingDay: raw.weighingDay as WeighingDay | '' };
 
     this.submitting.set(true);
     const result =
@@ -145,13 +151,14 @@ export class SectorFormDialog {
       return;
     }
 
-    const { name, description, referenceWeight, layingRateTarget } = result.value;
+    const { name, description, referenceWeight, layingRateTarget, weighingDay } = result.value;
     this.form.patchValue({
       name,
       description: description ?? '',
       minimumWeight: referenceWeight ? String(referenceWeight.minimum) : '',
       maximumWeight: referenceWeight ? String(referenceWeight.maximum) : '',
       layingRateTarget: targetInputOf(layingRateTarget),
+      weighingDay: weighingDay ?? '',
     });
     this.loadedName.set(name);
     this.state.set('ready');

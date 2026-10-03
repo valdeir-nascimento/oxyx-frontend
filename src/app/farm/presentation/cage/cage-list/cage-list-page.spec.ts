@@ -3,7 +3,7 @@ import { ExportCagesUseCase } from '../../../application/cage/export-cages.useca
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { ActivatedRoute, RouterOutlet, convertToParamMap, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, RouterOutlet, convertToParamMap, provideRouter } from '@angular/router';
 import { failure, success } from '../../../../shared/application/result';
 import { VIEWER } from '../../../../shared/application/viewer';
 import { Notification } from '../../../../shared/domain/notification';
@@ -69,7 +69,7 @@ describe('CageListPage', () => {
     fixture.detectChanges();
   }
 
-  async function render(administrator = true): Promise<void> {
+  async function render(administrator = true, query: Readonly<Record<string, string>> = {}): Promise<void> {
     await TestBed.configureTestingModule({
       imports: [CageListPage],
       providers: [
@@ -80,7 +80,15 @@ describe('CageListPage', () => {
         { provide: ReactivateCageUseCase, useValue: { execute: reactivate } },
         { provide: ExportCagesUseCase, useValue: { execute: exportCages } },
         { provide: VIEWER, useValue: { isAdministrator: signal(administrator) } },
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ sectorId: galpao.id }) } } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              paramMap: convertToParamMap({ sectorId: galpao.id }),
+              queryParamMap: convertToParamMap(query),
+            },
+          },
+        },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(CageListPage);
@@ -690,5 +698,118 @@ describe('CageListPage', () => {
     await settle();
 
     expect(document.activeElement).toBe(exportButton());
+  });
+
+  // ---------------------------------------------------------------- agenda de pesagem (010)
+
+  function weighedCage(code: string, weighing?: CageSummary['weighing']): CageSummary {
+    return { ...cage(code, code.charAt(0), Number(code.slice(2))), weighing };
+  }
+
+  it('shows the standing of each cage in the weighing schedule, and a dash without one', async () => {
+    search.mockResolvedValue(
+      success(
+        pageOf([
+          weighedCage('A-01', { situation: 'UP_TO_DATE', nextOn: '2026-10-02' }),
+          weighedCage('B-07', { situation: 'LATE', lateSince: '2026-09-25' }),
+          weighedCage('C-03', { situation: 'NEVER_WEIGHED' }),
+          { ...weighedCage('D-01'), status: 'INACTIVE' },
+        ]),
+      ),
+    );
+
+    await render();
+
+    const standing = (id: string) =>
+      element().querySelector(`tr[data-cage="${id}"] td[data-label="Pesagem"]`)?.textContent?.trim();
+    expect(element().querySelector('thead')?.textContent).toContain('Pesagem');
+    expect(standing('id-A-01')).toBe('Em dia');
+    expect(standing('id-B-07')).toBe('Atrasada desde 25/09');
+    expect(standing('id-C-03')).toBe('Nunca pesada');
+    expect(standing('id-D-01')).toBe('—');
+  });
+
+  it('filters the pending weighings, and writes the filter in the address', async () => {
+    await render();
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    button('Pesagem pendente', group('Pesagem')).click();
+    await settle();
+
+    expect(search).toHaveBeenLastCalledWith(galpao.id, {
+      code: '',
+      battery: '',
+      status: 'ACTIVE',
+      weighing: 'PENDING',
+      page: 0,
+      size: 20,
+    });
+    expect(navigate).toHaveBeenCalledWith(
+      [],
+      expect.objectContaining({ queryParams: { pesagem: 'pendente' }, queryParamsHandling: 'merge', replaceUrl: true }),
+    );
+  });
+
+  it('opens already filtered by the pending weighing when the address asks for it', async () => {
+    await render(true, { pesagem: 'pendente' });
+
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(search).toHaveBeenCalledWith(galpao.id, {
+      code: '',
+      battery: '',
+      status: 'ACTIVE',
+      weighing: 'PENDING',
+      page: 0,
+      size: 20,
+    });
+    expect(button('Pesagem pendente', group('Pesagem')).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('says every cage is up to date when the pending filter finds none, and clears it from the address', async () => {
+    search.mockResolvedValue(success(pageOf([])));
+    await render(true, { pesagem: 'pendente' });
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    expect(element().textContent).toContain('Todas as gaiolas ativas estão em dia com a pesagem.');
+    button('Limpar busca').click();
+    await settle();
+
+    expect(search).toHaveBeenLastCalledWith(galpao.id, { code: '', battery: '', status: 'ACTIVE', page: 0, size: 20 });
+    expect(navigate).toHaveBeenCalledWith([], expect.objectContaining({ queryParams: { pesagem: null } }));
+  });
+
+  it('exports the pending cages with the weighing filter', async () => {
+    await render(true, { pesagem: 'pendente' });
+
+    button('Exportar').click();
+    await settle();
+
+    expect(exportCages).toHaveBeenCalledWith(galpao.id, {
+      code: '',
+      battery: '',
+      status: 'ACTIVE',
+      weighing: 'PENDING',
+    });
+  });
+
+  it('says every cage is up to date only with no other filter than the pending weighing (QA 1, D-2)', async () => {
+    search.mockResolvedValue(success(pageOf([])));
+    await render(true, { pesagem: 'pendente' });
+
+    button('A', group('Bateria')).click();
+    await settle();
+
+    expect(element().textContent).not.toContain('Todas as gaiolas ativas estão em dia com a pesagem.');
+    expect(element().textContent).toContain('Escolha outra bateria ou outra situação.');
+  });
+
+  it('gives the standing a whole line of the card on the phone (QA 1, D-1)', async () => {
+    search.mockResolvedValue(
+      success(pageOf([weighedCage('B-07', { situation: 'LATE', lateSince: '2026-09-30' })])),
+    );
+
+    await render();
+
+    expect(element().querySelector('tr[data-cage="id-B-07"] td[data-label="Pesagem"]')?.classList).toContain('wide');
   });
 });

@@ -79,6 +79,14 @@
         [control]="form.controls.layingRateTarget"
         [error]="messageFor('layingRateTarget')"
       />
+      <!-- O dia da semana da pesagem (feature 010): opcional; sem ele, o prazo de 7 dias. -->
+      <ovyx-select-field
+        controlId="weighingDay"
+        label="Dia da pesagem"
+        [control]="form.controls.weighingDay"
+        [options]="weighingDayOptions"
+        [error]="messageFor('weighingDay')"
+      />
     }
   }
 

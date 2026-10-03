@@ -1,4 +1,6 @@
+import { signal } from '@angular/core';
 import { ActivatedRouteSnapshot, CanActivateFn, RouterStateSnapshot, provideRouter } from '@angular/router';
+import { THEME_DISPLAY } from '../../shared/application/theme-display';
 import { TestBed } from '@angular/core/testing';
 import { Notification } from '../../shared/domain/notification';
 import { Result, failure, success } from '../../shared/application/result';
@@ -20,6 +22,7 @@ describe('authenticatedGuard', () => {
     fullName: 'Maria Silva',
     role: 'USER',
     mustChangePassword: false,
+    theme: 'SYSTEM',
   };
 
   let gateway: AuthenticationGateway;
@@ -31,7 +34,7 @@ describe('authenticatedGuard', () => {
       currentCaretaker: vi.fn().mockResolvedValue(sessionOnServer),
     };
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), { provide: AUTHENTICATION_GATEWAY, useValue: gateway }],
+      providers: [provideRouter([]), { provide: AUTHENTICATION_GATEWAY, useValue: gateway }, { provide: THEME_DISPLAY, useValue: { apply: vi.fn(), current: signal('SYSTEM') } }],
     });
   }
 

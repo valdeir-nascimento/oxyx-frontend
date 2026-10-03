@@ -1,5 +1,5 @@
 import { DashboardAlert } from '../../domain/dashboard';
-import { alertRouteOf } from './alert-target';
+import { alertQueryOf, alertRouteOf } from './alert-target';
 
 /**
  * O atalho de cada alerta leva à tela onde ele se resolve (FR-017 da 006, R-007): o destino vem como dados
@@ -51,4 +51,23 @@ describe('alertRouteOf', () => {
       alertRouteOf(sectorId, alert('WEIGHT_OUT_OF_RANGE', { cageId, cageCode: 'A-02' })),
     ).toEqual(['/setores', sectorId, 'gaiolas', cageId, 'peso']);
   });
+
+  // ---------------------------------------------------------------- avisos de pesagem (010)
+
+  it.each(['WEIGHING_DUE', 'WEIGHING_LATE'] as const)(
+    'leads %s to the cages of the sector, filtered by the pending weighing',
+    (kind) => {
+      const weighing = alert(kind, {});
+
+      expect(alertRouteOf(sectorId, weighing)).toEqual(['/setores', sectorId, 'gaiolas']);
+      expect(alertQueryOf(weighing)).toEqual({ pesagem: 'pendente' });
+    },
+  );
+
+  it.each(['REPORT_NOT_OPENED', 'LOW_LAYING', 'WEIGHT_OUT_OF_RANGE'] as const)(
+    'gives no filter to the shortcut of %s',
+    (kind) => {
+      expect(alertQueryOf(alert(kind, { cageId }))).toBeNull();
+    },
+  );
 });

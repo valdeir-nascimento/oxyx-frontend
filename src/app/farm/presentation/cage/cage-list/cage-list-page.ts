@@ -11,7 +11,7 @@ import {
   untracked,
 } from '@angular/core';
 import { FormBuilder } from '@angular/forms';
-import { ActivatedRoute, RouterLink, RouterOutlet } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { VIEWER } from '../../../../shared/application/viewer';
 import { Notification } from '../../../../shared/domain/notification';
 import { Alert } from '../../../../shared/presentation/ui/alert/alert';
@@ -39,20 +39,38 @@ import { FindSectorByIdUseCase } from '../../../application/sector/find-sector-b
 import { CagePage, CageSummary } from '../../../domain/cage';
 import { Sector } from '../../../domain/sector';
 import { StatusFilter } from '../../../domain/status';
-import { CAGE_STATUS_OPTIONS, cageStatusLabelOf, countOf, statusToneOf, weightOf } from '../../labels/labels';
+import { WeighingFilter } from '../../../domain/weighing-schedule';
+import {
+  CAGE_STATUS_OPTIONS,
+  WEIGHING_FILTER_OPTIONS,
+  cageStatusLabelOf,
+  countOf,
+  statusToneOf,
+  weighingStandingLabelOf,
+  weighingStandingToneOf,
+  weightOf,
+} from '../../labels/labels';
 import { CageChanges } from '../cage-changes';
 
 const PAGE_SIZE = 20;
 const SECTOR_NOT_FOUND = 'SECTOR_NOT_FOUND';
 
-/** Os filtros de uma pesquisa: o trecho do código, a bateria (vazia para todas) e a situação. */
+/**
+ * Os filtros de uma pesquisa: o trecho do código, a bateria (vazia para todas), a situação e a pesagem pendente
+ * (vazia para todas, feature 010).
+ */
 interface Filters {
   readonly code: string;
   readonly battery: string;
   readonly status: StatusFilter;
+  readonly weighing: WeighingFilter | '';
 }
 
-const NO_FILTERS: Filters = { code: '', battery: '', status: 'ACTIVE' };
+const NO_FILTERS: Filters = { code: '', battery: '', status: 'ACTIVE', weighing: '' };
+
+/** O filtro "Pesagem pendente" no endereço da tela, para o aviso do painel abrir a lista já filtrada (010). */
+const WEIGHING_PARAM = 'pesagem';
+const PENDING_IN_ADDRESS = 'pendente';
 
 /**
  * Gaiolas de um setor (US2; FR-010, FR-011, FR-020): o cabeçalho com os totais do setor, a tabela do
@@ -71,6 +89,10 @@ const NO_FILTERS: Filters = { code: '', battery: '', status: 'ACTIVE' };
  *
  * O usuário comum vê as gaiolas, os totais, a busca e os filtros, e nenhuma ação que altere (US4,
  * FR-018).
+ *
+ * Cada gaiola ativa mostra a situação na agenda de pesagem do setor, e o filtro "Pesagem pendente" deixa só as
+ * que faltam pesar. O filtro vai para o endereço (`?pesagem=pendente`), que é para onde os avisos de pesagem do
+ * painel levam (feature 010).
  *
  * "Setor sem gaiola" é o setor sem gaiola nenhuma, ativa ou inativa: o que não tem gaiola ativa — o
  * setor inativo, ou o que teve a única gaiola inativada — continua com a busca e os filtros, e as
@@ -118,8 +140,15 @@ export class CageListPage {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
 
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+
   /** O setor do endereço. */
-  protected readonly sectorId = inject(ActivatedRoute).snapshot.paramMap.get('sectorId') ?? '';
+  protected readonly sectorId = this.route.snapshot.paramMap.get('sectorId') ?? '';
+
+  /** A pesagem pendente pedida pelo endereço, como o aviso do painel a pede (010). */
+  private readonly weighingInAddress: WeighingFilter | '' =
+    this.route.snapshot.queryParamMap?.get(WEIGHING_PARAM) === PENDING_IN_ADDRESS ? 'PENDING' : '';
 
   /** Se quem vê pode alterar as gaiolas: só o administrador, e só num setor ativo (FR-014, FR-018). */
   private readonly administrator = inject(VIEWER).isAdministrator;
@@ -127,12 +156,16 @@ export class CageListPage {
   protected readonly statusOptions = CAGE_STATUS_OPTIONS;
   protected readonly statusLabelOf = cageStatusLabelOf;
   protected readonly statusToneOf = statusToneOf;
+  protected readonly weighingOptions = WEIGHING_FILTER_OPTIONS;
+  protected readonly weighingLabelOf = weighingStandingLabelOf;
+  protected readonly weighingToneOf = weighingStandingToneOf;
   protected readonly countOf = countOf;
   protected readonly weightOf = weightOf;
 
   protected readonly filters = inject(FormBuilder).nonNullable.group({ code: '' });
   protected readonly battery = signal('');
   protected readonly status = signal<StatusFilter>('ACTIVE');
+  protected readonly weighing = signal<WeighingFilter | ''>(this.weighingInAddress);
 
   protected readonly sector = signal<Sector | null>(null);
   protected readonly missing = signal(false);
@@ -161,7 +194,7 @@ export class CageListPage {
   });
 
   /** Os filtros da última pesquisa feita. */
-  private readonly searched = signal<Filters>(NO_FILTERS);
+  private readonly searched = signal<Filters>({ ...NO_FILTERS, weighing: this.weighingInAddress });
   /** Se a planilha das gaiolas está sendo gerada (007): o botão fica desabilitado e diz "Gerando…". */
   protected readonly exporting = signal(false);
 
@@ -207,14 +240,21 @@ export class CageListPage {
   /** Se a última pesquisa filtrou alguma coisa: é o que o "Limpar busca" desfaz. */
   protected readonly filtered = computed(() => {
     const filters = this.searched();
-    return filters.code.trim() !== '' || filters.battery !== '' || filters.status !== 'ACTIVE';
+    return (
+      filters.code.trim() !== '' || filters.battery !== '' || filters.status !== 'ACTIVE' || filters.weighing !== ''
+    );
   });
 
   /** O estado vazio da busca diz o que foi buscado e como corrigir. */
   protected readonly emptyMessage = computed(() => {
     const code = this.searched().code.trim();
-    return code
-      ? `Nada corresponde a "${code}". Confira o código, busque por um trecho dele ou escolha outra bateria ou situação.`
+    if (code) {
+      return `Nada corresponde a "${code}". Confira o código, busque por um trecho dele ou escolha outra bateria ou situação.`;
+    }
+    // Só a pesagem pendente filtrou: a lista vazia diz que tudo está em dia (QA 1 da 010, D-2).
+    const { battery, status, weighing } = this.searched();
+    return weighing && battery === '' && status === 'ACTIVE'
+      ? 'Todas as gaiolas ativas estão em dia com a pesagem.'
       : 'Escolha outra bateria ou outra situação.';
   });
 
@@ -239,17 +279,24 @@ export class CageListPage {
 
   protected search(event: Event): void {
     event.preventDefault();
-    this.searchWith(this.battery(), this.status());
+    this.searchWith();
   }
 
   protected filterByBattery(battery: string): void {
     this.battery.set(battery);
-    this.searchWith(battery, this.status());
+    this.searchWith();
   }
 
   protected filterByStatus(status: string): void {
     this.status.set(status as StatusFilter);
-    this.searchWith(this.battery(), status as StatusFilter);
+    this.searchWith();
+  }
+
+  /** O filtro de pesagem pendente, que também vai para o endereço (010). */
+  protected filterByWeighing(weighing: string): void {
+    this.weighing.set(weighing as WeighingFilter | '');
+    this.searchWith();
+    this.writeWeighingInAddress();
   }
 
   protected goTo(page: number): void {
@@ -264,7 +311,9 @@ export class CageListPage {
     this.filters.controls.code.setValue('');
     this.battery.set('');
     this.status.set('ACTIVE');
-    this.searchWith('', 'ACTIVE');
+    this.weighing.set('');
+    this.searchWith();
+    this.writeWeighingInAddress();
     this.host.nativeElement.querySelector<HTMLInputElement>('#code')?.focus();
   }
 
@@ -316,9 +365,30 @@ export class CageListPage {
     await Promise.all([this.loadSector(), this.load(this.page().page)]);
   }
 
-  private searchWith(battery: string, status: StatusFilter): void {
-    this.searched.set({ code: this.filters.controls.code.value, battery, status });
+  private searchWith(): void {
+    this.searched.set({
+      code: this.filters.controls.code.value,
+      battery: this.battery(),
+      status: this.status(),
+      weighing: this.weighing(),
+    });
     void this.load(0);
+  }
+
+  /** O filtro de pesagem no endereço, sem criar outra entrada no histórico: o voltar sai da lista. */
+  private writeWeighingInAddress(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { [WEIGHING_PARAM]: this.weighing() ? PENDING_IN_ADDRESS : null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  /** Os filtros como a porta os recebe: a pesagem só quando pedida. */
+  private filtersAsked(): Omit<Filters, 'weighing'> & { readonly weighing?: WeighingFilter } {
+    const { weighing, ...rest } = this.searched();
+    return weighing ? { ...rest, weighing } : rest;
   }
 
   private async loadSector(): Promise<void> {
@@ -368,7 +438,7 @@ export class CageListPage {
 
   private async load(page: number): Promise<void> {
     this.loading.set(true);
-    const result = await this.searchCages.execute(this.sectorId, { ...this.searched(), page, size: PAGE_SIZE });
+    const result = await this.searchCages.execute(this.sectorId, { ...this.filtersAsked(), page, size: PAGE_SIZE });
     this.loading.set(false);
 
     if (!result.success) {
@@ -396,7 +466,7 @@ export class CageListPage {
       return;
     }
     this.exporting.set(true);
-    const result = await this.exportCages.execute(this.sectorId, this.searched());
+    const result = await this.exportCages.execute(this.sectorId, this.filtersAsked());
     this.exporting.set(false);
     this.giveFocusBackToExport();
     if (result.success) {

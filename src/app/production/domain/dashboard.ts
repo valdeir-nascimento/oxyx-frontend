@@ -160,7 +160,9 @@ export type AlertKind =
   | 'MORTALITY_PENDING'
   | 'HIGH_MORTALITY'
   | 'LOW_LAYING'
-  | 'WEIGHT_OUT_OF_RANGE';
+  | 'WEIGHT_OUT_OF_RANGE'
+  | 'WEIGHING_DUE'
+  | 'WEIGHING_LATE';
 
 /** O tom de um alerta: pede atenção, ou só informa. */
 export type AlertTone = 'WARNING' | 'INFO';

@@ -1,4 +1,5 @@
 import { FarmStatus } from './status';
+import { WeighingDay } from './weighing-schedule';
 
 /**
  * Setor na lista, como o backend o devolve (`SectorSummary`): um galpão, uma espécie ou um lote, com
@@ -18,6 +19,8 @@ export interface SectorSummary {
   readonly referenceWeight?: ReferenceWeight;
   /** A meta de produtividade do setor, em porcentagem, com até uma casa (feature 008). */
   readonly layingRateTarget: number;
+  /** O dia da semana da pesagem; ausente quando o setor segue o prazo de 7 dias (feature 010). */
+  readonly weighingDay?: WeighingDay;
 }
 
 /** A faixa de peso de referência das aves de um setor, em gramas, com os limites incluídos (feature 005). */
@@ -51,4 +54,6 @@ export interface SectorInput {
   readonly maximumWeight: string;
   /** A meta de produtividade, como digitada: "85", "82,5" (feature 008). */
   readonly layingRateTarget: string;
+  /** O dia da pesagem escolhido, ou vazio para "sem dia fixo" (feature 010). */
+  readonly weighingDay: WeighingDay | '';
 }

@@ -70,7 +70,8 @@ function formulaBodyOf(input: FeedFormulaInput): Record<string, unknown> {
 /**
  * O corpo de cadastro e de edição de setor. Os limites da faixa de peso vão como número, como as
  * quantidades da gaiola, e os vazios ficam de fora: sem os dois, o setor fica sem faixa (feature 005). A
- * meta inteira vai como número, e a com vírgula, como digitada, para o backend ler (feature 008).
+ * meta inteira vai como número, e a com vírgula, como digitada, para o backend ler (feature 008). Sem dia fixo,
+ * o dia da pesagem vai nulo (feature 010).
  */
 function sectorBodyOf(input: SectorInput): Record<string, unknown> {
   return {
@@ -79,6 +80,7 @@ function sectorBodyOf(input: SectorInput): Record<string, unknown> {
     minimumWeight: jsonNumberOf(input.minimumWeight),
     maximumWeight: jsonNumberOf(input.maximumWeight),
     layingRateTarget: jsonNumberOf(input.layingRateTarget),
+    weighingDay: input.weighingDay === '' ? null : input.weighingDay,
   };
 }
 
@@ -135,6 +137,9 @@ export class FarmHttpAdapter implements SectorGateway, CageGateway, FeedFormulaG
     }
     if (search.battery) {
       params = params.set('battery', search.battery);
+    }
+    if (search.weighing) {
+      params = params.set('weighing', search.weighing);
     }
     return resultOf(() => firstValueFrom(this.http.get<CagePage>(cagesUrl(sectorId), { params })));
   }
@@ -236,6 +241,9 @@ export class FarmHttpAdapter implements SectorGateway, CageGateway, FeedFormulaG
     }
     if (filters.battery) {
       params = params.set('battery', filters.battery);
+    }
+    if (filters.weighing) {
+      params = params.set('weighing', filters.weighing);
     }
     return fileResultOf(
       () =>

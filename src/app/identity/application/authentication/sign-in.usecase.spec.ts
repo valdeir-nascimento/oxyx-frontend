@@ -1,10 +1,13 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { THEME_DISPLAY } from '../../../shared/application/theme-display';
 import { Notification } from '../../../shared/domain/notification';
 import { Result, failure, success } from '../../../shared/application/result';
 import { AuthenticatedCaretaker } from '../../domain/authenticated-caretaker';
 import { AUTHENTICATION_GATEWAY, AuthenticationGateway } from './authentication-gateway';
 import { SessionStore } from './session-store';
 import { SignInUseCase } from './sign-in.usecase';
+import { AccountTheme } from '../account/account-theme';
 
 /**
  * O caso de uso é onde a entrada é decidida: ele valida o que dá para validar sem rede, chama a
@@ -16,6 +19,7 @@ describe('SignInUseCase', () => {
     fullName: 'Maria Silva',
     role: 'USER',
     mustChangePassword: false,
+    theme: 'SYSTEM',
   };
 
   function gatewayThatReturns(result: Result<AuthenticatedCaretaker>): AuthenticationGateway {
@@ -28,7 +32,7 @@ describe('SignInUseCase', () => {
 
   function useCaseWith(gateway: AuthenticationGateway): SignInUseCase {
     TestBed.configureTestingModule({
-      providers: [SignInUseCase, { provide: AUTHENTICATION_GATEWAY, useValue: gateway }],
+      providers: [SignInUseCase, { provide: AUTHENTICATION_GATEWAY, useValue: gateway }, { provide: THEME_DISPLAY, useValue: { apply: vi.fn(), current: signal('SYSTEM') } }],
     });
     return TestBed.inject(SignInUseCase);
   }
@@ -113,5 +117,19 @@ describe('SignInUseCase', () => {
     await useCase.execute('maria.silva@ovyx.com.br', 'SenhaErrada2026');
 
     expect(TestBed.inject(SessionStore).caretaker()).toBeNull();
+  });
+
+  // ---------------------------------------------------------------- tema (011)
+
+  it('applies the theme of the account as soon as the sign-in is accepted, and not when it is refused', async () => {
+    const follow = vi.fn();
+    TestBed.configureTestingModule({ providers: [{ provide: AccountTheme, useValue: { follow } }] });
+    const dark = { ...maria, theme: 'DARK' as const };
+
+    await useCaseWith(gatewayThatReturns(success(dark))).execute('maria.silva@ovyx.com.br', 'GranjaNorte2026');
+    await TestBed.inject(SignInUseCase).execute('maria.silva@ovyx.com.br', '');
+
+    expect(follow).toHaveBeenCalledTimes(1);
+    expect(follow).toHaveBeenCalledWith(dark);
   });
 });

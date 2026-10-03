@@ -66,6 +66,12 @@
           [value]="status()"
           (valueChange)="filterByStatus($event)"
         />
+        <ovyx-segmented-control
+          label="Pesagem"
+          [options]="weighingOptions"
+          [value]="weighing()"
+          (valueChange)="filterByWeighing($event)"
+        />
         <ovyx-button data-export variant="ghost" size="sm" icon="download" [busy]="exporting()" (pressed)="export()">{{
           exporting() ? 'Gerando…' : 'Exportar'
         }}</ovyx-button>
@@ -89,6 +95,7 @@
             <th scope="col">Gaiola</th>
             <th scope="col" class="r">Aves</th>
             <th scope="col" class="r">Peso médio</th>
+            <th scope="col">Pesagem</th>
             <th scope="col">Situação</th>
             <th scope="col" class="r"><span class="sr">Ações</span></th>
           </tr>
@@ -109,6 +116,15 @@
               <td class="r tnum" data-label="Peso médio">
                 @if (cage.lastWeighing; as last) {
                   {{ weightOf(last.averageWeight) }}
+                } @else {
+                  <span class="zero">—</span>
+                }
+              </td>
+              <!-- A situação na agenda de pesagem do setor (feature 010); a gaiola inativa não tem. No celular, a
+                   linha inteira do cartão: o selo "Atrasada desde" não cabe em meia (QA 1, D-1). -->
+              <td class="wide" data-label="Pesagem">
+                @if (cage.weighing; as weighing) {
+                  <ovyx-status-badge [label]="weighingLabelOf(weighing)" [tone]="weighingToneOf(weighing.situation)" />
                 } @else {
                   <span class="zero">—</span>
                 }

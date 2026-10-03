@@ -1,5 +1,6 @@
 import { FarmStatus, StatusFilter } from './status';
 import { WeighingPoint } from './weighing';
+import { WeighingFilter, WeighingStanding } from './weighing-schedule';
 
 /** Gaiola na lista, como o backend a devolve (`CageSummary`). */
 export interface CageSummary {
@@ -13,6 +14,8 @@ export interface CageSummary {
   readonly status: FarmStatus;
   /** A última pesagem válida da gaiola; ausente sem pesagem (feature 005). */
   readonly lastWeighing?: WeighingPoint;
+  /** A situação na agenda de pesagem; ausente na gaiola inativa e em setor inativo (feature 010). */
+  readonly weighing?: WeighingStanding;
 }
 
 /** Gaiola no detalhe e na edição: o resumo, mais os instantes do cadastro e da última alteração. */
@@ -30,11 +33,15 @@ export interface CagePage {
   readonly totalPages: number;
 }
 
-/** Os filtros da lista que a exportação das gaiolas leva (007): a busca, a bateria e a situação, sem página. */
+/**
+ * Os filtros da lista que a exportação das gaiolas leva (007): a busca, a bateria, a situação e a pesagem
+ * pendente (010), sem página.
+ */
 export interface CageExport {
   readonly code: string;
   readonly battery: string;
   readonly status: StatusFilter;
+  readonly weighing?: WeighingFilter;
 }
 
 /** O que a pessoa pede na lista: trecho do código, bateria, situação e página. */
@@ -42,6 +49,8 @@ export interface CageSearch {
   readonly code?: string;
   readonly battery?: string;
   readonly status: StatusFilter;
+  /** Só as gaiolas ativas que faltam pesar (feature 010); ausente, todas. */
+  readonly weighing?: WeighingFilter;
   readonly page: number;
   readonly size: number;
 }

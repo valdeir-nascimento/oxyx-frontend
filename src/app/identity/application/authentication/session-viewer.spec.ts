@@ -13,6 +13,7 @@ describe('SessionViewer', () => {
     fullName: 'Maria Silva',
     role: 'USER',
     mustChangePassword: false,
+    theme: 'SYSTEM',
   };
 
   it('tells an administrator in the session', () => {

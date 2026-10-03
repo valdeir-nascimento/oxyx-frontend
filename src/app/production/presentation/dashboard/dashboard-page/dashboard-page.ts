@@ -48,7 +48,7 @@ import {
   SectorDashboard,
 } from '../../../domain/dashboard';
 import { countOf, dayWithWeekdayOf, moneyOf } from '../../labels/labels';
-import { alertRouteOf } from '../alert-target';
+import { alertQueryOf, alertRouteOf } from '../alert-target';
 import {
   KpiView,
   gradingOf,
@@ -98,6 +98,8 @@ const ALERT_ICON: Readonly<Record<AlertKind, IconName>> = {
   HIGH_MORTALITY: 'alert',
   LOW_LAYING: 'down',
   WEIGHT_OUT_OF_RANGE: 'scale',
+  WEIGHING_DUE: 'calendar',
+  WEIGHING_LATE: 'calendar',
 };
 
 const GREETING: Readonly<Record<PartOfDay, string>> = {
@@ -288,6 +290,7 @@ export class DashboardPage {
       toneClass: alert.tone === 'WARNING' ? 'warning' : 'info',
       icon: ALERT_ICON[alert.kind],
       route: sectorId ? alertRouteOf(sectorId, alert) : [],
+      query: alertQueryOf(alert),
     }));
   });
 

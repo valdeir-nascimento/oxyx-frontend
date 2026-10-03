@@ -1,4 +1,5 @@
 import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
+import { ThemePreference } from '../../shared/domain/theme-preference';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Result } from '../../shared/application/result';
@@ -76,6 +77,12 @@ export class IdentityHttpAdapter implements AuthenticationGateway, AccountGatewa
   async changeOwnPassword(change: PasswordChange): Promise<Result<void>> {
     return resultOf(async () => {
       await firstValueFrom(this.http.put<void>(`${BASE}/me/password`, change));
+    });
+  }
+
+  async changeTheme(theme: ThemePreference): Promise<Result<void>> {
+    return resultOf(async () => {
+      await firstValueFrom(this.http.put<void>(`${BASE}/me/theme`, { theme }));
     });
   }
 

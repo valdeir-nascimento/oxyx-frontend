@@ -53,6 +53,7 @@ export const ICONS = {
   mail: [{ kind: 'rect', x: 3, y: 5, width: 18, height: 14, rx: 2 }, { kind: 'path', d: 'M3.5 6.5l8.5 6 8.5-6' }],
   menu: [{ kind: 'path', d: 'M4 7h16M4 12h16M4 17h16' }],
   minus: [{ kind: 'path', d: 'M5 12h14' }],
+  monitor: [{ kind: 'rect', x: 3, y: 4, width: 18, height: 12, rx: 2 }, { kind: 'path', d: 'M8 20h8M12 16v4' }],
   moon: [{ kind: 'path', d: 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z' }],
   palette: [{ kind: 'path', d: 'M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-1.3-1-1.6-1-2.8 0-1 .8-1.7 1.8-1.7H17a4 4 0 0 0 4-4C21 6.5 17 3 12 3z' }, { kind: 'circle', cx: 7.5, cy: 11, r: 1 }, { kind: 'circle', cx: 10, cy: 7, r: 1 }, { kind: 'circle', cx: 15, cy: 7, r: 1 }],
   percent: [{ kind: 'path', d: 'M19 5L5 19' }, { kind: 'circle', cx: 7, cy: 7, r: 2.5 }, { kind: 'circle', cx: 17, cy: 17, r: 2.5 }],

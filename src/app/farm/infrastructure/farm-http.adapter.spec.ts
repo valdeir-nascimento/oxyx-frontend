@@ -38,6 +38,30 @@ describe('FarmHttpAdapter', () => {
 
   afterEach(() => backend.verify());
 
+  describe('weighing schedule (010)', () => {
+    it('asks for the pending cages only with the weighing filter', async () => {
+      const pending = adapter.searchCages(galpao.id, { status: 'ACTIVE', page: 0, size: 20, weighing: 'PENDING' });
+      const pendingRequest = backend.expectOne((candidate) => candidate.url === `/api/v1/sectors/${galpao.id}/cages`);
+      expect(pendingRequest.request.params.get('weighing')).toBe('PENDING');
+      pendingRequest.flush({ content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+      await pending;
+
+      const every = adapter.searchCages(galpao.id, { status: 'ACTIVE', page: 0, size: 20 });
+      const everyRequest = backend.expectOne((candidate) => candidate.url === `/api/v1/sectors/${galpao.id}/cages`);
+      expect(everyRequest.request.params.has('weighing')).toBe(false);
+      everyRequest.flush({ content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+      await every;
+    });
+
+    it('exports the pending cages with the weighing filter', async () => {
+      const pending = adapter.exportCages(galpao.id, { code: '', battery: '', status: 'ACTIVE', weighing: 'PENDING' });
+      const request = backend.expectOne((candidate) => candidate.url === `/api/v1/sectors/${galpao.id}/cages/export`);
+      expect(request.request.params.get('weighing')).toBe('PENDING');
+      request.flush(new Blob(['PK']));
+      await pending;
+    });
+  });
+
   describe('sectors', () => {
     it('lists the sectors of the asked status', async () => {
       const summary: SectorSummary = {
@@ -78,6 +102,7 @@ describe('FarmHttpAdapter', () => {
         minimumWeight: '',
         maximumWeight: '',
         layingRateTarget: '85',
+        weighingDay: '',
       });
 
       const request = backend.expectOne('/api/v1/sectors');
@@ -88,6 +113,7 @@ describe('FarmHttpAdapter', () => {
         minimumWeight: null,
         maximumWeight: null,
         layingRateTarget: 85,
+        weighingDay: null,
       });
       request.flush(galpao, { status: 201, statusText: 'Created' });
 
@@ -102,6 +128,7 @@ describe('FarmHttpAdapter', () => {
         minimumWeight: '',
         maximumWeight: '',
         layingRateTarget: '85',
+        weighingDay: '',
       });
 
       const request = backend.expectOne(`/api/v1/sectors/${galpao.id}`);
@@ -112,6 +139,7 @@ describe('FarmHttpAdapter', () => {
         minimumWeight: null,
         maximumWeight: null,
         layingRateTarget: 85,
+        weighingDay: null,
       });
       request.flush({ ...galpao, name: 'Codornas — Galpão 1 (norte)' });
 
@@ -126,6 +154,7 @@ describe('FarmHttpAdapter', () => {
         minimumWeight: '155',
         maximumWeight: '',
         layingRateTarget: '85',
+        weighingDay: '',
       });
 
       const request = backend.expectOne('/api/v1/sectors');
@@ -135,6 +164,7 @@ describe('FarmHttpAdapter', () => {
         minimumWeight: 155,
         maximumWeight: null,
         layingRateTarget: 85,
+        weighingDay: null,
       });
       request.flush(galpao, { status: 201, statusText: 'Created' });
 
@@ -148,6 +178,7 @@ describe('FarmHttpAdapter', () => {
         minimumWeight: '',
         maximumWeight: '',
         layingRateTarget: '85',
+        weighingDay: '',
       });
       const wholeRequest = backend.expectOne('/api/v1/sectors');
       expect(wholeRequest.request.body.layingRateTarget).toBe(85);
@@ -160,11 +191,41 @@ describe('FarmHttpAdapter', () => {
         minimumWeight: '',
         maximumWeight: '',
         layingRateTarget: '82,5',
+        weighingDay: '',
       });
       const decimalRequest = backend.expectOne(`/api/v1/sectors/${galpao.id}`);
       expect(decimalRequest.request.body.layingRateTarget).toBe('82,5');
       decimalRequest.flush({ ...galpao, layingRateTarget: 82.5 });
       await decimal;
+    });
+
+    it('sends the weighing day as chosen, and no fixed day as null (010)', async () => {
+      const friday = adapter.registerSector({
+        name: 'Codornas — Galpão 4',
+        description: '',
+        minimumWeight: '',
+        maximumWeight: '',
+        layingRateTarget: '85',
+        weighingDay: 'FRIDAY',
+      });
+      const fridayRequest = backend.expectOne('/api/v1/sectors');
+      expect(fridayRequest.request.body.weighingDay).toBe('FRIDAY');
+      fridayRequest.flush({ ...galpao, weighingDay: 'FRIDAY' }, { status: 201, statusText: 'Created' });
+      const result = await friday;
+      expect(result.success && result.value.weighingDay).toBe('FRIDAY');
+
+      const none = adapter.updateSector(galpao.id, {
+        name: 'Codornas — Galpão 1',
+        description: '',
+        minimumWeight: '',
+        maximumWeight: '',
+        layingRateTarget: '85',
+        weighingDay: '',
+      });
+      const noneRequest = backend.expectOne(`/api/v1/sectors/${galpao.id}`);
+      expect(noneRequest.request.body.weighingDay).toBeNull();
+      noneRequest.flush(galpao);
+      await none;
     });
 
     it('spreads every refused field of a registration into its own violation', async () => {
@@ -174,6 +235,7 @@ describe('FarmHttpAdapter', () => {
         minimumWeight: '',
         maximumWeight: '',
         layingRateTarget: '85',
+        weighingDay: '',
       });
 
       backend.expectOne('/api/v1/sectors').flush(

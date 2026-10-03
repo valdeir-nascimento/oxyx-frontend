@@ -12,7 +12,10 @@
       [menuOpen]="drawerOpen()"
       [menuId]="drawerId"
       (menuToggle)="toggleDrawer()"
-    />
+    >
+      <!-- As ações que a casca encaixa no topo, repassadas à barra (feature 011). -->
+      <ng-container ngProjectAs="[top-bar-actions]"><ng-content select="[top-bar-actions]" /></ng-container>
+    </ovyx-top-bar>
     <main class="content">
       <div class="content-inner">
         <router-outlet />

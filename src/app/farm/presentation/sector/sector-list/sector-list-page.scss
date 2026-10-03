@@ -28,6 +28,16 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+/* O dia da pesagem do setor (feature 010), abaixo dos números, discreto como uma legenda. */
+.setor-schedule {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
 .emblem {
   color: var(--accent-ink);
 }

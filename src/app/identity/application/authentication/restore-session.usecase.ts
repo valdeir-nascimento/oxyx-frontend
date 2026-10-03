@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { AccountTheme } from '../account/account-theme';
 import { Result } from '../../../shared/application/result';
 import { AuthenticatedCaretaker } from '../../domain/authenticated-caretaker';
 import { AUTHENTICATION_GATEWAY } from './authentication-gateway';
@@ -14,6 +15,7 @@ import { SessionStore } from './session-store';
 export class RestoreSessionUseCase {
   private readonly identity = inject(AUTHENTICATION_GATEWAY);
   private readonly session = inject(SessionStore);
+  private readonly accountTheme = inject(AccountTheme);
 
   /** A pergunta em curso, compartilhada por quem pedir enquanto ela não terminar. */
   private pending: Promise<Result<AuthenticatedCaretaker>> | null = null;
@@ -34,6 +36,8 @@ export class RestoreSessionUseCase {
 
     if (result.success) {
       this.session.remember(result.value);
+      // O tema pode ter mudado em outro aparelho; o guard espera esta resposta antes da casca (feature 011).
+      this.accountTheme.follow(result.value);
     } else {
       this.session.forget();
     }
