@@ -16,6 +16,7 @@ export const SKIP_SESSION_HANDLING = new HttpContextToken<boolean>(() => false);
 const FORBIDDEN_CODE = 'FORBIDDEN';
 const PASSWORD_CHANGE_REQUIRED_CODE = 'PASSWORD_CHANGE_REQUIRED';
 const INVALID_CREDENTIALS_CODE = 'INVALID_CREDENTIALS';
+const SESSION_REVOKED_CODE = 'SESSION_REVOKED';
 
 /**
  * Traduz as recusas de sessão do backend em navegação (FR-003, FR-010).
@@ -28,7 +29,8 @@ const INVALID_CREDENTIALS_CODE = 'INVALID_CREDENTIALS';
  *   (`CARETAKER_UNAVAILABLE`). Esquece a identidade em memória, para que nenhum guard continue
  *   acreditando numa sessão que o backend já recusou, e leva à tela de acesso com o motivo no
  *   endereço — assim o aviso sobrevive a um recarregamento. Exceto `INVALID_CREDENTIALS`, que é a
- *   resposta a uma senha errada na própria tela de acesso, e não uma sessão que expirou.
+ *   resposta a uma senha errada na própria tela de acesso, e não uma sessão que expirou. A sessão encerrada porque
+ *   a senha foi redefinida pelo link (`SESSION_REVOKED`, feature 012) leva outro motivo, para a tela dizer por quê.
  * - **403 `FORBIDDEN`** e **403 `PASSWORD_CHANGE_REQUIRED`**: o backend reconfere a sessão a cada
  *   requisição, e a recusa pode vir de um perfil rebaixado ou de uma senha que voltou a ser
  *   provisória depois do login. Antes de navegar, pergunta de novo ao backend quem está na sessão,
@@ -49,7 +51,8 @@ export const sessionInterceptor: HttpInterceptorFn = (request, next) => {
       if (error instanceof HttpErrorResponse && !request.context.get(SKIP_SESSION_HANDLING)) {
         if (error.status === 401 && problemCode(error) !== INVALID_CREDENTIALS_CODE) {
           session.forget();
-          void router.navigate(['/acesso'], { queryParams: { sessao: 'expirada' } });
+          const reason = problemCode(error) === SESSION_REVOKED_CODE ? 'encerrada' : 'expirada';
+          void router.navigate(['/acesso'], { queryParams: { sessao: reason } });
         } else if (error.status === 403 && problemCode(error) === FORBIDDEN_CODE) {
           navigateAfterRestoring(restoreSession, router, '/acesso-negado');
         } else if (error.status === 403 && problemCode(error) === PASSWORD_CHANGE_REQUIRED_CODE) {

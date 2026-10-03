@@ -6,7 +6,15 @@
       <p class="muted">Use o e-mail ou o celular cadastrado pelo administrador.</p>
     </div>
 
-    @if (sessionExpired) {
+    @if (passwordReset) {
+      <ovyx-alert variant="success">
+        <p>Senha redefinida. Entre com a nova senha.</p>
+      </ovyx-alert>
+    } @else if (sessionRevoked) {
+      <ovyx-alert variant="warning">
+        <p>Sua senha foi redefinida e esta sessão foi encerrada. Entre com a nova senha.</p>
+      </ovyx-alert>
+    } @else if (sessionExpired) {
       <ovyx-alert variant="warning">
         <p>Sua sessão expirou. Entre novamente para continuar.</p>
       </ovyx-alert>
@@ -34,6 +42,10 @@
       [control]="form.controls.password"
       [error]="messageFor('password')"
     />
+
+    <div class="toolbar forgot">
+      <a class="btn btn-ghost btn-sm" routerLink="/esqueci-a-senha">Esqueci a senha</a>
+    </div>
 
     <ovyx-button type="submit" size="lg" trailingIcon="arrowR" [block]="true" [busy]="submitting()">
       Entrar

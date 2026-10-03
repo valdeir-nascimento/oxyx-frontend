@@ -343,6 +343,83 @@ describe('IdentityHttpAdapter', () => {
     });
   });
 
+  // ---------------------------------------------------------------- recuperação de senha (012)
+
+  it('posts the email of the recovery request, answered with 202 and no body', async () => {
+    const pending = adapter.request('marina.costa@ovyx.com.br');
+
+    const request = backend.expectOne('/api/v1/auth/password-recovery');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ email: 'marina.costa@ovyx.com.br' });
+    request.flush(null, { status: 202, statusText: 'Accepted' });
+
+    expect((await pending).success).toBe(true);
+  });
+
+  it('turns the refusal of the email into a violation of its field', async () => {
+    const pending = adapter.request('marina');
+
+    backend.expectOne('/api/v1/auth/password-recovery').flush(
+      {
+        code: 'VALIDATION_FAILED',
+        title: 'Dados inválidos',
+        status: 400,
+        detail: 'Dados inválidos.',
+        details: { email: 'Informe um e-mail em formato válido.' },
+      },
+      { status: 400, statusText: 'Bad Request' },
+    );
+
+    const result = await pending;
+    expect(result.success === false && result.notification.messageFor('email')).toBe(
+      'Informe um e-mail em formato válido.',
+    );
+  });
+
+  it('posts the code of the link to check it', async () => {
+    const pending = adapter.verify('3q2-7wq9Xk1vF0bQm8ZsY4tLr6NcHe2JpWdUaGo5iKx');
+
+    const request = backend.expectOne('/api/v1/auth/password-recovery/verification');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ token: '3q2-7wq9Xk1vF0bQm8ZsY4tLr6NcHe2JpWdUaGo5iKx' });
+    request.flush(null, { status: 204, statusText: 'No Content' });
+
+    expect((await pending).success).toBe(true);
+  });
+
+  it('keeps the code of the refusal of a link that no longer holds', async () => {
+    const pending = adapter.verify('3q2-7wq9Xk1vF0bQm8ZsY4tLr6NcHe2JpWdUaGo5iKx');
+
+    backend.expectOne('/api/v1/auth/password-recovery/verification').flush(
+      {
+        code: 'RECOVERY_LINK_INVALID',
+        title: 'Dados inválidos',
+        status: 400,
+        detail: 'Este link de recuperação não vale mais. Peça um novo na tela de entrada.',
+      },
+      { status: 400, statusText: 'Bad Request' },
+    );
+
+    const result = await pending;
+    expect(result.success === false && result.notification.errors.map((error) => error.code)).toEqual([
+      'RECOVERY_LINK_INVALID',
+    ]);
+  });
+
+  it('posts the code and the new password to reset it', async () => {
+    const pending = adapter.reset('3q2-7wq9Xk1vF0bQm8ZsY4tLr6NcHe2JpWdUaGo5iKx', 'PosturaAviario2027');
+
+    const request = backend.expectOne('/api/v1/auth/password-reset');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({
+      token: '3q2-7wq9Xk1vF0bQm8ZsY4tLr6NcHe2JpWdUaGo5iKx',
+      newPassword: 'PosturaAviario2027',
+    });
+    request.flush(null, { status: 204, statusText: 'No Content' });
+
+    expect((await pending).success).toBe(true);
+  });
+
   // ---------------------------------------------------------------- tema (011)
 
   it('puts the theme chosen in the account', async () => {

@@ -7,3 +7,9 @@
 .muted {
   margin-top: 6px;
 }
+
+/* "Esqueci a senha", à direita, logo abaixo da senha, como no protótipo (feature 012). */
+.forgot {
+  justify-content: flex-end;
+  margin-top: -6px;
+}

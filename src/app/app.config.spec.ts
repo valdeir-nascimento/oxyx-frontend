@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { ACCOUNT_GATEWAY } from './identity/application/account/account-gateway';
 import { AUTHENTICATION_GATEWAY } from './identity/application/authentication/authentication-gateway';
 import { CARETAKER_GATEWAY } from './identity/application/caretaker/caretaker-gateway';
+import { RECOVERY_GATEWAY } from './identity/application/recovery/recovery-gateway';
 import { SessionStore } from './identity/application/authentication/session-store';
 import { IdentityHttpAdapter } from './identity/infrastructure/identity-http.adapter';
 import { FILE_SAVER } from './shared/application/file-saver';
@@ -30,6 +31,7 @@ describe('appConfig', () => {
     expect(TestBed.inject(AUTHENTICATION_GATEWAY)).toBe(adapter);
     expect(TestBed.inject(ACCOUNT_GATEWAY)).toBe(adapter);
     expect(TestBed.inject(CARETAKER_GATEWAY)).toBe(adapter);
+    expect(TestBed.inject(RECOVERY_GATEWAY)).toBe(adapter);
   });
 
   it('saves the downloaded spreadsheets through the browser', () => {

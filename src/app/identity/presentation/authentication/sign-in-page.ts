@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Notification } from '../../../shared/domain/notification';
 import { AuthLayout } from '../../../shared/presentation/layout/auth-layout/auth-layout';
 import { Alert } from '../../../shared/presentation/ui/alert/alert';
@@ -21,7 +21,7 @@ import { SignInUseCase } from '../../application/authentication/sign-in.usecase'
  */
 @Component({
   selector: 'ovyx-sign-in-page',
-  imports: [AuthLayout, Alert, Button, ErrorSummary, FormField],
+  imports: [AuthLayout, Alert, Button, ErrorSummary, FormField, RouterLink],
   templateUrl: './sign-in-page.html',
   styleUrl: './sign-in-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -50,8 +50,15 @@ export class SignInPage {
    * Vem na navegação que o interceptador faz no 401 (FR-003). Estando no endereço, o aviso
    * sobrevive a um recarregamento — em memória, ele morria no F5.
    */
-  protected readonly sessionExpired =
-    inject(ActivatedRoute).snapshot.queryParamMap.get('sessao') === 'expirada';
+  private readonly reason = inject(ActivatedRoute).snapshot.queryParamMap;
+
+  protected readonly sessionExpired = this.reason.get('sessao') === 'expirada';
+
+  /** A sessão encerrada porque a senha foi redefinida pelo link (feature 012). */
+  protected readonly sessionRevoked = this.reason.get('sessao') === 'encerrada';
+
+  /** A volta da redefinição da senha pelo link (feature 012). */
+  protected readonly passwordReset = this.reason.get('senha') === 'redefinida';
 
   protected messageFor(field: string): string | undefined {
     return this.notification().messageFor(field);

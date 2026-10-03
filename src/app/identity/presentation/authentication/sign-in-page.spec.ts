@@ -162,8 +162,30 @@ describe('SignInPage', () => {
     expect(textOf(await render({ sessao: 'expirada' }))).toContain('Sua sessão expirou');
   });
 
+  it('confirms the reset of the password when the person comes back from it (012)', async () => {
+    const text = textOf(await render({ senha: 'redefinida' }));
+
+    expect(text).toContain('Senha redefinida. Entre com a nova senha.');
+    expect(text).not.toContain('Sua sessão expirou');
+  });
+
+  it('explains that the session was ended by the reset of the password (012)', async () => {
+    const text = textOf(await render({ sessao: 'encerrada' }));
+
+    expect(text).toContain('Sua senha foi redefinida e esta sessão foi encerrada. Entre com a nova senha.');
+    expect(text).not.toContain('Sua sessão expirou');
+  });
+
   it('says nothing about expiry on an ordinary first visit', async () => {
     expect(textOf(await render())).not.toContain('Sua sessão expirou');
+  });
+
+  it('offers the recovery of a forgotten password (012)', async () => {
+    const fixture = await render();
+
+    const link = (fixture.nativeElement as HTMLElement).querySelector('a[href="/esqueci-a-senha"]');
+
+    expect(link?.textContent?.trim()).toBe('Esqueci a senha');
   });
 
   it('hides the password while it is typed', async () => {
