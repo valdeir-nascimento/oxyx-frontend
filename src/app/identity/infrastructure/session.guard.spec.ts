@@ -7,7 +7,13 @@ import { Result, failure, success } from '../../shared/application/result';
 import { AuthenticatedCaretaker } from '../domain/authenticated-caretaker';
 import { AUTHENTICATION_GATEWAY, AuthenticationGateway } from '../application/authentication/authentication-gateway';
 import { SessionStore } from '../application/authentication/session-store';
-import { administratorGuard, anonymousGuard, authenticatedGuard, passwordChangeGuard } from './session.guard';
+import {
+  administratorGuard,
+  anonymousGuard,
+  authenticatedGuard,
+  passwordChangeGuard,
+  recoveryLinkGuard,
+} from './session.guard';
 
 /**
  * O guard é o que faz a rota respeitar o que o backend já decide: sem sessão não há tela, e
@@ -120,6 +126,39 @@ describe('authenticatedGuard', () => {
 
     expect(await run(anonymousGuard)).toBe('true');
     expect(gateway.currentCaretaker).toHaveBeenCalledOnce();
+  });
+
+  it('lets an anonymous visitor reset the password by the link, having asked the backend who they are (012)', async () => {
+    // Como na tela de acesso, a pergunta é o que traz o cookie XSRF-TOKEN antes do primeiro POST da tela.
+    configure(noSessionOnServer());
+
+    expect(await run(recoveryLinkGuard)).toBe('true');
+    expect(gateway.currentCaretaker).toHaveBeenCalledOnce();
+  });
+
+  it('lets whoever is signed in reset a password by the link too (012)', async () => {
+    configure(success(maria));
+
+    expect(await run(recoveryLinkGuard)).toBe('true');
+  });
+
+  it.each([
+    ['authenticatedGuard', authenticatedGuard],
+    ['passwordChangeGuard', passwordChangeGuard],
+    ['administratorGuard', administratorGuard],
+  ])('%s says the session was ended by the reset of the password when that is why (012, QA D-02)', async (_name, guard) => {
+    configure(
+      failure(
+        Notification.of([
+          {
+            code: 'SESSION_REVOKED',
+            message: 'Sua senha foi redefinida e esta sessão foi encerrada. Entre com a nova senha.',
+          },
+        ]),
+      ),
+    );
+
+    expect(await run(guard)).toBe('/acesso?sessao=encerrada');
   });
 
   it('lets an administrator into the administrative area', async () => {

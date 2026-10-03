@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { THEME_DISPLAY } from './shared/application/theme-display';
+import { RECOVERY_GATEWAY } from './identity/application/recovery/recovery-gateway';
 import { FILE_SAVER } from './shared/application/file-saver';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
@@ -76,6 +77,7 @@ describe('routes', () => {
           },
         },
         { provide: ACCOUNT_GATEWAY, useValue: { changeOwnPassword: vi.fn(), changeTheme: vi.fn() } },
+        { provide: RECOVERY_GATEWAY, useValue: { request: vi.fn(), verify: vi.fn(), reset: vi.fn() } },
         { provide: THEME_DISPLAY, useValue: { apply: vi.fn(), current: signal('SYSTEM') } },
         { provide: FILE_SAVER, useValue: { save: vi.fn() } },
         {
@@ -311,6 +313,27 @@ describe('routes', () => {
     configure(success(maria));
 
     expect(await goTo('/trocar-senha')).toBe('/minha-conta/senha');
+  });
+
+  it('opens the forgotten password screen to an anonymous visitor (012)', async () => {
+    configure(noSession());
+
+    expect(await goTo('/esqueci-a-senha')).toBe('/esqueci-a-senha');
+  });
+
+  it('sends whoever is signed in from the forgotten password screen to the dashboard (012)', async () => {
+    configure(success(maria));
+
+    expect(await goTo('/esqueci-a-senha')).toBe('/');
+  });
+
+  it.each([
+    ['an anonymous visitor', 'none'],
+    ['whoever is signed in with another account', 'maria'],
+  ])('opens the reset of the password by the link to %s (012)', async (_who, session) => {
+    configure(session === 'maria' ? success(maria) : noSession());
+
+    expect(await goTo('/redefinir-senha')).toBe('/redefinir-senha');
   });
 
   it('keeps an anonymous visitor out of the password change screen', async () => {

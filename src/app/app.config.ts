@@ -9,6 +9,7 @@ import { routes } from './app.routes';
 import { ACCOUNT_GATEWAY } from './identity/application/account/account-gateway';
 import { AUTHENTICATION_GATEWAY } from './identity/application/authentication/authentication-gateway';
 import { CARETAKER_GATEWAY } from './identity/application/caretaker/caretaker-gateway';
+import { RECOVERY_GATEWAY } from './identity/application/recovery/recovery-gateway';
 import { CAGE_GATEWAY } from './farm/application/cage/cage-gateway';
 import { FEED_FORMULA_GATEWAY } from './farm/application/formula/feed-formula-gateway';
 import { SECTOR_GATEWAY } from './farm/application/sector/sector-gateway';
@@ -44,6 +45,7 @@ export const appConfig: ApplicationConfig = {
     { provide: AUTHENTICATION_GATEWAY, useExisting: IdentityHttpAdapter },
     { provide: ACCOUNT_GATEWAY, useExisting: IdentityHttpAdapter },
     { provide: CARETAKER_GATEWAY, useExisting: IdentityHttpAdapter },
+    { provide: RECOVERY_GATEWAY, useExisting: IdentityHttpAdapter },
     { provide: SECTOR_GATEWAY, useExisting: FarmHttpAdapter },
     { provide: CAGE_GATEWAY, useExisting: FarmHttpAdapter },
     { provide: FEED_FORMULA_GATEWAY, useExisting: FarmHttpAdapter },

@@ -85,6 +85,13 @@ describe('sessionInterceptor', () => {
     expect(navigate).toHaveBeenCalledWith(['/acesso'], { queryParams: { sessao: 'expirada' } });
   });
 
+  it('says the session was ended by the reset of the password, when that is why (012)', () => {
+    failWith(problem('SESSION_REVOKED', 401), 401);
+
+    expect(forget).toHaveBeenCalledOnce();
+    expect(navigate).toHaveBeenCalledWith(['/acesso'], { queryParams: { sessao: 'encerrada' } });
+  });
+
   it('goes to the access denied screen on a plain 403', async () => {
     failWith(problem('FORBIDDEN', 403), 403);
 

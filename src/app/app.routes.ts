@@ -12,6 +12,7 @@ import {
   anonymousGuard,
   authenticatedGuard,
   passwordChangeGuard,
+  recoveryLinkGuard,
 } from './identity/infrastructure/session.guard';
 import { activeWeighingCageGuard, weighingCrumbsResolver } from './farm/presentation/weighing/weighing-route';
 
@@ -30,6 +31,26 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./identity/presentation/authentication/sign-in-page').then((m) => m.SignInPage),
     title: 'Entrar — Ovyx',
+  },
+  {
+    // A recuperação da senha pelo e-mail (feature 012): só para quem não entrou, como a tela de acesso.
+    path: 'esqueci-a-senha',
+    canActivate: [anonymousGuard],
+    loadComponent: () =>
+      import('./identity/presentation/recovery/forgot-password-page/forgot-password-page').then(
+        (m) => m.ForgotPasswordPage,
+      ),
+    title: 'Esqueci a senha — Ovyx',
+  },
+  {
+    // O link do e-mail de recuperação (feature 012): vale com ou sem sessão, e o código vem no fragmento.
+    path: 'redefinir-senha',
+    canActivate: [recoveryLinkGuard],
+    loadComponent: () =>
+      import('./identity/presentation/recovery/reset-password-page/reset-password-page').then(
+        (m) => m.ResetPasswordPage,
+      ),
+    title: 'Redefinir senha — Ovyx',
   },
   {
     path: 'trocar-senha',

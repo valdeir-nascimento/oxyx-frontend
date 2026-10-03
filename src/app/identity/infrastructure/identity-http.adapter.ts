@@ -18,6 +18,7 @@ import { PasswordChange } from '../domain/password-change';
 import { AccountGateway } from '../application/account/account-gateway';
 import { AuthenticationGateway } from '../application/authentication/authentication-gateway';
 import { CaretakerGateway } from '../application/caretaker/caretaker-gateway';
+import { RecoveryGateway } from '../application/recovery/recovery-gateway';
 
 const BASE = '/api/v1';
 
@@ -42,7 +43,9 @@ function caretakerUrl(id: string): string {
  * não trata `catch` (princípio IV, espelhado no cliente).
  */
 @Injectable({ providedIn: 'root' })
-export class IdentityHttpAdapter implements AuthenticationGateway, AccountGateway, CaretakerGateway {
+export class IdentityHttpAdapter
+  implements AuthenticationGateway, AccountGateway, CaretakerGateway, RecoveryGateway
+{
   private readonly http = inject(HttpClient);
 
   async signIn(credentials: Credentials): Promise<Result<AuthenticatedCaretaker>> {
@@ -83,6 +86,26 @@ export class IdentityHttpAdapter implements AuthenticationGateway, AccountGatewa
   async changeTheme(theme: ThemePreference): Promise<Result<void>> {
     return resultOf(async () => {
       await firstValueFrom(this.http.put<void>(`${BASE}/me/theme`, { theme }));
+    });
+  }
+
+  // ---------------------------------------------------------------- recuperação de senha (012)
+
+  async request(email: string): Promise<Result<void>> {
+    return resultOf(async () => {
+      await firstValueFrom(this.http.post<void>(`${BASE}/auth/password-recovery`, { email }));
+    });
+  }
+
+  async verify(token: string): Promise<Result<void>> {
+    return resultOf(async () => {
+      await firstValueFrom(this.http.post<void>(`${BASE}/auth/password-recovery/verification`, { token }));
+    });
+  }
+
+  async reset(token: string, newPassword: string): Promise<Result<void>> {
+    return resultOf(async () => {
+      await firstValueFrom(this.http.post<void>(`${BASE}/auth/password-reset`, { token, newPassword }));
     });
   }
 
